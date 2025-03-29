@@ -47,6 +47,7 @@ npm install
 3. **Configure as variáveis de ambiente**
 
 Renomeie o arquivo .env.example para .env e preencha com os valores necessários.
+
 4. **Inicie o projeto**
 ```bash
 npm run dev
