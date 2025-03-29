@@ -84,9 +84,17 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
     </td>
     <td align="center">
       <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="100px;" alt="Foto da Jéssica no GitHub"/><br>
+        <img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="100px;" alt="Foto da Jessica no GitHub"/><br>
         <sub>
-          <b>Jéssica Ellen</b>
+          <b>Jessica Ellen</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/53127444?s=64&v=4" width="100px;" alt="Foto do Lucas no GitHub"/><br>
+        <sub>
+          <b>Lucas Lima</b>
         </sub>
       </a>
     </td>
