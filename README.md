@@ -50,7 +50,7 @@ Renomeie o arquivo .env.example para .env e preencha com os valores necessários
 
 4. **Inicie o projeto**
 ```bash
-npm run dev
+npm run start:dev
 ```
 ## 🤝 Colaboradores
 
