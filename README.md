@@ -98,6 +98,14 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
         </sub>
       </a>
     </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/11302968?s=70&v=4" width="100px;" alt="Foto do Marcos no GitHub"/><br>
+        <sub>
+          <b>Marcos Vinicius</b>
+        </sub>
+      </a>
+    </td>
   </tr>
 </table>
 
