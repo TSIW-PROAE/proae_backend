@@ -50,7 +50,7 @@ Renomeie o arquivo .env.example para .env e preencha com os valores necessários
 
 4. **Inicie o projeto**
 ```bash
-npm run dev
+npm run start:dev
 ```
 ## 🤝 Colaboradores
 
@@ -60,15 +60,15 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
   <tr>
     <td align="center">
       <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/55918680?v=4" width="100px;" alt="Foto do no GitHub"/><br>
+        <img src="https://avatars.githubusercontent.com/u/24979899?s=96&v=4" width="100px;" alt="Foto do Thales no GitHub"/><br>
         <sub>
-          <b></b>
+          <b>Thales Macêdo</b>
         </sub>
       </a>
     </td>
     <td align="center">
       <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/20570844?v=4" width="100px;" alt="Foto do no GitHub"/><br>
+        <img src="https://avatars.githubusercontent.com/u/20570844?v=4" width="100px;" alt="Foto do Maurício no GitHub"/><br>
         <sub>
           <b>Mauricio Menezes</b>
         </sub>
@@ -76,9 +76,25 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
     </td>
     <td align="center">
       <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/101140937?v=4" width="100px;" alt="Foto do Steve Jobs"/><br>
+        <img src="https://avatars.githubusercontent.com/u/83249854?s=64&v=4" width="100px;" alt="Foto do Hugo no GitHub"/><br>
         <sub>
-          <b></b>
+          <b>Hugo Chaves</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="100px;" alt="Foto da Jessica no GitHub"/><br>
+        <sub>
+          <b>Jessica Ellen</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/53127444?s=64&v=4" width="100px;" alt="Foto do Lucas no GitHub"/><br>
+        <sub>
+          <b>Lucas Lima</b>
         </sub>
       </a>
     </td>
@@ -103,4 +119,3 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
 - **Segurança e Sigilo de Dados:** O sistema deve garantir a segurança e o sigilo dos dados sensíveis dos estudantes, com acesso restrito a pessoas autorizadas e histórico de observações com níveis de sigilo.
 - **Integração com Outros Sistemas:** O sistema deve ser capaz de integrar com outros sistemas da faculdade, como o sistema de matrícula.
 - **Manutenção de Histórico:** O sistema precisa manter o histórico dos dados pelo período de tempo legalmente exigido, mesmo após o encerramento dos processos seletivos.
-
