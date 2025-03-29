@@ -60,9 +60,9 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
   <tr>
     <td align="center">
       <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/55918680?v=4" width="100px;" alt="Foto do no GitHub"/><br>
+        <img src="https://avatars.githubusercontent.com/u/24979899?s=96&v=4" width="100px;" alt="Foto do Thales no GitHub"/><br>
         <sub>
-          <b></b>
+          <b>Thales Macêdo</b>
         </sub>
       </a>
     </td>
