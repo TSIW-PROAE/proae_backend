@@ -12,11 +12,11 @@ O projeto foi desenvolvido com as seguintes tecnologias:
 
 ⚛️ NestJs - Framework back-end que auxilia no desenvolvimento de aplicações eficientes e escaláveis em cima do NodeJs.
 
-:game_die: - PostgreSQL - Sistema de gerenciamento de banco de dados relacional.
+:game_die: PostgreSQL - Sistema de gerenciamento de banco de dados relacional.
 
-:whale: - Docker - Plataforma de software que permite criar, testar e implantar modificações em containers virtuais. 
+:whale: Docker - Plataforma de software que permite criar, testar e implantar modificações em containers virtuais. 
 
-:whale2: - Docker-Compose - Ferramenta que gerencia múltiplos containers no docker.
+:whale2: Docker-Compose - Ferramenta que gerencia múltiplos containers no docker.
 
 🟦 TypeScript - Tipagem estática para JavaScript
 
