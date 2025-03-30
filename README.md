@@ -98,6 +98,14 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
         </sub>
       </a>
     </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/11302968?s=70&v=4" width="100px;" alt="Foto do Marcos no GitHub"/><br>
+        <sub>
+          <b>Marcos Vinicius</b>
+        </sub>
+      </a>
+    </td>
   </tr>
 </table>
 
@@ -119,4 +127,3 @@ Agradecemos às seguintes pessoas que contribuíram para este projeto:
 - **Segurança e Sigilo de Dados:** O sistema deve garantir a segurança e o sigilo dos dados sensíveis dos estudantes, com acesso restrito a pessoas autorizadas e histórico de observações com níveis de sigilo.
 - **Integração com Outros Sistemas:** O sistema deve ser capaz de integrar com outros sistemas da faculdade, como o sistema de matrícula.
 - **Manutenção de Histórico:** O sistema precisa manter o histórico dos dados pelo período de tempo legalmente exigido, mesmo após o encerramento dos processos seletivos.
-
