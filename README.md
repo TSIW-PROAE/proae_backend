@@ -2,7 +2,7 @@
 
 <img src="https://github.com/TSIW-PROAE/.github/raw/main/img/logo_pgcomp.png" alt="Logo pgcomp">
 
-Front-end do sistema de gestão para a Pró-Reitoria de Ações Afirmativas e Assistência Estudantil (PROAE) da UFBA
+Back-end do sistema de gestão para a Pró-Reitoria de Ações Afirmativas e Assistência Estudantil (PROAE) da UFBA
 
 ## 🛠️ Tecnologias Utilizadas
 
