@@ -10,7 +10,7 @@ export class Aluno {
   aluno_id: number;
 
   @Column()
-  id_clerk: number;
+  id_clerk: string;
 
   @Column({ type: 'enum', enum: PronomesEnum })
   pronome: PronomesEnum;
