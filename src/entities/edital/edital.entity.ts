@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
-import { EditalEnum } from 'src/enum/enumEdital';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { EditalEnum } from '../../enum/enumEdital';
+import { StatusEdital } from '../../enum/enumStatusEdital';
 
 @Entity()
 export class Edital {
