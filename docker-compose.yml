@@ -1,34 +1,41 @@
+name: proae-backend
+
 services:
   db:
+    container_name: db
     image: postgres:17-alpine
     restart: always
-    container_name: db
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "${DB_USERNAME}"]
       interval: 20s
       timeout: 5s
       retries: 5
+    networks:
+      - proae
 
   app:
+    container_name: api
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: proae-backend-api
-    environment:
-      - PORT=${PORT}
+    env_file:
+      - ./.env
     ports:
-      - '3000:3000'
+      - '${PORT}:${PORT}'
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./src:/app/src
+    networks:
+      - proae
+
+networks:
+  proae:
+    driver: bridge

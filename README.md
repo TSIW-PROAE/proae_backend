@@ -49,9 +49,18 @@ npm install
 Renomeie o arquivo .env.example para .env e preencha com os valores necessários.
 
 4. **Inicie o projeto**
+
+Sem Docker
 ```bash
 npm run start:dev
 ```
+
+Com Docker
+```bash
+docker-compose up -d
+```
+Obs: A variável de ambiente `DB_HOST` deve ser `db` para o docker-compose.
+
 ## 🤝 Colaboradores
 
 Agradecemos às seguintes pessoas que contribuíram para este projeto:
