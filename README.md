@@ -32,7 +32,7 @@ Antes de começar, certifique-se de ter instalado:
 ## 📂 Estrutura do Projeto
 
 ```plaintext
-
+...
 ```
 
 ## 🚀 Como Rodar o Projeto
