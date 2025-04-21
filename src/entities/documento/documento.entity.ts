@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
-import { EnumTipoDocumento } from 'src/enum/enumTipoDocumento';
-import { StatusDocumento } from 'src/enum/statusDocumento';
+import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
+import { StatusDocumento } from '../../enum/statusDocumento';
 
 @Entity()
 export class Documento {

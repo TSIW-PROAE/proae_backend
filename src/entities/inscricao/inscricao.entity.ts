@@ -11,7 +11,7 @@ import { Edital } from '../edital/edital.entity';
 import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
 import { Documento } from '../documento/documento.entity';
 import { Formulario } from '../formulario/formulario.entity';
-import { StatusInscricao } from 'src/enum/enumStatusInscricao';
+import { StatusInscricao } from '../../enum/enumStatusInscricao';
 
 @Entity()
 export class Inscricao {
