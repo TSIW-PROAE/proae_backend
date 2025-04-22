@@ -8,14 +8,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
-import { Request } from 'express';
 
 @Injectable()
 export class AlunoService {
   constructor(
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
-  ) { }
+  ) {}
 
   private clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -63,33 +62,48 @@ export class AlunoService {
       throw new BadRequestException('Erro ao buscar aluno');
     }
   }
+
   async updateStudentData(
     id: string,
     atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     try {
-      const session = await this.clerk.sessions.getSession(id);
-      if (!session) {
-        throw new BadRequestException('O Token de autenticação não é válido.');
-      }
       const alunoClerk = await this.clerk.users.getUser(id);
       if (!alunoClerk) {
-        throw new BadRequestException('Usuário não encontrado.');
+        throw new NotFoundException('Aluno não encontrado.');
       }
       const aluno = await this.alunoRepository.findOneBy({ id_clerk: id });
       if (!aluno) {
         throw new NotFoundException('Aluno não encontrado.');
       }
+      const emailNovo = atualizaDadosAlunoDTO.email;
+      const emailAtual = alunoClerk.primaryEmailAddress?.emailAddress;
+      const novoEmailDiferente = emailNovo && emailNovo !== emailAtual;
+
+      let primaryEmailId = alunoClerk.primaryEmailAddress?.id;
+
+      if (novoEmailDiferente) {
+        const emailExistente = alunoClerk.emailAddresses.find(
+          (email) => email.emailAddress === emailNovo,
+        );
+
+        if (!emailExistente) {
+          throw new BadRequestException('Novo email não validado.');
+        }
+
+        primaryEmailId = emailExistente.id;
+      }
+
       await this.clerk.users.updateUser(id, {
         firstName: atualizaDadosAlunoDTO.nome,
         lastName: atualizaDadosAlunoDTO.sobrenome,
         username: atualizaDadosAlunoDTO.matricula,
-        primaryEmailAddressID: atualizaDadosAlunoDTO.email,
+        primaryEmailAddressID: primaryEmailId,
       });
       Object.assign(aluno, {
         pronome: atualizaDadosAlunoDTO.pronome,
         data_nascimento: atualizaDadosAlunoDTO.data_nascimento,
-        curso: atualizaDadosAlunoDTO.campus,
+        curso: atualizaDadosAlunoDTO.curso,
         campus: atualizaDadosAlunoDTO.campus,
         data_ingresso: atualizaDadosAlunoDTO.data_ingresso,
         celular: atualizaDadosAlunoDTO.celular,

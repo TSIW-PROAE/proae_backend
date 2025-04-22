@@ -16,7 +16,7 @@ export class AlunoController {
   }
 
   @UseGuards(AuthGuard)
-  @Post(':id/update')
+  @Post('/update')
   async updateStudentData(
     @Req() request: AuthenticatedRequest,
     @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
