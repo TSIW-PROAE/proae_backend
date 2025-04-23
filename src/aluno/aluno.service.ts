@@ -97,7 +97,7 @@ export class AlunoService {
       await this.clerk.users.updateUser(id, {
         firstName: atualizaDadosAlunoDTO.nome,
         lastName: atualizaDadosAlunoDTO.sobrenome,
-        username: atualizaDadosAlunoDTO.matricula,
+        username: `m-${atualizaDadosAlunoDTO.matricula}`,
         primaryEmailAddressID: primaryEmailId,
       });
       Object.assign(aluno, {

@@ -2,6 +2,7 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsNumberString,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -23,7 +24,7 @@ export class AtualizaDadosAlunoDTO {
   email?: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumberString()
   matricula?: string;
 
   @IsOptional()
