@@ -22,6 +22,6 @@ export class AlunoController {
     @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     const { id } = request.user;
-    return await this.alunoService.updateStudentData(id, atualizaDadosAlunoDTO);
+    return this.alunoService.updateStudentData(id, atualizaDadosAlunoDTO);
   }
 }
