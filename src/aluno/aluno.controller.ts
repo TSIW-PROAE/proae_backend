@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Req, Post, Body } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Body, Patch } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AlunoService } from './aluno.service';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
@@ -16,7 +16,7 @@ export class AlunoController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('/update')
+  @Patch('/update')
   async updateStudentData(
     @Req() request: AuthenticatedRequest,
     @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
