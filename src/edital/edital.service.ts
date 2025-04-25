@@ -85,15 +85,15 @@ export class EditalService {
   async remove(id: number) {
     try {
       return await this.entityManager.transaction(async (transactionalEntityManager) => {
-        const edital = await transactionalEntityManager.findOne(Edital, { 
+        const edital = await transactionalEntityManager.findOne(Edital, {
           where: { id },
           relations: {
             etapas: { resultados: true }
           },
         });
-        
+
         if (!edital) {
-          throw new Error('Edital não encontrado');
+          return 'Edital com id: ' + id + ' não encontrado';
         }
 
         // Exclui os resultados associados às etapas do edital
@@ -108,11 +108,10 @@ export class EditalService {
 
         // Exclui o edital
         await transactionalEntityManager.delete(Edital, { id });
-        
+
         return { message: 'Edital e entidades relacionadas excluídos com sucesso' };
       });
     } catch (error) {
-      console.error('Erro ao excluir edital:', error);
       throw new Error(`Falha ao excluir edital: ${error.message}`);
     }
   }

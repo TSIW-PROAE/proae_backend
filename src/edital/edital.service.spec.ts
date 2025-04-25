@@ -45,7 +45,7 @@ describe('EditalService', () => {
     service = module.get<EditalService>(EditalService);
     editalRepository = module.get<Repository<Edital>>(getRepositoryToken(Edital));
     entityManager = module.get<EntityManager>(EntityManager);
-    
+
     // Reset mocks
     jest.clearAllMocks();
   });
@@ -128,7 +128,7 @@ describe('EditalService', () => {
       // Return the mockEdital as the result of the transaction
       return mockEdital;
     });
-    
+
     // Mock the save method to not do anything (the return value is handled by transaction)
     mockEntityManager.save.mockResolvedValue(undefined);
 
@@ -188,7 +188,7 @@ describe('EditalService', () => {
       await callback(mockEntityManager);
       return successResponse;
     });
-    
+
     mockEntityManager.findOne.mockResolvedValue(mockEdital);
     mockEntityManager.delete.mockResolvedValue({ affected: 1 });
 
@@ -197,9 +197,9 @@ describe('EditalService', () => {
 
     // Verify transaction was called
     expect(mockEntityManager.transaction).toHaveBeenCalled();
-    
+
     // Verify findOne was called with correct parameters
-    expect(mockEntityManager.findOne).toHaveBeenCalledWith(Edital, { 
+    expect(mockEntityManager.findOne).toHaveBeenCalledWith(Edital, {
       where: { id: 1 },
       relations: {
         etapas: { resultados: true }
@@ -228,16 +228,17 @@ describe('EditalService', () => {
     expect(result).toEqual(successResponse);
   });
 
-  test('remove should throw error if edital not found', async () => {
+  test('remove should return message if edital not found', async () => {
     // Setup mocks
     mockEntityManager.transaction.mockImplementation(async (callback) => {
       return await callback(mockEntityManager);
     });
-    
+
     mockEntityManager.findOne.mockResolvedValue(null);
 
-    // Execute the test and verify it throws the expected error
-    await expect(service.remove(999)).rejects.toThrow('Edital não encontrado');
+    // Execute the test and verify it returns the expected message
+    const result = await service.remove(999);
+    expect(result).toBe('Edital com id: 999 não encontrado');
   });
 
   test('remove should handle transaction errors', async () => {
