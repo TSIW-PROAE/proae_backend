@@ -83,10 +83,6 @@ export class EditalService {
   }
 
   async remove(id: number) {
-    // ondelete cascade não esta funcionando para excluir etapas automaticamente
-    // await this.editaisRepository.delete(id);
-
-    // Exclui o edital e suas etapas associadas manualmente já que a cascata não esta funcionando
     try {
       return await this.entityManager.transaction(async (transactionalEntityManager) => {
         const edital = await transactionalEntityManager.findOne(Edital, { 
@@ -95,20 +91,25 @@ export class EditalService {
             etapas: { resultados: true }
           },
         });
+        
         if (!edital) {
           throw new Error('Edital não encontrado');
         }
 
         // Exclui os resultados associados às etapas do edital
         for (const etapa of edital.etapas) {
-          await transactionalEntityManager.delete(ResultadoEtapa, { etapa });
+          if (etapa.resultados && etapa.resultados.length > 0) {
+            await transactionalEntityManager.delete(ResultadoEtapa, { etapa: { id: etapa.id } });
+          }
         }
 
         // Exclui as etapas associadas ao edital
-        await transactionalEntityManager.delete(EtapaInscricao, { edital });
+        await transactionalEntityManager.delete(EtapaInscricao, { edital: { id } });
 
         // Exclui o edital
         await transactionalEntityManager.delete(Edital, { id });
+        
+        return { message: 'Edital e entidades relacionadas excluídos com sucesso' };
       });
     } catch (error) {
       console.error('Erro ao excluir edital:', error);

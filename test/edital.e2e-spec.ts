@@ -115,6 +115,45 @@ describe('EditalController (e2e)', () => {
       });
   });
   
-  // Não testamos a exclusão pois ela não está implementada no serviço
-  // O teste de DELETE retornaria 200 mas não excluiria de fato
+  it('/editais/:id (DELETE) - should delete an edital and related entities', () => {
+    // First, create a new edital specifically for deletion
+    const deletionEditalDto = {
+      ...createEditalDto,
+      descricao: 'Edital para ser excluído'
+    };
+    
+    return request(app.getHttpServer())
+      .post('/editais')
+      .send(deletionEditalDto)
+      .expect(201)
+      .then(createResponse => {
+        const deleteId = createResponse.body.id;
+        
+        // Now delete the edital
+        return request(app.getHttpServer())
+          .delete(`/editais/${deleteId}`)
+          .expect(200)
+          .then(deleteResponse => {
+            expect(deleteResponse.body).toBeDefined();
+            expect(deleteResponse.body.message).toBe('Edital e entidades relacionadas excluídos com sucesso');
+            
+            // Verify the edital is gone by trying to get it
+            return request(app.getHttpServer())
+              .get(`/editais/${deleteId}`)
+              .expect(404);
+          });
+      });
+  });
+  
+  it('/editais/:id (DELETE) - should return 404 for non-existent edital', () => {
+    const nonExistentId = 9999;
+    
+    return request(app.getHttpServer())
+      .delete(`/editais/${nonExistentId}`)
+      .expect(404)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.message).toBe('Edital não encontrado');
+      });
+  });
 }); 

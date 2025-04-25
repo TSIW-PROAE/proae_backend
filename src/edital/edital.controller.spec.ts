@@ -120,13 +120,21 @@ describe('EditalController', () => {
   });
 
   describe('remove', () => {
-    it('should remove an edital', async () => {
-      mockEditalService.remove.mockResolvedValue('Exclusão não implementada');
+    it('should remove an edital and its related entities', async () => {
+      const successResponse = { message: 'Edital e entidades relacionadas excluídos com sucesso' };
+      mockEditalService.remove.mockResolvedValue(successResponse);
 
       const result = await controller.remove('1');
       
-      expect(result).toBe('Exclusão não implementada');
+      expect(result).toEqual(successResponse);
       expect(mockEditalService.remove).toHaveBeenCalledWith(1);
+    });
+
+    it('should handle errors when trying to remove a non-existent edital', async () => {
+      mockEditalService.remove.mockRejectedValue(new Error('Edital não encontrado'));
+
+      await expect(controller.remove('999')).rejects.toThrow('Edital não encontrado');
+      expect(mockEditalService.remove).toHaveBeenCalledWith(999);
     });
   });
 });
