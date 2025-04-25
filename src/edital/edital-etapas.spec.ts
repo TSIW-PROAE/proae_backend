@@ -82,6 +82,9 @@ describe('EditalEtapas', () => {
     service = module.get<EditalService>(EditalService);
     repository = module.get<Repository<Edital>>(getRepositoryToken(Edital));
     entityManager = module.get<EntityManager>(EntityManager);
+    
+    // Reset mocks
+    jest.clearAllMocks();
   });
 
   describe('create edital with etapas', () => {
@@ -138,9 +141,13 @@ describe('EditalEtapas', () => {
         }
       });
 
-      // Verify that etapas are returned in the correct order
-      expect(result.etapas[0].ordem).toBe(1);
-      expect(result.etapas[1].ordem).toBe(2);
+      // Add null check to avoid TypeScript errors
+      expect(result).not.toBeNull();
+      if (result) {
+        // Verify that etapas are returned in the correct order
+        expect(result.etapas[0].ordem).toBe(1);
+        expect(result.etapas[1].ordem).toBe(2);
+      }
     });
   });
 
@@ -161,6 +168,10 @@ describe('EditalEtapas', () => {
         }
       });
 
+      // Add null check and array length check
+      expect(result).not.toBeNull();
+      expect(result.length).toBeGreaterThan(0);
+      
       // Verify that etapas are returned in the correct order
       expect(result[0].etapas[0].ordem).toBe(1);
       expect(result[0].etapas[1].ordem).toBe(2);
