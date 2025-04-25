@@ -85,14 +85,20 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    },
     "reporters": [
       "default",
-      ["jest-junit", {
-        "outputDirectory": "./coverage/junit",
-        "outputName": "junit.xml",
-        "classNameTemplate": "{classname}",
-        "titleTemplate": "{title}"
-      }]
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "./coverage/junit",
+          "outputName": "junit.xml",
+          "classNameTemplate": "{classname}",
+          "titleTemplate": "{title}"
+        }
+      ]
     ]
   }
 }
