@@ -5,6 +5,7 @@ import { UpdateEditalDto } from './dto/update-edital.dto';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
+import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
 
 
 @Injectable()
@@ -82,8 +83,36 @@ export class EditalService {
   }
 
   async remove(id: number) {
-    return 'Exclusão não implementada';
     // ondelete cascade não esta funcionando para excluir etapas automaticamente
     // await this.editaisRepository.delete(id);
+
+    // Exclui o edital e suas etapas associadas manualmente já que a cascata não esta funcionando
+    try {
+      return await this.entityManager.transaction(async (transactionalEntityManager) => {
+        const edital = await transactionalEntityManager.findOne(Edital, { 
+          where: { id },
+          relations: {
+            etapas: { resultados: true }
+          },
+        });
+        if (!edital) {
+          throw new Error('Edital não encontrado');
+        }
+
+        // Exclui os resultados associados às etapas do edital
+        for (const etapa of edital.etapas) {
+          await transactionalEntityManager.delete(ResultadoEtapa, { etapa });
+        }
+
+        // Exclui as etapas associadas ao edital
+        await transactionalEntityManager.delete(EtapaInscricao, { edital });
+
+        // Exclui o edital
+        await transactionalEntityManager.delete(Edital, { id });
+      });
+    } catch (error) {
+      console.error('Erro ao excluir edital:', error);
+      throw new Error(`Falha ao excluir edital: ${error.message}`);
+    }
   }
 }
