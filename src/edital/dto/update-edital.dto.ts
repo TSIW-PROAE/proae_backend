@@ -1,6 +1,13 @@
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateEditalDto {
+  @IsNotEmpty()
   @IsString()
   nome_edital: string;
 
@@ -20,6 +27,7 @@ export class UpdateEditalDto {
   @IsString({ each: true })
   categoria_edital?: string[];
 
+  @IsNotEmpty()
   @IsString()
   status_edital: string;
 
