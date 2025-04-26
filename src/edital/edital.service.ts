@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { EntityManager, Repository } from 'typeorm';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
@@ -34,8 +38,9 @@ export class EditalService {
         },
       );
     } catch (error) {
-      console.error('Erro ao criar edital:', error);
-      throw new Error(`Falha ao criar edital: ${error.message}`);
+      const e = error as Error;
+      console.error('Erro ao criar o edital:', error);
+      throw new BadRequestException(`Falha ao criar o edital: ${e.message}`);
     }
   }
 
@@ -67,7 +72,7 @@ export class EditalService {
       const edital = await this.editaisRepository.findOneBy({ id });
 
       if (!edital) {
-        throw new Error('Edital não encontrado');
+        throw new NotFoundException('Edital não encontrado');
       }
 
       await this.entityManager.transaction(
@@ -77,8 +82,11 @@ export class EditalService {
         },
       );
     } catch (error) {
-      console.error('Error atualizando edital:', error);
-      throw new Error('Error atualizando edital');
+      const e = error as Error;
+      console.error('Error ao atualizar o edital:', error);
+      throw new BadRequestException(
+        `Error ao atualizar o edital: ${e.message}`,
+      );
     }
   }
 
@@ -120,7 +128,9 @@ export class EditalService {
         },
       );
     } catch (error) {
-      throw new Error(`Falha ao excluir edital: ${error.message}`);
+      const e = error as Error;
+      console.error('Falha ao excluir edital:', error);
+      throw new BadRequestException(`Falha ao excluir edital: ${e.message}`);
     }
   }
 }

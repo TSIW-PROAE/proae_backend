@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { EditalEnum } from '../src/enum/enumEdital';
-import { StatusEdital } from '../src/enum/enumStatusEdital';
+import { AppModule } from '../../src/app.module';
+import { EditalEnum } from '../../src/enum/enumEdital';
+import { StatusEdital } from '../../src/enum/enumStatusEdital';
 import { ValidationPipe } from '@nestjs/common';
 import { CreateEditalDto } from 'src/edital/dto/create-edital.dto';
 import { UpdateEditalDto } from 'src/edital/dto/update-edital.dto';
@@ -22,19 +22,19 @@ describe('EditalController (e2e)', () => {
       {
         nome: 'Etapa de Teste 1',
         ordem: 1,
-        descricao: 'Descrição da etapa de teste 1'
+        descricao: 'Descrição da etapa de teste 1',
       },
       {
         nome: 'Etapa de Teste 2',
         ordem: 2,
-        descricao: 'Descrição da etapa de teste 2'
-      }
-    ]
+        descricao: 'Descrição da etapa de teste 2',
+      },
+    ],
   };
 
   const updateEditalDto: UpdateEditalDto = {
     descricao: 'Edital de teste e2e atualizado',
-    status_edital: StatusEdital.DESATIVADO
+    status_edital: StatusEdital.DESATIVADO,
   };
 
   beforeAll(async () => {
@@ -56,13 +56,15 @@ describe('EditalController (e2e)', () => {
       .post('/editais')
       .send(createEditalDto)
       .expect(201)
-      .then(response => {
+      .then((response) => {
         expect(response.body).toBeDefined();
         expect(response.body.id).toBeDefined();
-        expect(response.body.tipo_beneficio).toBe(createEditalDto.tipo_beneficio);
+        expect(response.body.tipo_beneficio).toBe(
+          createEditalDto.tipo_beneficio,
+        );
         expect(response.body.descricao).toBe(createEditalDto.descricao);
         expect(response.body.edital_url).toBe(createEditalDto.edital_url);
-        
+
         // Save the ID for later tests
         editalId = response.body.id;
       });
@@ -72,7 +74,7 @@ describe('EditalController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/editais')
       .expect(200)
-      .then(response => {
+      .then((response) => {
         expect(Array.isArray(response.body)).toBe(true);
         expect(response.body.length).toBeGreaterThan(0);
       });
@@ -82,12 +84,14 @@ describe('EditalController (e2e)', () => {
     return request(app.getHttpServer())
       .get(`/editais/${editalId}`)
       .expect(200)
-      .then(response => {
+      .then((response) => {
         expect(response.body).toBeDefined();
         expect(response.body.id).toBe(editalId);
-        expect(response.body.tipo_beneficio).toBe(createEditalDto.tipo_beneficio);
+        expect(response.body.tipo_beneficio).toBe(
+          createEditalDto.tipo_beneficio,
+        );
         expect(response.body.descricao).toBe(createEditalDto.descricao);
-        
+
         // Check that etapas were created properly
         expect(Array.isArray(response.body.etapas)).toBe(true);
         expect(response.body.etapas.length).toBe(2);
@@ -108,35 +112,39 @@ describe('EditalController (e2e)', () => {
         return request(app.getHttpServer())
           .get(`/editais/${editalId}`)
           .expect(200)
-          .then(response => {
+          .then((response) => {
             expect(response.body.descricao).toBe(updateEditalDto.descricao);
-            expect(response.body.status_edital).toBe(updateEditalDto.status_edital);
+            expect(response.body.status_edital).toBe(
+              updateEditalDto.status_edital,
+            );
           });
       });
   });
-  
+
   it('/editais/:id (DELETE) - should delete an edital and related entities', () => {
     // First, create a new edital specifically for deletion
     const deletionEditalDto = {
       ...createEditalDto,
-      descricao: 'Edital para ser excluído'
+      descricao: 'Edital para ser excluído',
     };
-    
+
     return request(app.getHttpServer())
       .post('/editais')
       .send(deletionEditalDto)
       .expect(201)
-      .then(createResponse => {
+      .then((createResponse) => {
         const deleteId = createResponse.body.id;
-        
+
         // Now delete the edital
         return request(app.getHttpServer())
           .delete(`/editais/${deleteId}`)
           .expect(200)
-          .then(deleteResponse => {
+          .then((deleteResponse) => {
             expect(deleteResponse.body).toBeDefined();
-            expect(deleteResponse.body.message).toBe('Edital e entidades relacionadas excluídos com sucesso');
-            
+            expect(deleteResponse.body.message).toBe(
+              'Edital e entidades relacionadas excluídos com sucesso',
+            );
+
             // Verify the edital is gone by trying to get it
             return request(app.getHttpServer())
               .get(`/editais/${deleteId}`)
@@ -144,16 +152,16 @@ describe('EditalController (e2e)', () => {
           });
       });
   });
-  
+
   it('/editais/:id (DELETE) - should return 404 for non-existent edital', () => {
     const nonExistentId = 9999;
-    
+
     return request(app.getHttpServer())
       .delete(`/editais/${nonExistentId}`)
       .expect(404)
-      .then(response => {
+      .then((response) => {
         expect(response.body).toBeDefined();
         expect(response.body.message).toBe('Edital não encontrado');
       });
   });
-}); 
+});
