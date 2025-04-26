@@ -18,13 +18,13 @@ describe('EditalEtapas', () => {
     {
       nome: 'Etapa 1',
       ordem: 1,
-      descricao: 'Descrição da etapa 1'
+      descricao: 'Descrição da etapa 1',
     },
     {
       nome: 'Etapa 2',
       ordem: 2,
-      descricao: 'Descrição da etapa 2'
-    }
+      descricao: 'Descrição da etapa 2',
+    },
   ];
 
   const mockEdital = {
@@ -38,8 +38,8 @@ describe('EditalEtapas', () => {
     etapas: mockEtapas.map((etapa, index) => ({
       id: index + 1,
       ...etapa,
-      resultados: []
-    }))
+      resultados: [],
+    })),
   };
 
   const mockCreateEditalDto: CreateEditalDto = {
@@ -48,7 +48,7 @@ describe('EditalEtapas', () => {
     edital_url: 'http://example.com/edital',
     data_inicio: new Date('2023-01-01'),
     data_fim: new Date('2023-12-31'),
-    etapas: mockEtapas
+    etapas: mockEtapas,
   };
 
   const mockRepository = {
@@ -82,7 +82,7 @@ describe('EditalEtapas', () => {
     service = module.get<EditalService>(EditalService);
     repository = module.get<Repository<Edital>>(getRepositoryToken(Edital));
     entityManager = module.get<EntityManager>(EntityManager);
-    
+
     // Reset mocks
     jest.clearAllMocks();
   });
@@ -102,17 +102,17 @@ describe('EditalEtapas', () => {
 
       // Verify transaction was called
       expect(mockEntityManager.transaction).toHaveBeenCalled();
-      
+
       // Verify save was called with an Edital object containing etapas
       expect(mockEntityManager.save).toHaveBeenCalledWith(
         expect.objectContaining({
           etapas: expect.arrayContaining([
             expect.any(EtapaInscricao),
-            expect.any(EtapaInscricao)
-          ])
-        })
+            expect.any(EtapaInscricao),
+          ]),
+        }),
       );
-      
+
       // Verify that etapas are passed correctly to the EtapaInscricao constructor
       const savedEdital = mockEntityManager.save.mock.calls[0][0];
       expect(savedEdital.etapas.length).toBe(2);
@@ -128,17 +128,17 @@ describe('EditalEtapas', () => {
       mockRepository.findOne.mockResolvedValue(mockEdital);
 
       const result = await service.findOne(1);
-      
+
       expect(result).toEqual(mockEdital);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
         relations: {
-          etapas: { resultados: true }
+          etapas: { resultados: true },
         },
         order: {
           data_inicio: 'ASC',
-          etapas: { ordem: 'ASC' }
-        }
+          etapas: { ordem: 'ASC' },
+        },
       });
 
       // Add null check to avoid TypeScript errors
@@ -156,25 +156,25 @@ describe('EditalEtapas', () => {
       mockRepository.find.mockResolvedValue([mockEdital]);
 
       const result = await service.findAll();
-      
+
       expect(result).toEqual([mockEdital]);
       expect(mockRepository.find).toHaveBeenCalledWith({
         relations: {
-          etapas: { resultados: true }
+          etapas: { resultados: true },
         },
         order: {
           data_inicio: 'ASC',
-          etapas: { ordem: 'ASC' }
-        }
+          etapas: { ordem: 'ASC' },
+        },
       });
 
       // Add null check and array length check
       expect(result).not.toBeNull();
       expect(result.length).toBeGreaterThan(0);
-      
+
       // Verify that etapas are returned in the correct order
       expect(result[0].etapas[0].ordem).toBe(1);
       expect(result[0].etapas[1].ordem).toBe(2);
     });
   });
-}); 
+});

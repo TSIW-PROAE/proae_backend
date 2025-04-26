@@ -7,8 +7,8 @@ import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entit
 import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Edital, EtapaInscricao, ResultadoEtapa])],
-    controllers: [EditalController],
-    providers: [EditalService],
+  imports: [TypeOrmModule.forFeature([Edital, EtapaInscricao, ResultadoEtapa])],
+  controllers: [EditalController],
+  providers: [EditalService],
 })
-export class EditalModule { }
+export class EditalModule {}

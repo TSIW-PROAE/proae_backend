@@ -1,17 +1,10 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany } from 'typeorm';
 import { Edital } from '../edital/edital.entity';
 import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
-import { IsString } from 'class-validator';
 
 @Entity()
 export class EtapaInscricao extends AbstractEntity<EtapaInscricao> {
-
   @ManyToOne(() => Edital, (edital) => edital.etapas)
   edital: Edital;
 
@@ -21,10 +14,18 @@ export class EtapaInscricao extends AbstractEntity<EtapaInscricao> {
   @Column()
   ordem: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'date' })
+  data_inicio: Date;
+
+  @Column({ type: 'date' })
+  data_fim: Date;
+
+  @Column({ type: 'text', nullable: true })
   descricao: string;
 
-  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.etapa)
+  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.etapa, {
+    nullable: true,
+  })
   resultados: ResultadoEtapa[];
 
   constructor(entity: Partial<EtapaInscricao>) {

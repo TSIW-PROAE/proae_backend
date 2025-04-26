@@ -18,7 +18,7 @@ describe('EditalService', () => {
     findOne: jest.fn(),
     delete: jest.fn(),
     transaction: jest.fn(),
-    save: jest.fn()
+    save: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -38,12 +38,14 @@ describe('EditalService', () => {
         {
           provide: EntityManager,
           useValue: mockEntityManager,
-        }
-      ]
+        },
+      ],
     }).compile();
 
     service = module.get<EditalService>(EditalService);
-    editalRepository = module.get<Repository<Edital>>(getRepositoryToken(Edital));
+    editalRepository = module.get<Repository<Edital>>(
+      getRepositoryToken(Edital),
+    );
     entityManager = module.get<EntityManager>(EntityManager);
 
     // Reset mocks
@@ -69,7 +71,10 @@ describe('EditalService', () => {
   });
 
   test('findOne', async () => {
-    const mockEdital = new Edital({ id: 1, tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE });
+    const mockEdital = new Edital({
+      id: 1,
+      tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
+    });
 
     jest.spyOn(editalRepository, 'findOne').mockResolvedValue(mockEdital);
 
@@ -79,12 +84,12 @@ describe('EditalService', () => {
     expect(editalRepository.findOne).toHaveBeenCalledWith({
       where: { id: 1 },
       relations: {
-        etapas: { resultados: true }
+        etapas: { resultados: true },
       },
       order: {
         data_inicio: 'ASC',
-        etapas: { ordem: 'ASC' }
-      }
+        etapas: { ordem: 'ASC' },
+      },
     });
   });
 
@@ -92,8 +97,8 @@ describe('EditalService', () => {
     const mockEdital = new Edital({
       id: 1,
       tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
-      descricao: "testes",
-      edital_url: "www.testes.com",
+      descricao: 'testes',
+      edital_url: 'www.testes.com',
       data_inicio: new Date('2025-02-10'),
       data_fim: new Date('2025-10-21'),
       etapas: [
@@ -101,24 +106,24 @@ describe('EditalService', () => {
           id: 1,
           ordem: 1,
           nome: 'etapa 1',
-          descricao: 'descricao 1'
-        })
-      ]
+          descricao: 'descricao 1',
+        }),
+      ],
     });
 
     const createEditalDto = {
       tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
-      descricao: "testes",
-      edital_url: "www.testes.com",
+      descricao: 'testes',
+      edital_url: 'www.testes.com',
       data_inicio: new Date('2025-02-10'),
       data_fim: new Date('2025-10-21'),
       etapas: [
         {
           ordem: 1,
           nome: 'etapa 1',
-          descricao: 'descricao 1'
-        }
-      ]
+          descricao: 'descricao 1',
+        },
+      ],
     } as CreateEditalDto;
 
     // Mock the transaction method to execute the callback and return mockEdital
@@ -146,21 +151,21 @@ describe('EditalService', () => {
         resultado_id: 1,
         status_etapa: StatusEtapa.FINALIZADA,
         observacao: 'Etapa finalizada',
-        data_avaliacao: new Date()
+        data_avaliacao: new Date(),
       } as ResultadoEtapa,
       {
         resultado_id: 2,
         status_etapa: StatusEtapa.EM_ANALISE,
         observacao: 'Etapa em análise',
-        data_avaliacao: new Date()
-      } as ResultadoEtapa
+        data_avaliacao: new Date(),
+      } as ResultadoEtapa,
     ];
 
     const mockEdital = new Edital({
       id: 1,
       tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
-      descricao: "testes",
-      edital_url: "www.testes.com",
+      descricao: 'testes',
+      edital_url: 'www.testes.com',
       data_inicio: new Date('2025-02-10'),
       data_fim: new Date('2025-10-21'),
       etapas: [
@@ -169,19 +174,21 @@ describe('EditalService', () => {
           ordem: 1,
           nome: 'etapa 1',
           descricao: 'descricao 1',
-          resultados: mockResultados
+          resultados: mockResultados,
         }),
         new EtapaInscricao({
           id: 2,
           ordem: 2,
           nome: 'etapa 2',
           descricao: 'descricao 2',
-          resultados: []
-        })
-      ]
+          resultados: [],
+        }),
+      ],
     });
 
-    const successResponse = { message: 'Edital e entidades relacionadas excluídos com sucesso' };
+    const successResponse = {
+      message: 'Edital e entidades relacionadas excluídos com sucesso',
+    };
 
     // Setup mocks
     mockEntityManager.transaction.mockImplementation(async (callback) => {
@@ -202,27 +209,22 @@ describe('EditalService', () => {
     expect(mockEntityManager.findOne).toHaveBeenCalledWith(Edital, {
       where: { id: 1 },
       relations: {
-        etapas: { resultados: true }
+        etapas: { resultados: true },
       },
     });
 
     // Verify ResultadoEtapa deletion was called for etapa with results
-    expect(mockEntityManager.delete).toHaveBeenCalledWith(
-      ResultadoEtapa,
-      { etapa: { id: 1 } }
-    );
+    expect(mockEntityManager.delete).toHaveBeenCalledWith(ResultadoEtapa, {
+      etapa: { id: 1 },
+    });
 
     // Verify EtapaInscricao deletion was called with correct parameters
-    expect(mockEntityManager.delete).toHaveBeenCalledWith(
-      EtapaInscricao,
-      { edital: { id: 1 } }
-    );
+    expect(mockEntityManager.delete).toHaveBeenCalledWith(EtapaInscricao, {
+      edital: { id: 1 },
+    });
 
     // Verify Edital deletion was called with correct parameters
-    expect(mockEntityManager.delete).toHaveBeenCalledWith(
-      Edital,
-      { id: 1 }
-    );
+    expect(mockEntityManager.delete).toHaveBeenCalledWith(Edital, { id: 1 });
 
     // Verify the result
     expect(result).toEqual(successResponse);
@@ -243,9 +245,13 @@ describe('EditalService', () => {
 
   test('remove should handle transaction errors', async () => {
     // Setup mocks to throw an error during transaction
-    mockEntityManager.transaction.mockRejectedValue(new Error('Database error'));
+    mockEntityManager.transaction.mockRejectedValue(
+      new Error('Database error'),
+    );
 
     // Execute the test and verify it throws the expected error
-    await expect(service.remove(1)).rejects.toThrow('Falha ao excluir edital: Database error');
+    await expect(service.remove(1)).rejects.toThrow(
+      'Falha ao excluir edital: Database error',
+    );
   });
 });

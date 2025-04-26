@@ -24,9 +24,9 @@ describe('EditalController', () => {
         nome: 'Etapa 1',
         ordem: 1,
         descricao: 'Descrição da etapa 1',
-        resultados: []
-      }
-    ]
+        resultados: [],
+      },
+    ],
   };
 
   const mockCreateEditalDto: CreateEditalDto = {
@@ -39,14 +39,14 @@ describe('EditalController', () => {
       {
         nome: 'Etapa 1',
         ordem: 1,
-        descricao: 'Descrição da etapa 1'
-      }
-    ]
+        descricao: 'Descrição da etapa 1',
+      },
+    ],
   };
 
   const mockUpdateEditalDto: UpdateEditalDto = {
     descricao: 'Edital atualizado',
-    status_edital: StatusEdital.DESATIVADO
+    status_edital: StatusEdital.DESATIVADO,
   };
 
   const mockEditalService = {
@@ -81,9 +81,11 @@ describe('EditalController', () => {
       mockEditalService.create.mockResolvedValue(mockEdital);
 
       const result = await controller.create(mockCreateEditalDto);
-      
+
       expect(result).toEqual(mockEdital);
-      expect(mockEditalService.create).toHaveBeenCalledWith(mockCreateEditalDto);
+      expect(mockEditalService.create).toHaveBeenCalledWith(
+        mockCreateEditalDto,
+      );
     });
   });
 
@@ -92,7 +94,7 @@ describe('EditalController', () => {
       mockEditalService.findAll.mockResolvedValue([mockEdital]);
 
       const result = await controller.findAll();
-      
+
       expect(result).toEqual([mockEdital]);
       expect(mockEditalService.findAll).toHaveBeenCalled();
     });
@@ -103,7 +105,7 @@ describe('EditalController', () => {
       mockEditalService.findOne.mockResolvedValue(mockEdital);
 
       const result = await controller.findOne('1');
-      
+
       expect(result).toEqual(mockEdital);
       expect(mockEditalService.findOne).toHaveBeenCalledWith(1);
     });
@@ -111,29 +113,41 @@ describe('EditalController', () => {
 
   describe('update', () => {
     it('should update an edital', async () => {
-      mockEditalService.update.mockResolvedValue({ ...mockEdital, ...mockUpdateEditalDto });
+      mockEditalService.update.mockResolvedValue({
+        ...mockEdital,
+        ...mockUpdateEditalDto,
+      });
 
       const result = await controller.update('1', mockUpdateEditalDto);
-      
-      expect(mockEditalService.update).toHaveBeenCalledWith(1, mockUpdateEditalDto);
+
+      expect(mockEditalService.update).toHaveBeenCalledWith(
+        1,
+        mockUpdateEditalDto,
+      );
     });
   });
 
   describe('remove', () => {
     it('should remove an edital and its related entities', async () => {
-      const successResponse = { message: 'Edital e entidades relacionadas excluídos com sucesso' };
+      const successResponse = {
+        message: 'Edital e entidades relacionadas excluídos com sucesso',
+      };
       mockEditalService.remove.mockResolvedValue(successResponse);
 
       const result = await controller.remove('1');
-      
+
       expect(result).toEqual(successResponse);
       expect(mockEditalService.remove).toHaveBeenCalledWith(1);
     });
 
     it('should handle errors when trying to remove a non-existent edital', async () => {
-      mockEditalService.remove.mockRejectedValue(new Error('Edital não encontrado'));
+      mockEditalService.remove.mockRejectedValue(
+        new Error('Edital não encontrado'),
+      );
 
-      await expect(controller.remove('999')).rejects.toThrow('Edital não encontrado');
+      await expect(controller.remove('999')).rejects.toThrow(
+        'Edital não encontrado',
+      );
       expect(mockEditalService.remove).toHaveBeenCalledWith(999);
     });
   });

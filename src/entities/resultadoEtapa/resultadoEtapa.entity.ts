@@ -17,9 +17,9 @@ export class ResultadoEtapa {
   @Column({ type: 'enum', enum: StatusEtapa })
   status_etapa: StatusEtapa;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   observacao: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   data_avaliacao: Date;
 }

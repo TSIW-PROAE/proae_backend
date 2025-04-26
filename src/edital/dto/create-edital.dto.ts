@@ -1,28 +1,41 @@
-import { Type } from "class-transformer";
-import { IsDate, IsEnum, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
-import { EditalEnum } from "src/enum/enumEdital";
-import { CreateEtapasDto } from "./create-etapas-edital.dto";
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { CreateEtapasDto } from './create-etapas-edital.dto';
 
 export class CreateEditalDto {
-    @IsEnum(EditalEnum)
-    tipo_beneficio: EditalEnum;
+  @IsString()
+  nome_edital: string;
 
-    @IsString()
-    descricao: string;
+  @IsString()
+  descricao: string;
 
-    @IsString()
-    edital_url: string;
+  @IsArray()
+  @IsString({ each: true })
+  tipo_beneficio: string[];
 
-    @IsDate()
-    @Type(() => Date)
-    data_inicio: Date;
+  @IsArray()
+  @IsString({ each: true })
+  edital_url: string[];
 
-    @IsDate()
-    @Type(() => Date)
-    data_fim: Date;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  categoria_edital: string[];
 
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => CreateEtapasDto)
-    etapas: CreateEtapasDto[];
+  @IsString()
+  status_edital: string;
+
+  @IsNumber()
+  quantidade_bolsas: number;
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateEtapasDto)
+  etapas: CreateEtapasDto[];
 }
