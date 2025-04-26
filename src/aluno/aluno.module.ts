@@ -8,5 +8,6 @@ import { Aluno } from '../entities/aluno/aluno.entity';
   imports: [TypeOrmModule.forFeature([Aluno])],
   controllers: [AlunoController],
   providers: [AlunoService],
+  exports: [TypeOrmModule],
 })
 export class AlunoModule {}
