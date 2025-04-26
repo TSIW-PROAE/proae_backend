@@ -12,6 +12,7 @@ export class CreateEtapasDto {
   @IsString()
   nome: string;
 
+  @IsNotEmpty()
   @IsString()
   descricao: string;
 
