@@ -24,14 +24,11 @@ export class Aluno {
   @Column({ type: 'enum', enum: UnidadeEnum })
   campus: UnidadeEnum;
 
-  @Column()
+  @Column({ unique: true })
   cpf: string;
 
   @Column({ type: 'date' })
   data_ingresso: Date;
-
-  @Column()
-  identidade: string;
 
   @Column()
   celular: string;
