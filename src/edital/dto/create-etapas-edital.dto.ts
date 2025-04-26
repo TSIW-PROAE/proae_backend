@@ -1,7 +1,14 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsDate,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateEtapasDto {
+  @IsNotEmpty()
   @IsString()
   nome: string;
 
@@ -21,5 +28,5 @@ export class CreateEtapasDto {
 
   @IsOptional()
   @IsString()
-  descricao_etapa: string;
+  descricao_etapa?: string;
 }

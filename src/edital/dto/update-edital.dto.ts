@@ -1,32 +1,28 @@
-import { Type } from 'class-transformer';
-import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
-import { EditalEnum } from 'src/enum/enumEdital';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateEditalDto {
-  @IsOptional()
-  @IsEnum(EditalEnum)
-  tipo_beneficio?: EditalEnum;
-
-  @IsOptional()
   @IsString()
-  descricao?: string;
+  nome_edital: string;
 
-  @IsOptional()
   @IsString()
-  edital_url?: string;
+  descricao: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  tipo_beneficio: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  edital_url: string[];
 
   @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  data_inicio?: Date;
+  @IsArray()
+  @IsString({ each: true })
+  categoria_edital?: string[];
 
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  data_fim?: Date;
+  @IsString()
+  status_edital: string;
 
-  @IsOptional()
-  @IsEnum(StatusEdital)
-  status_edital?: StatusEdital;
+  @IsNumber()
+  quantidade_bolsas: number;
 }

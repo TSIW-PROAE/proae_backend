@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,6 +10,7 @@ import {
 import { CreateEtapasDto } from './create-etapas-edital.dto';
 
 export class CreateEditalDto {
+  @IsNotEmpty()
   @IsString()
   nome_edital: string;
 
@@ -26,15 +28,15 @@ export class CreateEditalDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  categoria_edital: string[];
+  categoria_edital?: string[];
 
+  @IsNotEmpty()
   @IsString()
   status_edital: string;
 
   @IsNumber()
   quantidade_bolsas: number;
 
-  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => CreateEtapasDto)
   etapas: CreateEtapasDto[];

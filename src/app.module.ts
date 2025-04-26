@@ -15,4 +15,4 @@ import { EditalModule } from './edital/edital.module';
     EditalModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
