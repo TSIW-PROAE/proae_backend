@@ -38,4 +38,7 @@ export class Aluno {
 
   @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
   inscricoes: Inscricao[];
+
+  @Column({ nullable: true })
+  image: string;
 }

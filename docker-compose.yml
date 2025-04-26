@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     healthcheck:
@@ -39,3 +39,6 @@ services:
 networks:
   proae:
     driver: bridge
+
+volumes:
+  db_data:

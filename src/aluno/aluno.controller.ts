@@ -1,7 +1,11 @@
-import { Controller, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, UploadedFile, Patch, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AlunoService } from './aluno.service';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
+import * as crypto from 'crypto';
+import * as path from 'path';
 
 @Controller('aluno')
 export class AlunoController {
@@ -13,4 +17,30 @@ export class AlunoController {
     const { id } = request.user;
     return this.alunoService.findByClerkId(id);
   }
+
+  @UseGuards(AuthGuard)
+  @Patch('image')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: multer.diskStorage({
+      destination: path.join(process.cwd(), 'uploads'),
+      filename: (req, file, cb) => {
+        const uniqueSuffix = crypto.randomBytes(6).toString('hex');
+        cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+      }
+    }),
+  }),
+  )
+  async atualizarFotoPerfil(
+    @Req() request: AuthenticatedRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const { id } = request.user;
+
+    if (!file) {
+      throw new Error('Nenhum arquivo enviado');
+    }
+    const { filename } = file;
+    return this.alunoService.updateImageProfile(id, filename);
+  }
+
 }

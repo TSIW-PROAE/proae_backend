@@ -7,6 +7,8 @@ import { createClerkClient } from '@clerk/backend';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
+import {access, unlink} from 'fs/promises';
+import * as path from 'path';
 
 @Injectable()
 export class AlunoService {
@@ -60,5 +62,29 @@ export class AlunoService {
       console.error(e);
       throw new BadRequestException('Erro ao buscar aluno');
     }
+  }
+
+  async updateImageProfile(clerkId: string, filename: string) {
+    const aluno = await this.alunoRepository.findOneBy({ id_clerk: clerkId });
+  
+    if (!aluno) {
+      throw new Error('Aluno não encontrado');
+    }
+
+    if(aluno.image) {
+      const imagePath = path.join(process.cwd(), 'uploads', aluno.image);
+
+      try{
+        await access(imagePath);
+        await unlink(imagePath);
+        console.log('Imagem antiga deletada com sucesso');
+      } catch (err) {
+        console.error('Erro ao deletar imagem antiga:', err);
+      }
+    }
+  
+    aluno.image = filename;
+  
+    return this.alunoRepository.save(aluno);
   }
 }
