@@ -41,23 +41,22 @@ describe('AlunoController', () => {
       };
 
       const mockResponse = {
-        success: true,
-        data: {
-          user: {
+        sucesso: true,
+        dados: {
+          aluno: {
             aluno_id: 123456,
-            firstName: 'John',
-            lastName: 'Doe',
+            nome: 'John',
+            sobrenome: 'Doe',
             email: 'johndoe@gmail.com',
-            registrationNumber: 'm-123456789',
-            pronoun: PronomesEnum.ELE_DELE,
-            dateOfBirth: new Date('2000-01-01'),
-            course: CursosEnum.ARTES,
+            matricula: 'm-123456789',
+            pronome: PronomesEnum.ELE_DELE,
+            data_nascimento: new Date('2000-01-01'),
+            curso: CursosEnum.ARTES,
             campus: UnidadeEnum.SALVADOR,
             cpf: '12345678900',
-            enrollmentDate: new Date('2020-01-01'),
-            identity: '123456789',
-            phone: '999999999',
-            enrollments: [],
+            data_ingresso: new Date('2020-01-01'),
+            celular: '999999999',
+            inscricoes: [],
           },
         },
       };
