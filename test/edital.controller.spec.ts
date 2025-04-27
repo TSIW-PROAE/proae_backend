@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EditalController } from '../edital.controller';
-import { EditalService } from '../edital.service';
-import { CreateEditalDto } from '../dto/create-edital.dto';
-import { UpdateEditalDto } from '../dto/update-edital.dto';
+import { EditalController } from '../src/edital/edital.controller';
+import { EditalService } from '../src/edital/edital.service';
+import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
+import { UpdateEditalDto } from '../src/edital/dto/update-edital.dto';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 
