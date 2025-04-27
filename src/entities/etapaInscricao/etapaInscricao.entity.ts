@@ -1,30 +1,35 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany } from 'typeorm';
 import { Edital } from '../edital/edital.entity';
 import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
+import { AbstractEntity } from 'src/db/abstract.entity';
 
 @Entity()
-export class EtapaInscricao {
-  @PrimaryGeneratedColumn()
-  etapa_id: number;
-
+export class EtapaInscricao extends AbstractEntity<EtapaInscricao> {
   @ManyToOne(() => Edital, (edital) => edital.etapas)
   edital: Edital;
 
   @Column()
-  nome_etapa: string;
+  nome: string;
 
   @Column()
-  ordem_etapa: number;
+  ordem: number;
 
-  @Column({ type: 'text' })
-  descricao_etapa: string;
+  @Column({ type: 'date' })
+  data_inicio: Date;
 
-  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.etapa)
+  @Column({ type: 'date' })
+  data_fim: Date;
+
+  @Column({ type: 'text', nullable: true })
+  descricao: string;
+
+  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.etapa, {
+    nullable: true,
+  })
   resultados: ResultadoEtapa[];
+
+  constructor(entity: Partial<EtapaInscricao>) {
+    super();
+    Object.assign(this, entity);
+  }
 }
