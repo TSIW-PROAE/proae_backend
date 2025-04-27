@@ -28,6 +28,12 @@ jobs:
     - name: Run tests
       run: npm run test:ci
 
+    - name: Deploy HTML report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./coverage/report
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
