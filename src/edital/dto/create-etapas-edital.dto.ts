@@ -26,8 +26,4 @@ export class CreateEtapasDto {
   @IsDate()
   @Type(() => Date)
   data_fim: Date;
-
-  @IsOptional()
-  @IsString()
-  descricao_etapa?: string;
 }
