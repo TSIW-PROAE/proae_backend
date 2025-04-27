@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EditalService } from '../../src/edital/edital.service';
+import { EditalService } from '../edital.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { EditalEnum } from 'src/enum/enumEdital';
-import { CreateEditalDto } from '../../src/edital/dto/create-edital.dto';
+import { CreateEditalDto } from '../dto/create-edital.dto';
 import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
 import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
 import { StatusEtapa } from 'src/enum/enumStatusEtapa';
