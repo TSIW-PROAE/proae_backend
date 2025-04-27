@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MinioModule } from 'nestjs-minio-client';
 import { MinioClientService } from './minio-client.service';
-import { MinioClientController } from './minio-client.controller';
 import { config } from 'dotenv';
+import { MinioClientController } from './minio-client.controller';
 
 config();
 
