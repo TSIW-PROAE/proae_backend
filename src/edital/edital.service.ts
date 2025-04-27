@@ -45,26 +45,38 @@ export class EditalService {
   }
 
   async findAll() {
-    return this.editaisRepository.find({
-      relations: {
-        etapas: { resultados: true },
-      },
-      order: {
-        etapas: { ordem: 'ASC' },
-      },
-    });
+    try {
+      return this.editaisRepository.find({
+        relations: {
+          etapas: { resultados: true },
+        },
+        order: {
+          etapas: { ordem: 'ASC' },
+        },
+      });
+    } catch (error) {
+      const e = error as Error;
+      console.error('Erro ao buscar editais:', error);
+      throw new BadRequestException(`Erro ao buscar editais: ${e.message}`);
+    }
   }
 
   async findOne(id: number) {
-    return this.editaisRepository.findOne({
-      where: { id },
-      relations: {
-        etapas: { resultados: true },
-      },
-      order: {
-        etapas: { ordem: 'ASC' },
-      },
-    });
+    try {
+      return this.editaisRepository.findOne({
+        where: { id },
+        relations: {
+          etapas: { resultados: true },
+        },
+        order: {
+          etapas: { ordem: 'ASC' },
+        },
+      });
+    } catch (error) {
+      const e = error as Error;
+      console.error('Erro ao buscar edital:', error);
+      throw new BadRequestException(`Erro ao buscar edital: ${e.message}`);
+    }
   }
 
   async update(id: number, updateEditalDto: UpdateEditalDto) {
