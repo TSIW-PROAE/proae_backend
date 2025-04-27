@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../../src/app.module';
-import { EditalEnum } from '../../src/enum/enumEdital';
-import { StatusEdital } from '../../src/enum/enumStatusEdital';
+import { AppModule } from '../../app.module';
+import { EditalEnum } from '../../enum/enumEdital';
+import { StatusEdital } from '../../enum/enumStatusEdital';
 import { ValidationPipe } from '@nestjs/common';
 import { CreateEditalDto } from 'src/edital/dto/create-edital.dto';
 import { UpdateEditalDto } from 'src/edital/dto/update-edital.dto';
