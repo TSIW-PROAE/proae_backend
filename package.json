@@ -102,7 +102,7 @@
       ],
       ["../node_modules/jest-html-reporter", {
         "pageTitle": "Relatório de Testes da API",
-        "outputPath": "./coverage/report/test-report.html",
+        "outputPath": "./coverage/report/index.html",
         "logo": "https://raw.githubusercontent.com/TSIW-PROAE/.github/main/img/logo_pgcomp.png"
       }]
     ]
