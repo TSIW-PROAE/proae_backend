@@ -38,4 +38,10 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'off',
     }
   },
+  {
+    files: ['**/src/validators/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-wrapper-object-types': 'off',
+    },
+  },
 );
