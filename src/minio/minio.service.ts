@@ -41,6 +41,11 @@ export class MinioClientService {
 
   async getFile(filename: string) {
     try {
+      await this.minioClient.statObject(
+        process.env.MINIO_BUCKET as string,
+        `documentos/${filename}`,
+      );
+
       const presignedUrl = await this.minioClient.presignedUrl(
         'GET',
         process.env.MINIO_BUCKET as string,
