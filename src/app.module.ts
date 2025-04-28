@@ -5,6 +5,8 @@ import { AlunoModule } from './aluno/aluno.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './db/db.config';
 import { EditalModule } from './edital/edital.module';
+import { InscricaoModule } from './inscricao/inscricao.module';
+import { DocumentoModule } from './documentos/documentos.module';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { EditalModule } from './edital/edital.module';
     AuthModule,
     AlunoModule,
     EditalModule,
+    InscricaoModule,
+    DocumentoModule,
   ],
 })
 export class AppModule {}

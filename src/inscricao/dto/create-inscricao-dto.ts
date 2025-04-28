@@ -1,9 +1,15 @@
-import { IsNotEmpty, IsNumber, IsDate, IsEnum, IsOptional, IsArray } from 'class-validator';
-import { Type } from 'class-transformer'; // necessário para a transformação de tipos
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsDate,
+  IsEnum,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 
 export class CreateInscricaoDto {
-
   @IsNotEmpty()
   @IsNumber()
   aluno: number;
@@ -16,14 +22,15 @@ export class CreateInscricaoDto {
   @Type(() => Date)
   data_inscricao: Date;
 
+  @IsOptional()
   @IsEnum(StatusInscricao)
-  statusInscricao: StatusInscricao;
+  status_inscricao?: StatusInscricao;
 
   @IsOptional()
   @IsNumber()
-  formularioId?: number;
+  formulario?: number;
 
   @IsOptional()
   @IsArray({ each: true })
-  documentos?: number[];
+  documentos: number[];
 }

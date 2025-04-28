@@ -27,15 +27,21 @@ export class Inscricao {
   @Column({ type: 'date' })
   data_inscricao: Date;
 
-  @Column({ type: 'enum', enum: StatusInscricao })
+  @Column({ type: 'enum', enum: StatusInscricao, nullable: true })
   status_inscricao: StatusInscricao;
 
-  @OneToMany(() => Documento, (documento) => documento.inscricao)
+  @OneToMany(() => Documento, (documento) => documento.inscricao, {
+    nullable: true,
+  })
   documentos: Documento[];
 
-  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.inscricao)
+  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.inscricao, {
+    nullable: true,
+  })
   resultadosEtapas: ResultadoEtapa[];
 
-  @OneToOne(() => Formulario, (formulario) => formulario.inscricao)
+  @OneToOne(() => Formulario, (formulario) => formulario.inscricao, {
+    nullable: true,
+  })
   formulario: Formulario;
 }
