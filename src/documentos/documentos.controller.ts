@@ -1,0 +1,48 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Param,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { DocumentoService } from './documentos.service';
+import { CreateDocumentoDto } from './dto/create-documento.dto';
+import { UpdateDocumentoDto } from './dto/update-documento.dto';
+
+@Controller('documentos')
+export class DocumentoController {
+  constructor(private readonly documentoService: DocumentoService) {}
+
+  @Post()
+  async create(@Body() createDocumentoDto: CreateDocumentoDto) {
+    return await this.documentoService.createDocumento(createDocumentoDto);
+  }
+
+  @Get('/inscricao/:inscricaoId')
+  async findAllByInscricao(
+    @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
+  ) {
+    return await this.documentoService.findAllDocumentoByInscricao(inscricaoId);
+  }
+
+  @Get(':id')
+  async findOneDocumento(@Param('id', ParseIntPipe) id: number) {
+    return await this.documentoService.findOneDocumento(id);
+  }
+
+  @Put(':id')
+  async updateDocumento(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDocumentoDto: UpdateDocumentoDto,
+  ) {
+    return await this.documentoService.updateDocumento(id, updateDocumentoDto);
+  }
+
+  @Delete(':id')
+  async removeDocumento(@Param('id', ParseIntPipe) id: number) {
+    return await this.documentoService.removeDocumento(id);
+  }
+}
