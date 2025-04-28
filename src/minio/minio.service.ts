@@ -6,7 +6,7 @@ import type { Client } from 'minio';
 export class MinioClientService {
   constructor(@Inject(MINIO_CONNECTION) private readonly minioClient: Client) {}
 
-  async uploadFiles(files: Express.Multer.File[]) {
+  async uploadDocuments(clerkUserId: string, files: Express.Multer.File[]) {
     try {
       const uploadResults = await Promise.all(
         files.map(async (file) => {
@@ -16,7 +16,7 @@ export class MinioClientService {
 
           await this.minioClient.putObject(
             process.env.MINIO_BUCKET as string,
-            `documentos/${file.originalname}`,
+            `${clerkUserId}/documentos/${file.originalname}`,
             file.buffer,
             file.size,
             metaData,
@@ -39,17 +39,17 @@ export class MinioClientService {
     }
   }
 
-  async getFile(filename: string) {
+  async getDocument(clerkUserId: string, filename: string) {
     try {
       await this.minioClient.statObject(
         process.env.MINIO_BUCKET as string,
-        `documentos/${filename}`,
+        `${clerkUserId}/documentos/${filename}`,
       );
 
       const presignedUrl = await this.minioClient.presignedUrl(
         'GET',
         process.env.MINIO_BUCKET as string,
-        `documentos/${filename}`,
+        `${clerkUserId}/documentos/${filename}`,
         24 * 60 * 60,
       );
 
