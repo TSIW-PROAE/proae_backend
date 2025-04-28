@@ -1,295 +1,203 @@
-# PROAE back-end
+# <div align="center">PROAE Backend</div>
 
-<img src="https://github.com/TSIW-PROAE/.github/raw/main/img/logo_pgcomp.png" alt="Logo pgcomp">
+<div align="center">
+  <img src="https://github.com/TSIW-PROAE/.github/raw/main/img/logo_pgcomp.png" width="200px" alt="Logo pgcomp">
+  <p><i>Sistema de gestão para a Pró-Reitoria de Ações Afirmativas e Assistência Estudantil da UFBA</i></p>
+</div>
 
-Back-end do sistema de gestão para a Pró-Reitoria de Ações Afirmativas e Assistência Estudantil (PROAE) da UFBA
+<div align="center">
 
-## 🛠️ Tecnologias Utilizadas
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-O projeto foi desenvolvido com as seguintes tecnologias:
+</div>
 
-⚡ NodeJs - Plataforma que permite a execução de código JavaScript no servidor.
+## 🚀 Ambiente Online
 
-⚛️ NestJs - Framework back-end que auxilia no desenvolvimento de aplicações eficientes e escaláveis em cima do NodeJs.
-
-:game_die: PostgreSQL - Sistema de gerenciamento de banco de dados relacional.
-
-:whale: Docker - Plataforma de software que permite criar, testar e implantar modificações em containers virtuais.
-
-:whale2: Docker-Compose - Ferramenta que gerencia múltiplos containers no docker.
-
-🟦 TypeScript - Tipagem estática para JavaScript
-
-## 💻 Pré-requisitos
-
-Antes de começar, certifique-se de ter instalado:
-
-- Node.js v16 ou superior
-- Gerenciador de pacotes: npm
-- Docker e Docker-Compose
-
-## 📂 Estrutura do Projeto
-
-```plaintext
-src/
-├── aluno/            # Módulo de gerenciamento de alunos
-├── auth/             # Módulo de autenticação
-├── db/               # Configuração de banco de dados
-├── edital/           # Módulo de gerenciamento de editais
-├── entities/         # Entidades do sistema
-├── enum/             # Enumerações utilizadas no projeto
-├── migrations/       # Migrações de banco de dados
-├── types/            # Tipos personalizados
-├── app.module.ts     # Módulo principal da aplicação
-└── main.ts           # Ponto de entrada da aplicação
-```
-
-## 🚀 Como Rodar o Projeto
-
-1. **Clone o repositório**
-
-```bash
-git clone https://github.com/TSIW-PROAE/proae_backend
-```
-
-2. **Instale as dependências**
-
-```bash
-npm install
-```
-
-3. **Configure as variáveis de ambiente**
-
-Renomeie o arquivo .env.example para .env e preencha com os valores necessários.
-
-4. **Inicie o projeto**
-
-Sem Docker
-
-```bash
-npm run start:dev
-```
-
-Com Docker
-
-```bash
-docker-compose up -d
-```
-
-Obs: A variável de ambiente `DB_HOST` deve ser `db` para o docker-compose.
-
-## 🌐 Ambiente de Desenvolvimento
-
-O ambiente de desenvolvimento baseado na branch `develop` está disponível em:
+O sistema está disponível em:
 
 ```
 http://b8ckk40k0ook00gckgk44s84.201.54.12.165.sslip.io/
 ```
 
-Este ambiente é atualizado automaticamente com as mudanças aprovadas na branch develop.
+## 🔧 Instalação Rápida
 
-## 📚 Documentação da API (Atualizada em 27/04/2024)
+```bash
+# Clonar repositório
+git clone https://github.com/TSIW-PROAE/proae_backend
 
-### Autenticação
+# Instalar dependências
+npm install
 
-#### Cadastro de Usuário
+# Rodar com Docker
+docker-compose up -d
+```
+
+> **Nota:** Configure o arquivo `.env` baseado no `.env.example` antes de rodar.
+
+## 📊 Estrutura Principal
+
+```
+src/
+├── aluno      # Gestão de alunos
+├── auth       # Autenticação
+├── edital     # Gestão de editais
+└── ...
+```
+
+## 📚 API (Atualizada em 27/04/2024)
+
+### 🔐 Autenticação
+
+**Cadastro de Usuário**
 
 ```
 POST /auth/signup
 ```
 
-Cria um novo usuário no sistema.
+- **Corpo:**
+  ```json
+  {
+    "registrationNumber": "123456789", // Número de matrícula
+    "email": "email@example.com",
+    "password": "Senha@123", // Mínimo 8 caracteres, 1 letra, 1 número, 1 especial
+    "firstName": "Nome",
+    "lastName": "Sobrenome"
+  }
+  ```
+- **Resposta:** Dados do usuário cadastrado com ID do Clerk
 
-**Corpo da requisição:**
+### 👤 Alunos
 
-```json
-{
-  "nome": "string",
-  "email": "string",
-  "clerkId": "string"
-}
-```
-
-### Alunos
-
-#### Obter Dados do Aluno Autenticado
+**Obter Dados do Aluno**
 
 ```
 GET /aluno
 ```
 
-Retorna os dados do aluno atualmente autenticado.
+- **Autenticação:** Token Bearer obrigatório
+- **Resposta:** Dados completos do aluno autenticado
 
-**Cabeçalhos:**
-
-- Authorization: Bearer {token}
-
-#### Atualizar Dados do Aluno
+**Atualizar Dados do Aluno**
 
 ```
 PATCH /aluno/update
 ```
 
-Atualiza os dados do aluno autenticado.
+- **Autenticação:** Token Bearer obrigatório
+- **Corpo:** (todos campos opcionais)
+  ```json
+  {
+    "nome": "string", // Nome do aluno
+    "sobrenome": "string", // Sobrenome do aluno
+    "email": "email@example.com", // Email do aluno
+    "matricula": "123456789", // Matrícula do aluno
+    "pronome": "MASCULINO", // Enum: MASCULINO, FEMININO, NEUTRO...
+    "data_nascimento": "2000-01-01", // Data formato ISO
+    "curso": "ADMINISTRACAO", // Enum do curso
+    "campus": "SALVADOR", // Enum do campus/unidade
+    "data_ingresso": "2022-01-01", // Data formato ISO
+    "celular": "71999999999" // Telefone celular
+  }
+  ```
+- **Resposta:** Dados atualizados do aluno
 
-**Cabeçalhos:**
+### 📋 Editais
 
-- Authorization: Bearer {token}
-
-**Corpo da requisição:**
-
-```json
-{
-  "nome": "string",
-  "email": "string",
-  "telefone": "string",
-  "dataNascimento": "string",
-  "cpf": "string",
-  "rg": "string"
-  // outros campos conforme necessário
-}
-```
-
-### Editais
-
-#### Listar Todos os Editais
+**Listar Todos os Editais**
 
 ```
 GET /editais
 ```
 
-Retorna uma lista de todos os editais disponíveis.
+- **Resposta:** Lista de todos os editais cadastrados
 
-#### Obter Edital Específico
+**Obter Edital Específico**
 
 ```
 GET /editais/:id
 ```
 
-Retorna os detalhes de um edital específico.
+- **Parâmetros:** `id` - ID numérico do edital
+- **Resposta:** Detalhes completos do edital solicitado
 
-#### Criar Novo Edital
+**Criar Novo Edital**
 
 ```
 POST /editais
 ```
 
-Cria um novo edital no sistema.
+- **Corpo:**
+  ```json
+  {
+    "nome_edital": "Edital 2024.1",
+    "descricao": "Descrição do edital",
+    "tipo_beneficio": ["AUXILIO_ALIMENTACAO", "AUXILIO_TRANSPORTE"],
+    "edital_url": ["http://url-do-documento.pdf"],
+    "categoria_edital": ["AUXILIO"],
+    "status_edital": "ATIVO",
+    "quantidade_bolsas": 100,
+    "etapas": [
+      {
+        "nome": "Inscrição",
+        "descricao": "Etapa de inscrição",
+        "ordem": 1,
+        "data_inicio": "2024-05-01T00:00:00.000Z",
+        "data_fim": "2024-05-15T23:59:59.000Z"
+      }
+    ]
+  }
+  ```
+- **Resposta:** Edital criado com ID
 
-**Corpo da requisição:**
-
-```json
-{
-  "titulo": "string",
-  "descricao": "string",
-  "dataInicio": "string",
-  "dataFim": "string",
-  "status": "string"
-}
-```
-
-#### Atualizar Edital
+**Atualizar Edital**
 
 ```
 PATCH /editais/:id
 ```
 
-Atualiza os dados de um edital existente.
+- **Parâmetros:** `id` - ID numérico do edital
+- **Corpo:**
+  ```json
+  {
+    "nome_edital": "Edital Atualizado",
+    "descricao": "Nova descrição",
+    "tipo_beneficio": ["AUXILIO_ALIMENTACAO"],
+    "edital_url": ["http://nova-url.pdf"],
+    "categoria_edital": ["AUXILIO"],
+    "status_edital": "DESATIVADO",
+    "quantidade_bolsas": 50
+  }
+  ```
+- **Resposta:** Dados atualizados do edital
 
-**Corpo da requisição:**
-
-```json
-{
-  "titulo": "string",
-  "descricao": "string",
-  "dataInicio": "string",
-  "dataFim": "string",
-  "status": "string"
-}
-```
-
-#### Remover Edital
+**Excluir Edital**
 
 ```
 DELETE /editais/:id
 ```
 
-Remove um edital do sistema.
+- **Parâmetros:** `id` - ID numérico do edital
+- **Resposta:** Confirmação da exclusão
 
-## 🤝 Colaboradores
+## 👥 Equipe
 
-Agradecemos às seguintes pessoas que contribuíram para este projeto:
-
+<div align="center">
 <table>
   <tr>
-    <td align="center">
-      <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/24979899?s=96&v=4" width="100px;" alt="Foto do Thales no GitHub"/><br>
-        <sub>
-          <b>Thales Macêdo</b>
-        </sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/20570844?v=4" width="100px;" alt="Foto do Maurício no GitHub"/><br>
-        <sub>
-          <b>Mauricio Menezes</b>
-        </sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/83249854?s=64&v=4" width="100px;" alt="Foto do Hugo no GitHub"/><br>
-        <sub>
-          <b>Hugo Chaves</b>
-        </sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="100px;" alt="Foto da Jessica no GitHub"/><br>
-        <sub>
-          <b>Jessica Ellen</b>
-        </sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/53127444?s=64&v=4" width="100px;" alt="Foto do Lucas no GitHub"/><br>
-        <sub>
-          <b>Lucas Lima</b>
-        </sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="#" title="defina o título do link">
-        <img src="https://avatars.githubusercontent.com/u/11302968?s=70&v=4" width="100px;" alt="Foto do Marcos no GitHub"/><br>
-        <sub>
-          <b>Marcos Vinicius</b>
-        </sub>
-      </a>
-    </td>
+    <td align="center"><img src="https://avatars.githubusercontent.com/u/24979899?s=96&v=4" width="70px;" alt=""/><br><b>Thales</b></td>
+    <td align="center"><img src="https://avatars.githubusercontent.com/u/20570844?v=4" width="70px;" alt=""/><br><b>Mauricio</b></td>
+    <td align="center"><img src="https://avatars.githubusercontent.com/u/83249854?s=64&v=4" width="70px;" alt=""/><br><b>Hugo</b></td>
+    <td align="center"><img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="70px;" alt=""/><br><b>Jessica</b></td>
+    <td align="center"><img src="https://avatars.githubusercontent.com/u/53127444?s=64&v=4" width="70px;" alt=""/><br><b>Lucas</b></td>
+    <td align="center"><img src="https://avatars.githubusercontent.com/u/11302968?s=70&v=4" width="70px;" alt=""/><br><b>Marcos</b></td>
   </tr>
 </table>
+</div>
 
-## 📝 Licença
+## 📄 Licença
 
 MIT
-
-## :anchor: Requisitos
-
-- **Centralização de Informações:** O sistema deve centralizar todos os documentos, informações de estudantes e seus núcleos familiares, histórico de processos e pareceres.
-- **Gestão de Processos Seletivos:** O sistema deve permitir a gestão completa dos processos seletivos, desde a inscrição até a divulgação do resultado final, incluindo:
-  - Cadastro de editais com seus respectivos baremas e documentos exigidos.
-  - Inscrições online com validação automática de documentos.
-  - Análise de renda automatizada e comparada com os documentos fornecidos.
-  - Emissão de pareceres com opções pré-definidas para tipos de indeferimento.
-  - Acompanhamento do status de cada inscrição.
-  - Divulgação de resultados preliminares, prazos de recurso e resultados finais.
-- **Validação de Documentos:** O sistema deve automatizar a validação de documentos, com alertas para documentos inválidos ou faltantes.
-- **Comunicação com Estudantes:** O sistema deve permitir a comunicação direta com os estudantes, com envio de alertas e respostas automatizadas sobre o status de suas inscrições e pendências.
-- **Relatórios e Análises:** O sistema deve gerar relatórios e análises sobre os dados coletados, auxiliando na tomada de decisões.
-- **Segurança e Sigilo de Dados:** O sistema deve garantir a segurança e o sigilo dos dados sensíveis dos estudantes, com acesso restrito a pessoas autorizadas e histórico de observações com níveis de sigilo.
-- **Integração com Outros Sistemas:** O sistema deve ser capaz de integrar com outros sistemas da faculdade, como o sistema de matrícula.
-- **Manutenção de Histórico:** O sistema precisa manter o histórico dos dados pelo período de tempo legalmente exigido, mesmo após o encerramento dos processos seletivos.
