@@ -38,27 +38,23 @@ export class MinioClientService {
       throw new BadRequestException('Erro ao fazer upload dos arquivos');
     }
   }
+
+  async getFile(filename: string) {
+    try {
+      const presignedUrl = await this.minioClient.presignedUrl(
+        'GET',
+        process.env.MINIO_BUCKET as string,
+        `documentos/${filename}`,
+        24 * 60 * 60,
+      );
+
+      return {
+        nome_do_arquivo: filename,
+        url: presignedUrl,
+      };
+    } catch (e) {
+      console.error(e);
+      throw new BadRequestException('Erro ao gerar URL do arquivo');
+    }
+  }
 }
-
-//   async download_file(
-//     filename: string,
-//     bucket: string,
-//   ): Promise<{ stream: Readable; url: string }> {
-//     try {
-//       if (!bucket) {
-//         throw new NotFoundException('O bucket precisa ser informado.');
-//       }
-//       await this.createBucketIfNotExists(bucket);
-//       const fileStream = await this.client.getObject(bucket, filename);
-//       const fileUrl = `${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucket}/${filename}`;
-
-//       return { stream: fileStream, url: fileUrl };
-//     } catch (error) {
-//       const e = error as Error;
-//       console.error('Erro ao fazer download do arquivo:', error);
-//       throw new BadRequestException(
-//         `Erro ao fazer download do arquivo: ${e.message}`,
-//       );
-//     }
-//   }
-// }
