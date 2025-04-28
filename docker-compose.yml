@@ -12,7 +12,7 @@ services:
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
+      - '${DB_PORT}:${DB_PORT}'
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${DB_USERNAME}"]
       interval: 20s

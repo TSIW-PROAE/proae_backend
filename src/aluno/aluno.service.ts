@@ -37,23 +37,22 @@ export class AlunoService {
       }
 
       return {
-        success: true,
-        data: {
-          user: {
+        sucesso: true,
+        dados: {
+          aluno: {
             aluno_id: dbUserData.aluno_id,
-            firstName: clerkUserData.firstName,
-            lastName: clerkUserData.lastName,
+            nome: clerkUserData.firstName,
+            sobrenome: clerkUserData.lastName,
             email: clerkUserData.primaryEmailAddress!.emailAddress,
-            registrationNumber: clerkUserData.username,
-            pronoun: dbUserData.pronome,
-            dateOfBirth: dbUserData.data_nascimento,
-            course: dbUserData.curso,
+            matricula: clerkUserData.username,
+            pronome: dbUserData.pronome,
+            data_nascimento: dbUserData.data_nascimento,
+            curso: dbUserData.curso,
             campus: dbUserData.campus,
             cpf: dbUserData.cpf,
-            enrollmentDate: dbUserData.data_ingresso,
-            identity: dbUserData.identidade,
-            phone: dbUserData.celular,
-            enrollments: dbUserData.inscricoes,
+            data_ingresso: dbUserData.data_ingresso,
+            celular: dbUserData.celular,
+            inscricoes: dbUserData.inscricoes,
           },
         },
       };
