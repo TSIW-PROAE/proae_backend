@@ -1,35 +1,39 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
-import { EditalEnum } from '../../enum/enumEdital';
-import { StatusEdital } from '../../enum/enumStatusEdital';
+import { AbstractEntity } from 'src/db/abstract.entity';
 
 @Entity()
-export class Edital {
-  @PrimaryGeneratedColumn()
-  beneficio_id: number;
-
-  @Column({ type: 'enum', enum: EditalEnum })
-  tipo_beneficio: EditalEnum;
+export class Edital extends AbstractEntity<Edital> {
+  @Column({ type: 'text' })
+  nome_edital: string;
 
   @Column({ type: 'text' })
   descricao: string;
 
+  @Column({ type: 'simple-array' })
+  tipo_beneficio: string[];
+
+  @Column({ type: 'simple-array' })
+  edital_url: string[];
+
+  @Column({ type: 'simple-array', nullable: true })
+  categoria_edital: string[];
+
+  @Column({ type: 'text' })
+  status_edital: string;
+
   @Column()
-  edital_url: string;
-
-  @Column({ type: 'date' })
-  data_inicio: Date;
-
-  @Column({ type: 'date' })
-  data_fim: Date;
-
-  @Column({ type: 'enum', enum: StatusEdital })
-  status_edital: StatusEdital;
+  quantidade_bolsas: number;
 
   @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
   inscricoes: Inscricao[];
 
-  @OneToMany(() => EtapaInscricao, (etapa) => etapa.edital)
+  @OneToMany(() => EtapaInscricao, (etapa) => etapa.edital, { cascade: true })
   etapas: EtapaInscricao[];
+
+  constructor(entity: Partial<Edital>) {
+    super();
+    Object.assign(this, entity);
+  }
 }
