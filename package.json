@@ -18,7 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit",
+    "test:ci": "jest --ci --coverage",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --dataSource src/db/db.config.ts",
     "migration:run": "npm run typeorm migration:run",
     "migration:revert": "npm run typeorm migration:revert",
@@ -60,6 +60,7 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^29.7.0",
+    "jest-html-reporter": "^4.1.0",
     "jest-junit": "^16.0.0",
     "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",
@@ -100,7 +101,12 @@
           "classNameTemplate": "{classname}",
           "titleTemplate": "{title}"
         }
-      ]
+      ],
+      ["../node_modules/jest-html-reporter", {
+        "pageTitle": "Relatório de Testes da API",
+        "outputPath": "./coverage/report/index.html",
+        "logo": "https://raw.githubusercontent.com/TSIW-PROAE/.github/main/img/logo_pgcomp.png"
+      }]
     ]
   }
 }
