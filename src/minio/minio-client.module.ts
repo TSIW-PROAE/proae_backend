@@ -1,16 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MinioModule } from 'nestjs-minio-client';
-import { MinioClientService } from './minio-client.service';
-import { config } from 'dotenv';
-import { MinioClientController } from './minio-client.controller';
-
-config();
+import { NestMinioModule } from 'nestjs-minio';
+import { MinioClientService } from './minio.service';
+import { MinioClientController } from './minio.controller';
 
 @Module({
   imports: [
-    MinioModule.register({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
+    NestMinioModule.register({
+      isGlobal: true,
+      endPoint: process.env.MINIO_ENDPOINT as string,
       useSSL: true,
       accessKey: process.env.MINIO_ACCESS_KEY,
       secretKey: process.env.MINIO_SECRET_KEY,
@@ -18,6 +15,5 @@ config();
   ],
   providers: [MinioClientService],
   controllers: [MinioClientController],
-  exports: [MinioClientService],
 })
 export class MinioClientModule {}
