@@ -20,16 +20,7 @@ export class AlunoController {
 
   @UseGuards(AuthGuard)
   @Patch('image')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: multer.diskStorage({
-      destination: path.join(process.cwd(), 'uploads'),
-      filename: (req, file, cb) => {
-        const uniqueSuffix = crypto.randomBytes(6).toString('hex');
-        cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
-      }
-    }),
-  }),
-  )
+  @UseInterceptors(FileInterceptor('file'))
   async atualizarFotoPerfil(
     @Req() request: AuthenticatedRequest,
     @UploadedFile() file: Express.Multer.File,
