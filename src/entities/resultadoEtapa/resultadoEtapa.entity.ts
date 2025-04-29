@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
-import { StatusEtapa } from 'src/enum/enumStatusEtapa';
+import { StatusEtapa } from '../../enum/enumStatusEtapa';
 
 @Entity()
 export class ResultadoEtapa {
@@ -17,9 +17,9 @@ export class ResultadoEtapa {
   @Column({ type: 'enum', enum: StatusEtapa })
   status_etapa: StatusEtapa;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   observacao: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   data_avaliacao: Date;
 }

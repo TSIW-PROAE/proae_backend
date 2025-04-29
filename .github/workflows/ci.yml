@@ -9,21 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: proae_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -31,7 +18,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '23'
         cache: 'npm'
 
     - name: Install dependencies
@@ -42,11 +29,12 @@ jobs:
 
     - name: Run tests
       run: npm run test:ci
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/proae_db
-        NODE_ENV: test
-        JEST_JUNIT_OUTPUT_DIR: ./coverage/junit
-        JEST_JUNIT_OUTPUT_NAME: junit.xml
+
+    - name: Deploy HTML report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./coverage/report
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -56,4 +44,4 @@ jobs:
         path: |
           coverage/
           coverage/junit/
-        retention-days: 7 
+        retention-days: 7

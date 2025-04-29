@@ -7,6 +7,7 @@ import { createClerkClient } from '@clerk/backend';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
+import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import {access, unlink} from 'fs/promises';
 import * as path from 'path';
 
@@ -38,29 +39,85 @@ export class AlunoService {
       }
 
       return {
-        success: true,
-        data: {
-          user: {
+        sucesso: true,
+        dados: {
+          aluno: {
             aluno_id: dbUserData.aluno_id,
-            firstName: clerkUserData.firstName,
-            lastName: clerkUserData.lastName,
+            nome: clerkUserData.firstName,
+            sobrenome: clerkUserData.lastName,
             email: clerkUserData.primaryEmailAddress!.emailAddress,
-            registrationNumber: clerkUserData.username,
-            pronoun: dbUserData.pronome,
-            dateOfBirth: dbUserData.data_nascimento,
-            course: dbUserData.curso,
+            matricula: clerkUserData.username,
+            pronome: dbUserData.pronome,
+            data_nascimento: dbUserData.data_nascimento,
+            curso: dbUserData.curso,
             campus: dbUserData.campus,
             cpf: dbUserData.cpf,
-            enrollmentDate: dbUserData.data_ingresso,
-            identity: dbUserData.identidade,
-            phone: dbUserData.celular,
-            enrollments: dbUserData.inscricoes,
+            data_ingresso: dbUserData.data_ingresso,
+            celular: dbUserData.celular,
+            inscricoes: dbUserData.inscricoes,
           },
         },
       };
     } catch (e) {
       console.error(e);
       throw new BadRequestException('Erro ao buscar aluno');
+    }
+  }
+
+  async updateStudentData(
+    id: string,
+    atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
+  ) {
+    try {
+      const alunoClerk = await this.clerk.users.getUser(id);
+      if (!alunoClerk) {
+        throw new NotFoundException('Aluno não encontrado.');
+      }
+      const aluno = await this.alunoRepository.findOneBy({ id_clerk: id });
+      if (!aluno) {
+        throw new NotFoundException('Aluno não encontrado.');
+      }
+      const emailNovo = atualizaDadosAlunoDTO.email;
+      const emailAtual = alunoClerk.primaryEmailAddress?.emailAddress;
+      const novoEmailDiferente = emailNovo && emailNovo !== emailAtual;
+
+      let primaryEmailId = alunoClerk.primaryEmailAddress?.id;
+
+      if (novoEmailDiferente) {
+        const emailExistente = alunoClerk.emailAddresses.find(
+          (email) => email.emailAddress === emailNovo,
+        );
+
+        if (!emailExistente) {
+          throw new BadRequestException('Novo email não validado.');
+        }
+
+        primaryEmailId = emailExistente.id;
+      }
+
+      await this.clerk.users.updateUser(id, {
+        firstName: atualizaDadosAlunoDTO.nome,
+        lastName: atualizaDadosAlunoDTO.sobrenome,
+        username: `m-${atualizaDadosAlunoDTO.matricula}`,
+        primaryEmailAddressID: primaryEmailId,
+      });
+      Object.assign(aluno, {
+        pronome: atualizaDadosAlunoDTO.pronome,
+        data_nascimento: atualizaDadosAlunoDTO.data_nascimento,
+        curso: atualizaDadosAlunoDTO.curso,
+        campus: atualizaDadosAlunoDTO.campus,
+        data_ingresso: atualizaDadosAlunoDTO.data_ingresso,
+        celular: atualizaDadosAlunoDTO.celular,
+      });
+      await this.alunoRepository.save(aluno);
+
+      return {
+        success: true,
+        message: 'Dados do aluno atualizados com sucesso!',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException('Erro ao atualizar os dados do aluno');
     }
   }
 

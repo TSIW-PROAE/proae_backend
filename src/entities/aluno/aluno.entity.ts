@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
-import { PronomesEnum } from 'src/enum/enumPronomes';
-import { CursosEnum } from 'src/enum/enumCursos';
-import { UnidadeEnum } from 'src/enum/enumCampus';
+import { PronomesEnum } from '../../enum/enumPronomes';
+import { CursosEnum } from '../../enum/enumCursos';
+import { UnidadeEnum } from '../../enum/enumCampus';
 
 @Entity()
 export class Aluno {
@@ -24,14 +24,11 @@ export class Aluno {
   @Column({ type: 'enum', enum: UnidadeEnum })
   campus: UnidadeEnum;
 
-  @Column()
+  @Column({ unique: true })
   cpf: string;
 
   @Column({ type: 'date' })
   data_ingresso: Date;
-
-  @Column()
-  identidade: string;
 
   @Column()
   celular: string;

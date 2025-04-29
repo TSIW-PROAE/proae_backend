@@ -1,11 +1,9 @@
-import { Controller, Get, UseGuards, Req, UploadedFile, Patch, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, UploadedFile, Patch, UseInterceptors, Body} from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AlunoService } from './aluno.service';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
+import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as multer from 'multer';
-import * as crypto from 'crypto';
-import * as path from 'path';
 
 @Controller('aluno')
 export class AlunoController {
@@ -16,6 +14,16 @@ export class AlunoController {
   async findOne(@Req() request: AuthenticatedRequest) {
     const { id } = request.user;
     return this.alunoService.findByClerkId(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('/update')
+  async updateStudentData(
+    @Req() request: AuthenticatedRequest,
+    @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
+  ) {
+    const { id } = request.user;
+    return this.alunoService.updateStudentData(id, atualizaDadosAlunoDTO);
   }
 
   @UseGuards(AuthGuard)

@@ -32,4 +32,16 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'warn'
     },
   },
+  {
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+    }
+  },
+  {
+    files: ['**/src/validators/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-wrapper-object-types': 'off',
+    },
+  },
 );
