@@ -27,7 +27,7 @@ export class AlunoController {
   }
 
   @UseGuards(AuthGuard)
-  @Patch('image')
+  @Patch('update-image')
   @UseInterceptors(FileInterceptor('file'))
   async atualizarFotoPerfil(
     @Req() request: AuthenticatedRequest,
@@ -38,8 +38,8 @@ export class AlunoController {
     if (!file) {
       throw new Error('Nenhum arquivo enviado');
     }
-    const { filename } = file;
-    return this.alunoService.updateImageProfile(id, filename);
+
+    return this.alunoService.updateImageProfile(id, file);
   }
 
 }

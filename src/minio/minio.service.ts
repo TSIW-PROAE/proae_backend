@@ -62,4 +62,35 @@ export class MinioClientService {
       throw new BadRequestException('Erro ao gerar URL do arquivo');
     }
   }
+
+  async uploadImageProfile(clerkUserId: string, file: Express.Multer.File, oldImage: string) {
+    try {
+      const metaData = {
+        'Content-Type': file.mimetype,
+      };
+
+      if (oldImage) {
+        await this.minioClient.removeObject(
+          process.env.MINIO_BUCKET as string,
+          `${clerkUserId}/perfil/${oldImage}`,
+        );
+      }
+
+      await this.minioClient.putObject(
+        process.env.MINIO_BUCKET as string,
+        `${clerkUserId}/perfil/${file.originalname}`,
+        file.buffer,
+        file.size,
+        metaData,
+      );
+
+      return {
+        mensagem: 'Upload feito com sucesso!',
+        fileName: file.originalname,
+      };
+    } catch (e) {
+      console.error(e);
+      throw new BadRequestException('Erro ao fazer upload da imagem');
+    }
+  }
 }

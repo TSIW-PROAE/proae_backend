@@ -8,14 +8,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
-import {access, unlink} from 'fs/promises';
-import * as path from 'path';
+import { MinioClientService } from '../minio/minio.service';
 
 @Injectable()
 export class AlunoService {
   constructor(
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
+    private minioClientService: MinioClientService,
   ) {}
 
   private clerk = createClerkClient({
@@ -121,26 +121,22 @@ export class AlunoService {
     }
   }
 
-  async updateImageProfile(clerkId: string, filename: string) {
+  async updateImageProfile(clerkId: string, file: Express.Multer.File) {
     const aluno = await this.alunoRepository.findOneBy({ id_clerk: clerkId });
   
     if (!aluno) {
       throw new Error('Aluno não encontrado');
     }
 
-    if(aluno.image) {
-      const imagePath = path.join(process.cwd(), 'uploads', aluno.image);
+    const oldImage = aluno.image;
 
-      try{
-        await access(imagePath);
-        await unlink(imagePath);
-        console.log('Imagem antiga deletada com sucesso');
-      } catch (err) {
-        console.error('Erro ao deletar imagem antiga:', err);
-      }
-    }
-  
-    aluno.image = filename;
+    const resultUpload = await this.minioClientService.uploadImageProfile(
+      clerkId,
+      file,
+      oldImage
+    );
+
+    aluno.image = resultUpload.fileName;
   
     return this.alunoRepository.save(aluno);
   }
