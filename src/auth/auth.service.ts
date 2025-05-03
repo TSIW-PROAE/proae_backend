@@ -77,4 +77,27 @@ export class AuthService {
       throw new BadRequestException('Erro ao realizar o cadastro');
     }
   }
+
+  async updatePassword(clerkId: string, password: string) {
+    try{
+      console.log('clerkId', clerkId);
+      const user = await this.clerk.users.getUser(clerkId);
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      await this.clerk.users.updateUser(clerkId, {
+        password,
+      });
+
+      return {
+        sucesso: true,
+        mensagem: 'Senha atualizada com sucesso',
+      };
+    } catch (e) {
+      console.error(e);
+      throw new BadRequestException('Erro ao atualizar a senha');
+    }
+  }
 }
