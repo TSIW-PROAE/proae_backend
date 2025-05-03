@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { AuthGuard } from './auth.guard';
 import { UpdatePasswordDto } from './dto/updatepassword.dto';
+import AuthenticatedRequest from 'src/types/authenticated-request.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -16,10 +17,11 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Patch('update-password')
   async updatePassword(
-    @Req() req:any,
+    @Req() request: AuthenticatedRequest,
     @Body() body: UpdatePasswordDto,
   ) {
-    const clerkId = req.user.clerkId
-    return this.authService.updatePassword(clerkId, body.password);
+    console.log('clerkId', request.user);
+    const {id} = request.user;
+    return this.authService.updatePassword(id, body.senha);
   }
 }

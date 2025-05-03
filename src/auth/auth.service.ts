@@ -80,6 +80,7 @@ export class AuthService {
 
   async updatePassword(clerkId: string, password: string) {
     try{
+      console.log('clerkId', clerkId);
       const user = await this.clerk.users.getUser(clerkId);
 
       if (!user) {
