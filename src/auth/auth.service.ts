@@ -3,7 +3,7 @@ import { createClerkClient, User } from '@clerk/backend';
 import { SignupDto } from './dto/signup.dto';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { QueryFailedError, type Repository } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import * as cpf from 'validation-br/dist/cpf';
 
@@ -64,17 +64,30 @@ export class AuthService {
         },
       };
     } catch (e) {
-      console.error(e);
-
       if (alunoClerk && alunoClerk.id) {
-        try {
-          await this.clerk.users.deleteUser(alunoClerk.id);
-        } catch (e) {
-          console.error('Erro ao deletar usuário do Clerk:', e);
-        }
-      }
+        await this.clerk.users.deleteUser(alunoClerk.id);
 
-      throw new BadRequestException('Erro ao realizar o cadastro');
+        if (e instanceof QueryFailedError) {
+          const err = e as QueryFailedError & { code: string };
+          if (err.code === '23505') {
+            console.error('CPF já cadastrado:', e);
+            throw new BadRequestException('CPF já cadastrado');
+          }
+        }
+
+        console.error('Erro ao inserir aluno no banco de dados:', e);
+        throw new BadRequestException(
+          'Erro ao inserir aluno no banco de dados',
+        );
+      } else if (!alunoClerk) {
+        console.error('Erro ao inserir aluno no clerk:', e);
+        throw new BadRequestException('Erro ao inserir aluno no clerk', {
+          description: e as string,
+        });
+      } else {
+        console.error(e);
+        throw new BadRequestException('Erro ao realizar o cadastro');
+      }
     }
   }
 }
