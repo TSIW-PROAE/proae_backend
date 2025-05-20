@@ -22,10 +22,13 @@ export class SignupDto {
   email: string;
 
   @IsNotEmpty()
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
-    message:
-      'A senha deve conter pelo menos uma letra, um número e um caractere especial',
-  })
+  @Matches(
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/,
+    {
+      message:
+        'A senha deve conter pelo menos uma letra, um número e um caractere especial e no minimo 8 caracteres',
+    },
+  )
   senha: string;
 
   @IsNotEmpty()
