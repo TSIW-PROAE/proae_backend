@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Migration1745805414691 implements MigrationInterface {
-    name = 'Migration1745805414691'
+export class Migration1747874926679 implements MigrationInterface {
+    name = 'Migration1747874926679'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "aluno" ("aluno_id" SERIAL NOT NULL, "id_clerk" character varying NOT NULL, "pronome" "public"."aluno_pronome_enum" NOT NULL, "data_nascimento" date NOT NULL, "curso" "public"."aluno_curso_enum" NOT NULL, "campus" "public"."aluno_campus_enum" NOT NULL, "cpf" character varying NOT NULL, "data_ingresso" date NOT NULL, "identidade" character varying NOT NULL, "celular" character varying NOT NULL, CONSTRAINT "PK_59b290e3568d6200112b91682ed" PRIMARY KEY ("aluno_id"))`);
+        await queryRunner.query(`CREATE TABLE "aluno" ("aluno_id" SERIAL NOT NULL, "id_clerk" character varying NOT NULL, "pronome" "public"."aluno_pronome_enum" NOT NULL, "data_nascimento" date NOT NULL, "curso" "public"."aluno_curso_enum" NOT NULL, "campus" "public"."aluno_campus_enum" NOT NULL, "cpf" character varying NOT NULL, "data_ingresso" date NOT NULL, "celular" character varying NOT NULL, CONSTRAINT "UQ_7d72b36d16642eb758366a072c1" UNIQUE ("cpf"), CONSTRAINT "PK_59b290e3568d6200112b91682ed" PRIMARY KEY ("aluno_id"))`);
         await queryRunner.query(`CREATE TABLE "resultado_etapa" ("resultado_id" SERIAL NOT NULL, "status_etapa" "public"."resultado_etapa_status_etapa_enum" NOT NULL, "observacao" text, "data_avaliacao" date, "inscricaoInscricaoId" integer, "etapaId" integer, CONSTRAINT "PK_ace10e69cfcef4dc9a417cd9a35" PRIMARY KEY ("resultado_id"))`);
         await queryRunner.query(`CREATE TABLE "etapa_inscricao" ("id" SERIAL NOT NULL, "nome" character varying NOT NULL, "ordem" integer NOT NULL, "data_inicio" date NOT NULL, "data_fim" date NOT NULL, "descricao" text, "editalId" integer, CONSTRAINT "PK_4a31674d149e935277165e7177c" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "edital" ("id" SERIAL NOT NULL, "nome_edital" text NOT NULL, "descricao" text NOT NULL, "tipo_beneficio" text NOT NULL, "edital_url" text NOT NULL, "categoria_edital" text, "status_edital" text NOT NULL, "quantidade_bolsas" integer NOT NULL, CONSTRAINT "PK_521e2170c236167de6dc1e176f1" PRIMARY KEY ("id"))`);
