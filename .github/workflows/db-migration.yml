@@ -31,5 +31,5 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
         run: |
-          npm run migrate:generate
-          npm run migrate:run
+          npm run migration:generate
+          npm run migration:run
