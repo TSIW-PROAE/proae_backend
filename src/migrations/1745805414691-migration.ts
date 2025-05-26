@@ -41,3 +41,6 @@ export class Migration1745805414691 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "etapa_inscricao"`);
         await queryRunner.query(`DROP TABLE "resultado_etapa"`);
         await queryRunner.query(`DROP TABLE "aluno"`);
+    }
+
+}
