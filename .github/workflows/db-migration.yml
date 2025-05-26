@@ -9,7 +9,7 @@ jobs:
     name: Develop Database Migration
     runs-on: ubuntu-latest
     environment: develop
-    if: ${{ github.ref == 'refs/heads/develop' }}
+    if: ${{ github.ref == 'refs/heads/feat/add-db-migration-pipeline' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
