@@ -8,7 +8,7 @@ export class Validacao extends AbstractEntity<Validacao> {
     @Column({ type: 'enum', enum: StatusDocumento })
     status: StatusDocumento;
 
-    @Column({ type: 'char', length: 255, nullable: true })
+    @Column({ type: 'text', nullable: true })
     parecer: string;
 
     @Column({ type: 'date', nullable: true })
