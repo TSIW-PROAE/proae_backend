@@ -25,8 +25,8 @@ export class ValidacaoService {
       return plainToInstance(ValidacaoResponseDto, saved, { excludeExtraneousValues: true });
     } catch (error) {
       const e = error as Error;
-      console.error('Erro ao criar o validacao:', error);
-      throw new BadRequestException(`Erro ao criar validacao: ${e.message}`);
+      console.error('Erro ao criar a validação:', error);
+      throw new BadRequestException(`Erro ao criar validação: ${e.message}`);
     }
   }
 
@@ -37,7 +37,7 @@ export class ValidacaoService {
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao buscar validações:', error);
-      throw new BadRequestException(`Erro ao buscar validacao: ${e.message}`);
+      throw new BadRequestException(`Erro ao buscar validações: ${e.message}`);
     }
   }
 
@@ -48,8 +48,8 @@ export class ValidacaoService {
       return plainToInstance(ValidacaoResponseDto, validacao, { excludeExtraneousValues: true });
     } catch (error) {
       const e = error as Error;
-      console.error('Erro ao buscar validação:', error);
-      throw new BadRequestException(`Erro ao buscar validacao: ${e.message}`);
+      console.error('Erro ao buscar a validação:', error);
+      throw new BadRequestException(`Erro ao buscar a validação: ${e.message}`);
     }
   }
 
@@ -62,8 +62,8 @@ export class ValidacaoService {
       return plainToInstance(ValidacaoResponseDto, updated, { excludeExtraneousValues: true });
     } catch (error) {
       const e = error as Error;
-      console.error('Erro ao atualizar validação:', error);
-      throw new BadRequestException(`Erro ao atualizar validacao: ${e.message}`);
+      console.error('Erro ao atualizar a validação:', error);
+      throw new BadRequestException(`Erro ao atualizar a validação: ${e.message}`);
     }
   }
 
@@ -75,8 +75,8 @@ export class ValidacaoService {
       return { message: 'Validação removida com sucesso' };
     } catch (error) {
       const e = error as Error;
-      console.error('Erro ao remover validação:', error);
-      throw new BadRequestException(`Erro ao remover validacao: ${e.message}`);
+      console.error('Erro ao remover a validação:', error);
+      throw new BadRequestException(`Erro ao remover a validação: ${e.message}`);
     }
   }
 }
