@@ -10,7 +10,6 @@ import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
 import { ValidacaoResponseDto } from './dto/validacao-response.dto';
 import { plainToInstance } from 'class-transformer';
-import { promises } from 'dns';
 
 @Injectable()
 export class ValidacaoService {
@@ -45,8 +44,10 @@ export class ValidacaoService {
   async findOne(id: number): Promise<ValidacaoResponseDto> {
     try {
       const validacao = await this.validacaoRepository.findOneBy({ id });
+      if (!validacao) throw new NotFoundException('Validação não encontrada');
       return plainToInstance(ValidacaoResponseDto, validacao, { excludeExtraneousValues: true });
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       const e = error as Error;
       console.error('Erro ao buscar a validação:', error);
       throw new BadRequestException(`Erro ao buscar a validação: ${e.message}`);
@@ -61,6 +62,7 @@ export class ValidacaoService {
       const updated = await this.validacaoRepository.save(validacao);
       return plainToInstance(ValidacaoResponseDto, updated, { excludeExtraneousValues: true });
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       const e = error as Error;
       console.error('Erro ao atualizar a validação:', error);
       throw new BadRequestException(`Erro ao atualizar a validação: ${e.message}`);
@@ -71,9 +73,10 @@ export class ValidacaoService {
     try {
       const validacao = await this.validacaoRepository.findOneBy({ id });
       if (!validacao) throw new NotFoundException('Validação não encontrada');
-      await this.validacaoRepository.delete(validacao);
+      await this.validacaoRepository.delete({ id });
       return { message: 'Validação removida com sucesso' };
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       const e = error as Error;
       console.error('Erro ao remover a validação:', error);
       throw new BadRequestException(`Erro ao remover a validação: ${e.message}`);
