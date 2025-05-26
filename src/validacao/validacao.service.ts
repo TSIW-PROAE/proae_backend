@@ -10,6 +10,7 @@ import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
 import { ValidacaoResponseDto } from './dto/validacao-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { promises } from 'dns';
 
 @Injectable()
 export class ValidacaoService {
@@ -44,7 +45,6 @@ export class ValidacaoService {
   async findOne(id: number): Promise<ValidacaoResponseDto> {
     try {
       const validacao = await this.validacaoRepository.findOneBy({ id });
-      if (!validacao) throw new NotFoundException('Validação não encontrada');
       return plainToInstance(ValidacaoResponseDto, validacao, { excludeExtraneousValues: true });
     } catch (error) {
       const e = error as Error;
@@ -67,7 +67,7 @@ export class ValidacaoService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<{ message: string }> {
     try {
       const validacao = await this.validacaoRepository.findOneBy({ id });
       if (!validacao) throw new NotFoundException('Validação não encontrada');

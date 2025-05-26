@@ -13,11 +13,11 @@ export class CreateValidacaoDto {
     @IsOptional()
     @IsString()
     @ApiProperty({ type: String, required: false, description: 'Parecer do validador' })
-    parecer: string;
+    parecer?: string;
 
     @IsOptional()
     @IsDate()
     @Type(() => Date)
     @ApiProperty({ type: Date, format: 'date', required: false, description: 'Data da validação' })
-    data_validacao: Date;
+    data_validacao?: Date;
 }
