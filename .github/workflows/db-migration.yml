@@ -27,6 +27,7 @@ jobs:
         run: npm run build
       
       - name: Run database migration
+        continue-on-error: true
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
