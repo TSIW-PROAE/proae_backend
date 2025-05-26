@@ -2,14 +2,14 @@ name: DB Migration
 
 on:
   push:
-    branches: [ main, develop, feat/add-db-migration-pipeline ]
+    branches: [ main, develop ]
 
 jobs:
   developDatabaseMigration:
     name: Develop Database Migration
     runs-on: ubuntu-latest
     environment: develop
-    if: ${{ github.ref == 'refs/heads/feat/add-db-migration-pipeline' }}
+    if: ${{ github.ref == 'refs/heads/feat/develop' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
