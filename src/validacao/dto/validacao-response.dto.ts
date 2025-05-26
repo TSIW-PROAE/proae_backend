@@ -15,7 +15,7 @@ export class ValidacaoResponseDto {
     @Expose()
     parecer?: string;
 
-    @ApiProperty({ type: String, format: 'date', required: false, description: 'Data da validação' })
+    @ApiProperty({ type: Date, format: 'date', required: false, description: 'Data da validação' })
     @Expose()
-    data_validacao?: string;
+    data_validacao?: Date;
 } 
