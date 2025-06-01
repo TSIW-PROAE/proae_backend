@@ -10,6 +10,7 @@ import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
 import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
+import { StatusEdital } from 'src/enum/enumStatusEdital';
 
 @Injectable()
 export class EditalService {
@@ -143,6 +144,25 @@ export class EditalService {
       const e = error as Error;
       console.error('Falha ao excluir edital:', error);
       throw new BadRequestException(`Falha ao excluir edital: ${e.message}`);
+    }
+  }
+  async getEditalOpedened() {
+    try {
+      return this.editaisRepository.find({
+        where: { status_edital: StatusEdital.ABERTO },
+        relations: {
+          etapas: { resultados: true },
+        },
+        order: {
+          etapas: { ordem: 'ASC' },
+        },
+      });
+    } catch (error) {
+      const e = error as Error;
+      console.error('Erro ao buscar editais abertos:', e);
+      throw new BadRequestException(
+        `Erro ao buscar editais abertos: ${e.message}`,
+      );
     }
   }
 }
