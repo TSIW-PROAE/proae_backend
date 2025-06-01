@@ -30,6 +30,11 @@ export class EditalController {
     return this.editalService.findOne(+id);
   }
 
+  @Get('abertos')
+  async findOpened() {
+    return this.editalService.getEditalOpedened();
+  }
+
   @Patch(':id')
   async update(
     @Param('id') id: string,
