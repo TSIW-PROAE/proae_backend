@@ -7,32 +7,39 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { CreateEtapasDto } from './create-etapas-edital.dto';
 import { EditalEnum } from 'src/enum/enumEdital';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
 
 export class CreateEditalDto {
+  @ApiProperty({ enum: EditalEnum, description: 'Tipo do edital' })
   @IsNotEmpty()
   @IsEnum(EditalEnum)
   tipo_edital: EditalEnum;
 
+  @ApiProperty({ description: 'Descrição do edital' })
   @IsString()
   descricao: string;
 
+  @ApiProperty({ type: [String], description: 'URLs dos documentos do edital' })
+  @IsNotEmpty()
   @IsArray()
   @IsString({ each: true })
   edital_url: string[];
 
+  @ApiProperty({ description: 'Título do edital' })
+  @IsNotEmpty()
   @IsString()
   titulo_edital: string;
 
-  @IsEnum(StatusEdital)
-  status_edital: StatusEdital;
-
+  @ApiProperty({ description: 'Quantidade de bolsas disponíveis' })
+  @IsNotEmpty()
   @IsNumber()
   quantidade_bolsas: number;
 
+  @ApiProperty({ type: [CreateEtapasDto], description: 'Etapas do edital' })
   @ValidateNested({ each: true })
   @Type(() => CreateEtapasDto)
+  @IsNotEmpty()
   etapas: CreateEtapasDto[];
 }
