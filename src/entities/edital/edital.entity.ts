@@ -22,7 +22,11 @@ export class Edital extends AbstractEntity<Edital> {
   @Column()
   quantidade_bolsas: number;
 
-  @Column({ type: 'enum', enum: StatusEdital })
+  @Column({
+    type: 'enum',
+    enum: StatusEdital,
+    default: StatusEdital.ABERTO
+  })
   status_edital: StatusEdital;
 
   @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
