@@ -29,14 +29,6 @@ export class EditalController {
 
   @Post()
   @ApiCreatedResponse({ type: EditalResponseDto, description: 'Edital criado com sucesso' })
-  @ApiBadRequestResponse({
-    description: 'Dados inválidos fornecidos',
-    schema: { example: errorExamples.badRequest }
-  })
-  @ApiUnprocessableEntityResponse({
-    description: 'Erro de validação nos dados fornecidos',
-    schema: { example: errorExamples.unprocessableEntity }
-  })
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError }
@@ -60,10 +52,6 @@ export class EditalController {
   @ApiNotFoundResponse({
     description: 'Edital não encontrado',
     schema: { example: errorExamples.notFound }
-  })
-  @ApiBadRequestResponse({
-    description: 'ID inválido fornecido',
-    schema: { example: errorExamples.badRequest }
   })
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
@@ -89,14 +77,6 @@ export class EditalController {
     description: 'Edital não encontrado',
     schema: { example: errorExamples.notFound }
   })
-  @ApiBadRequestResponse({
-    description: 'Dados inválidos fornecidos',
-    schema: { example: errorExamples.badRequest }
-  })
-  @ApiUnprocessableEntityResponse({
-    description: 'Erro de validação nos dados fornecidos',
-    schema: { example: errorExamples.unprocessableEntity }
-  })
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError }
@@ -113,10 +93,6 @@ export class EditalController {
   @ApiNotFoundResponse({
     description: 'Edital não encontrado',
     schema: { example: errorExamples.notFound }
-  })
-  @ApiBadRequestResponse({
-    description: 'ID inválido fornecido',
-    schema: { example: errorExamples.badRequest }
   })
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
