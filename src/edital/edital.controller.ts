@@ -47,6 +47,16 @@ export class EditalController {
     return this.editalService.findAll();
   }
 
+  @Get('abertos')
+  @ApiOkResponse({ type: [EditalResponseDto], description: 'Lista de editais abertos retornada com sucesso' })
+  @ApiInternalServerErrorResponse({
+    description: 'Erro interno do servidor',
+    schema: { example: errorExamples.internalServerError }
+  })
+  async findOpened() {
+    return this.editalService.getEditalOpedened();
+  }
+
   @Get(':id')
   @ApiOkResponse({ type: EditalResponseDto, description: 'Edital encontrado com sucesso' })
   @ApiNotFoundResponse({
@@ -59,16 +69,6 @@ export class EditalController {
   })
   async findOne(@Param('id') id: string) {
     return this.editalService.findOne(+id);
-  }
-
-  @Get('abertos')
-  @ApiOkResponse({ type: [EditalResponseDto], description: 'Lista de editais abertos retornada com sucesso' })
-  @ApiInternalServerErrorResponse({
-    description: 'Erro interno do servidor',
-    schema: { example: errorExamples.internalServerError }
-  })
-  async findOpened() {
-    return this.editalService.getEditalOpedened();
   }
 
   @Patch(':id')
