@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -28,11 +29,15 @@ async function bootstrap() {
       .setVersion('1.0')
       .build();
 
-    const documentFactory = () => SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, documentFactory);
+    const document = SwaggerModule.createDocument(app, config);
+
+    SwaggerModule.setup('api', app, document);
   } catch (error) {
     console.error('Erro ao configurar Swagger:', error);
   }
+
+  // Aplicando o filter globalmente
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Aplicação rodando na porta ${process.env.PORT ?? 3000}`);

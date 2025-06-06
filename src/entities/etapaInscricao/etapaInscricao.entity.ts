@@ -20,9 +20,6 @@ export class EtapaInscricao extends AbstractEntity<EtapaInscricao> {
   @Column({ type: 'date' })
   data_fim: Date;
 
-  @Column({ type: 'text', nullable: true })
-  descricao: string;
-
   @OneToMany(() => ResultadoEtapa, (resultado) => resultado.etapa, {
     nullable: true,
   })

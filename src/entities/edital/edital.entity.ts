@@ -2,29 +2,32 @@ import { Entity, Column, OneToMany } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
+import { EditalEnum } from 'src/enum/enumEdital';
+import { StatusEdital } from 'src/enum/enumStatusEdital';
 
 @Entity()
 export class Edital extends AbstractEntity<Edital> {
-  @Column({ type: 'text' })
-  nome_edital: string;
+  @Column({ type: 'enum', enum: EditalEnum })
+  tipo_edital: EditalEnum;
 
   @Column({ type: 'text' })
   descricao: string;
 
   @Column({ type: 'simple-array' })
-  tipo_beneficio: string[];
-
-  @Column({ type: 'simple-array' })
   edital_url: string[];
 
-  @Column({ type: 'simple-array', nullable: true })
-  categoria_edital: string[];
-
   @Column({ type: 'text' })
-  status_edital: string;
+  titulo_edital: string;
 
   @Column()
   quantidade_bolsas: number;
+
+  @Column({
+    type: 'enum',
+    enum: StatusEdital,
+    default: StatusEdital.ABERTO
+  })
+  status_edital: StatusEdital;
 
   @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
   inscricoes: Inscricao[];

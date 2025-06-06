@@ -3,7 +3,6 @@ import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { In, Repository } from 'typeorm';
 import { Aluno } from 'src/entities/aluno/aluno.entity';
 import { Edital } from 'src/entities/edital/edital.entity';
-import { Formulario } from 'src/entities/formulario/formulario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Documento } from 'src/entities/documento/documento.entity';
@@ -16,15 +15,12 @@ export class InscricaoService {
     private readonly alunoRepository: Repository<Aluno>,
     @InjectRepository(Edital)
     private readonly editalRepository: Repository<Edital>,
-    @InjectRepository(Formulario)
-    private readonly formularioRepository: Repository<Formulario>,
     @InjectRepository(Documento)
     private readonly documentoRepository: Repository<Documento>,
   ) {}
   async createInscricao(createInscricaoDto: CreateInscricaoDto) {
     try {
-      const { aluno, edital, data_inscricao, formulario, documentos } =
-        createInscricaoDto;
+      const { aluno, edital, data_inscricao, documentos } = createInscricaoDto;
 
       const alunoExiste = await this.alunoRepository.findOne({
         where: { aluno_id: aluno },
@@ -45,17 +41,6 @@ export class InscricaoService {
       inscricao.aluno = alunoExiste;
       inscricao.edital = editalExiste;
       inscricao.data_inscricao = data_inscricao;
-
-      if (formulario) {
-        const formulario_final = await this.formularioRepository.findOne({
-          where: { formulario_id: formulario },
-        });
-        if (formulario_final) {
-          inscricao.formulario = formulario_final;
-        } else {
-          throw new NotFoundException('Formulário não encontrado');
-        }
-      }
 
       if (documentos && documentos.length > 0) {
         const documentos_finais = await this.documentoRepository.find({
@@ -88,8 +73,7 @@ export class InscricaoService {
     updateInscricaoDto: CreateInscricaoDto,
   ) {
     try {
-      const { aluno, edital, data_inscricao, formulario, documentos } =
-        updateInscricaoDto;
+      const { aluno, edital, data_inscricao, documentos } = updateInscricaoDto;
 
       const inscricaoExistente = await this.inscricaoRepository.findOne({
         where: { inscricao_id: inscricaoId },
@@ -118,17 +102,6 @@ export class InscricaoService {
       inscricaoExistente.aluno = alunoExiste;
       inscricaoExistente.edital = editalExiste;
       inscricaoExistente.data_inscricao = data_inscricao;
-
-      if (formulario) {
-        const formularioFinal = await this.formularioRepository.findOne({
-          where: { formulario_id: formulario },
-        });
-        if (formularioFinal) {
-          inscricaoExistente.formulario = formularioFinal;
-        } else {
-          throw new NotFoundException('Formulário não encontrado');
-        }
-      }
 
       if (documentos && documentos.length > 0) {
         const documentosFinais = await this.documentoRepository.find({

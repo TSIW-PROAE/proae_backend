@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import type { EntityManager, Repository } from 'typeorm';
 import { CreateEditalDto } from './dto/create-edital.dto';
@@ -10,6 +11,9 @@ import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
 import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
+import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { EditalResponseDto } from './dto/edital-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class EditalService {
@@ -18,11 +22,11 @@ export class EditalService {
     private readonly editaisRepository: Repository<Edital>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {}
+  ) { }
 
-  async create(createEditalDto: CreateEditalDto) {
+  async create(createEditalDto: CreateEditalDto): Promise<EditalResponseDto> {
     try {
-      return await this.entityManager.transaction(
+      const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
           const etapas = createEditalDto.etapas.map((etapaDto) => {
             return new EtapaInscricao(etapaDto);
@@ -33,20 +37,21 @@ export class EditalService {
             etapas,
           });
 
-          // O cascade=true vai cuidar de salvar as etapas automaticamente
-          await transactionalEntityManager.save(edital);
+          const savedEdital = await transactionalEntityManager.save(edital);
+          return savedEdital;
         },
       );
+
+      return plainToInstance(EditalResponseDto, result, { excludeExtraneousValues: true });
     } catch (error) {
-      const e = error as Error;
       console.error('Erro ao criar o edital:', error);
-      throw new BadRequestException(`Falha ao criar o edital: ${e.message}`);
+      throw new InternalServerErrorException();
     }
   }
 
-  async findAll() {
+  async findAll(): Promise<EditalResponseDto[]> {
     try {
-      return this.editaisRepository.find({
+      const editais = await this.editaisRepository.find({
         relations: {
           etapas: { resultados: true },
         },
@@ -54,16 +59,16 @@ export class EditalService {
           etapas: { ordem: 'ASC' },
         },
       });
+      return plainToInstance(EditalResponseDto, editais, { excludeExtraneousValues: true });
     } catch (error) {
-      const e = error as Error;
       console.error('Erro ao buscar editais:', error);
-      throw new BadRequestException(`Erro ao buscar editais: ${e.message}`);
+      throw new InternalServerErrorException();
     }
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<EditalResponseDto> {
     try {
-      return this.editaisRepository.findOne({
+      const edital = await this.editaisRepository.findOne({
         where: { id },
         relations: {
           etapas: { resultados: true },
@@ -72,39 +77,50 @@ export class EditalService {
           etapas: { ordem: 'ASC' },
         },
       });
+
+      if (!edital) {
+        throw new NotFoundException();
+      }
+
+      return plainToInstance(EditalResponseDto, edital, { excludeExtraneousValues: true });
     } catch (error) {
-      const e = error as Error;
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       console.error('Erro ao buscar edital:', error);
-      throw new BadRequestException(`Erro ao buscar edital: ${e.message}`);
+      throw new InternalServerErrorException();
     }
   }
 
-  async update(id: number, updateEditalDto: UpdateEditalDto) {
+  async update(id: number, updateEditalDto: UpdateEditalDto): Promise<EditalResponseDto> {
     try {
       const edital = await this.editaisRepository.findOneBy({ id });
 
       if (!edital) {
-        throw new NotFoundException('Edital não encontrado');
+        throw new NotFoundException();
       }
 
-      await this.entityManager.transaction(
+      const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
           Object.assign(edital, updateEditalDto);
-          await transactionalEntityManager.save(edital);
+          const updatedEdital = await transactionalEntityManager.save(edital);
+          return updatedEdital;
         },
       );
+
+      return plainToInstance(EditalResponseDto, result, { excludeExtraneousValues: true });
     } catch (error) {
-      const e = error as Error;
-      console.error('Error ao atualizar o edital:', error);
-      throw new BadRequestException(
-        `Error ao atualizar o edital: ${e.message}`,
-      );
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erro ao atualizar o edital:', error);
+      throw new InternalServerErrorException();
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<{ message: string }> {
     try {
-      return await this.entityManager.transaction(
+      const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
           const edital = await transactionalEntityManager.findOne(Edital, {
             where: { id },
@@ -114,7 +130,7 @@ export class EditalService {
           });
 
           if (!edital) {
-            return 'Edital com id: ' + id + ' não encontrado';
+            throw new NotFoundException();
           }
 
           // Exclui os resultados associados às etapas do edital
@@ -134,15 +150,35 @@ export class EditalService {
           // Exclui o edital
           await transactionalEntityManager.delete(Edital, { id });
 
-          return {
-            message: 'Edital e entidades relacionadas excluídos com sucesso',
-          };
+          return { message: 'Edital removido com sucesso' };
         },
       );
+
+      return result;
     } catch (error) {
-      const e = error as Error;
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       console.error('Falha ao excluir edital:', error);
-      throw new BadRequestException(`Falha ao excluir edital: ${e.message}`);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async getEditalOpedened(): Promise<EditalResponseDto[]> {
+    try {
+      const editais = await this.editaisRepository.find({
+        where: { status_edital: StatusEdital.ABERTO },
+        relations: {
+          etapas: { resultados: true },
+        },
+        order: {
+          etapas: { ordem: 'ASC' },
+        },
+      });
+      return plainToInstance(EditalResponseDto, editais, { excludeExtraneousValues: true });
+    } catch (error) {
+      console.error('Erro ao buscar editais abertos:', error);
+      throw new InternalServerErrorException();
     }
   }
 }
