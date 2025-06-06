@@ -7,10 +7,15 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { DocumentoService } from './documentos.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
+import { ResubmitDocumentoDto } from './dto/resubmit-documento.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import AuthenticatedRequest from '../types/authenticated-request.interface';
 
 @Controller('documentos')
 export class DocumentoController {
@@ -44,5 +49,21 @@ export class DocumentoController {
   @Delete(':id')
   async removeDocumento(@Param('id', ParseIntPipe) id: number) {
     return await this.documentoService.removeDocumento(id);
+  }
+
+  @Get('reprovados/meus')
+  async getMyReprovadoDocuments(@Req() request: AuthenticatedRequest) {
+    const { id } = request.user;
+    return await this.documentoService.getReprovadoDocumentsByStudent(id);
+  }
+
+  @Put('resubmissao/:id')
+  async resubmitDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() resubmitDocumentoDto: ResubmitDocumentoDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const { id: clerkId } = request.user;
+    return await this.documentoService.resubmitDocument(clerkId, id, resubmitDocumentoDto);
   }
 }
