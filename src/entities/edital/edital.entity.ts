@@ -4,6 +4,8 @@ import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { Step } from './step.entity';
+import { EnumTipoDocumento } from 'src/enum/enumTipoDocumento';
 
 @Entity()
 export class Edital extends AbstractEntity<Edital> {
@@ -34,6 +36,12 @@ export class Edital extends AbstractEntity<Edital> {
 
   @OneToMany(() => EtapaInscricao, (etapa) => etapa.edital, { cascade: true })
   etapas: EtapaInscricao[];
+
+  @OneToMany(() => Step, (step) => step.edital)
+  steps: Step[];
+
+  @Column({ type: 'simple-array' })
+  tipo_documentos: EnumTipoDocumento[];
 
   constructor(entity: Partial<Edital>) {
     super();
