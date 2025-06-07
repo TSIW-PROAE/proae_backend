@@ -19,7 +19,7 @@ import {
 import { EditalService } from './edital.service';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
-import { EditalResponseDto } from './dto/edital-response.dto';
+import { EditalResponseDto } from './dto/response-edital.dto';
 import { errorExamples } from '../common/swagger/error-examples';
 
 @ApiTags('editais')

@@ -12,7 +12,7 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
 import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
-import { EditalResponseDto } from './dto/edital-response.dto';
+import { EditalResponseDto } from './dto/response-edital.dto';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
