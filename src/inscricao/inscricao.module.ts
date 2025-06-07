@@ -9,7 +9,9 @@ import { Edital } from 'src/entities/edital/edital.entity';
 import { Resposta } from 'src/entities/inscricao/resposta.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Inscricao, Documento, Aluno, Edital, Resposta])],
+  imports: [
+    TypeOrmModule.forFeature([Inscricao, Documento, Aluno, Edital, Resposta]),
+  ],
   controllers: [InscricaoController],
   providers: [InscricaoService],
 })

@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Put,
-  Param,
-} from '@nestjs/common';
+import { Controller, Post, Body, Put, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiCreatedResponse,
@@ -23,10 +17,13 @@ import { errorExamples } from '../common/swagger/error-examples';
 @ApiTags('inscricoes')
 @Controller('inscricoes')
 export class InscricaoController {
-  constructor(private readonly inscricaoService: InscricaoService) { }
+  constructor(private readonly inscricaoService: InscricaoService) {}
 
   @Post()
-  @ApiCreatedResponse({ type: InscricaoResponseDto, description: 'Inscrição criada com sucesso' })
+  @ApiCreatedResponse({
+    type: InscricaoResponseDto,
+    description: 'Inscrição criada com sucesso',
+  })
   @ApiBadRequestResponse({
     description: 'Dados inválidos fornecidos',
     schema: { example: errorExamples.badRequest },
@@ -44,7 +41,10 @@ export class InscricaoController {
   }
 
   @Put(':id')
-  @ApiOkResponse({ type: InscricaoResponseDto, description: 'Inscrição atualizada com sucesso' })
+  @ApiOkResponse({
+    type: InscricaoResponseDto,
+    description: 'Inscrição atualizada com sucesso',
+  })
   @ApiNotFoundResponse({
     description: 'Inscrição não encontrada',
     schema: { example: errorExamples.notFound },

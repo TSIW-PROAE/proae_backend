@@ -20,13 +20,16 @@ export class InscricaoService {
     private readonly editalRepository: Repository<Edital>,
     @InjectRepository(Documento)
     private readonly documentoRepository: Repository<Documento>,
+    @InjectRepository(Resposta)
+    private readonly respostaRepository: Repository<Resposta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) { }
+  ) {}
 
-  async createInscricao(createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
+  async createInscricao(
+    createInscricaoDto: CreateInscricaoDto,
+  ): Promise<InscricaoResponseDto> {
     try {
-
       const alunoExiste = await this.alunoRepository.findOne({
         where: { aluno_id: createInscricaoDto.aluno },
       });
@@ -43,9 +46,7 @@ export class InscricaoService {
         throw new NotFoundException('Edital não encontrado');
       }
 
-      const respostas = createInscricaoDto.respostas.map((respostaDto) => {
-        return new Resposta(respostaDto);
-      });
+      const respostas = plainToInstance(Resposta, createInscricaoDto.respostas);
 
       const inscricao = new Inscricao({
         aluno: alunoExiste,
@@ -63,11 +64,15 @@ export class InscricaoService {
             await transactionalEntityManager.save(documento);
           }
 
-          const inscricaoFinal = await transactionalEntityManager.save(inscricao);
+          const inscricaoFinal =
+            await transactionalEntityManager.save(inscricao);
           return inscricaoFinal;
-        })
+        },
+      );
 
-      return plainToInstance(InscricaoResponseDto, result, { excludeExtraneousValues: true });
+      return plainToInstance(InscricaoResponseDto, result, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       const e = error as Error;
       console.error('Falha ao submeter uma inscrição', error);
@@ -82,7 +87,6 @@ export class InscricaoService {
     updateInscricaoDto: UpdateInscricaoDto,
   ): Promise<InscricaoResponseDto> {
     try {
-
       const inscricaoExistente = await this.inscricaoRepository.findOne({
         where: { id: inscricaoId },
         relations: ['aluno', 'edital'],
@@ -111,12 +115,15 @@ export class InscricaoService {
       const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
           Object.assign(inscricaoExistente, updateInscricaoDto);
-          const updatedInscricao = await transactionalEntityManager.save(inscricaoExistente);
+          const updatedInscricao =
+            await transactionalEntityManager.save(inscricaoExistente);
           return updatedInscricao;
         },
       );
 
-      return plainToInstance(InscricaoResponseDto, result, { excludeExtraneousValues: true });
+      return plainToInstance(InscricaoResponseDto, result, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       const e = error as Error;
       console.error('Falha ao editar a inscrição', error);
