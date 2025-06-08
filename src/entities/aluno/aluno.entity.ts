@@ -33,6 +33,6 @@ export class Aluno {
   @Column()
   celular: string;
 
-  @OneToMany(() => Inscricao, (inscricao) => inscricao.aluno)
+  @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
   inscricoes: Inscricao[];
 }
