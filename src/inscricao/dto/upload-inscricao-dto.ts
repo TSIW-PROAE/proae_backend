@@ -9,7 +9,7 @@ import {
 import { Type } from 'class-transformer';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 
-export class CreateInscricaoDto {
+export class UpdateInscricaoDto {
   @IsNotEmpty()
   @IsNumber()
   aluno: number;

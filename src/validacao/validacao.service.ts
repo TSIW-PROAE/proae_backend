@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { Validacao } from '../entities/validacao/validacao.entity';
 import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
-import { ValidacaoResponseDto } from './dto/response-validacao.dto';
+import { ValidacaoResponseDto } from './dto/validacao-response.dto';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
