@@ -136,7 +136,7 @@ export class AlunoService {
     try {
       const aluno = await this.alunoRepository.findOne({
         where: { id_clerk: clerkId },
-        relations: ['inscricoes', 'inscricoes.edital', 'inscricoes.documentos'], // carregar inscricoes e editais dentro delas
+        relations: ['inscricoes', 'inscricoes.edital', 'inscricoes.documentos'],
       });
 
       if (!aluno) {
@@ -166,6 +166,7 @@ export class AlunoService {
       });
     } catch (e) {
       console.log(e);
+      throw new BadRequestException('Erro ao retornar inscricoes do aluno.');
     }
   }
 }

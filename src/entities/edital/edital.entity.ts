@@ -32,7 +32,7 @@ export class Edital extends AbstractEntity<Edital> {
   @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
   inscricoes: Inscricao[];
 
-  @OneToMany(() => EtapaEdital, (etapa) => etapa.edital, { cascade: true }) // corrigido aqui
+  @OneToMany(() => EtapaEdital, (etapa) => etapa.edital, { cascade: true })
   etapas: EtapaEdital[];
 
   constructor(entity: Partial<Edital>) {
