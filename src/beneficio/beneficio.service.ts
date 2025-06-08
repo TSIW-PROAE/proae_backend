@@ -62,7 +62,7 @@ export class BeneficioService {
           if (!inscricao.beneficio) {
             const beneficioDto: CreateBeneficioDto = {
               inscricaoId: inscricao.inscricao_id,
-              data_inicio: new Date().toISOString().split('T')[0], // 'YYYY-MM-DD'
+              data_inicio: new Date().toISOString().split('T')[0],
               status_beneficio: StatusBeneficio.ATIVO,
             };
 
@@ -87,10 +87,10 @@ export class BeneficioService {
         sucesso: true,
         dados: { beneficios },
       };
-    } catch (error) {
-      console.error('Erro ao buscar benefícios do aluno', error);
+    } catch (e) {
+      console.error('Erro ao buscar benefícios do aluno', e);
       throw new BadRequestException(
-        `Erro ao buscar benefícios do aluno: ${error.message}`,
+        `Erro ao buscar benefícios do aluno: ${e.message}`,
       );
     }
   }
