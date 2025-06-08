@@ -8,8 +8,8 @@ export class ResultadoEtapa {
   @PrimaryGeneratedColumn()
   resultado_id: number;
 
-  //@ManyToOne(() => Inscricao, (inscricao) => inscricao.resultadosEtapas)
-  //inscricao: Inscricao;
+  @ManyToOne(() => Inscricao, (inscricao) => inscricao.resultadosEtapas)
+  inscricao: Inscricao;
 
   @ManyToOne(() => EtapaInscricao, (etapa) => etapa.resultados)
   etapa: EtapaInscricao;

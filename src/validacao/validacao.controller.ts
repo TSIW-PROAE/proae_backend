@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiTags } from 
 import { ValidacaoService } from './validacao.service';
 import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
-import { ValidacaoResponseDto } from './dto/response-validacao.dto';
+import { ValidacaoResponseDto } from './dto/validacao-response.dto';
 
 @ApiTags('validacao')
 @Controller('validacao')

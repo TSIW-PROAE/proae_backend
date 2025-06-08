@@ -1,15 +1,12 @@
 import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
-import { EntityManager, In, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Aluno } from 'src/entities/aluno/aluno.entity';
 import { Edital } from 'src/entities/edital/edital.entity';
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Documento } from 'src/entities/documento/documento.entity';
-import { Resposta } from 'src/entities/inscricao/resposta.entity';
-import { InscricaoResponseDto } from './dto/response-inscricao.dto';
-import { plainToInstance } from 'class-transformer';
-import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+
 export class InscricaoService {
   constructor(
     @InjectRepository(Inscricao)
@@ -20,59 +17,49 @@ export class InscricaoService {
     private readonly editalRepository: Repository<Edital>,
     @InjectRepository(Documento)
     private readonly documentoRepository: Repository<Documento>,
-    @InjectRepository(Resposta)
-    private readonly respostaRepository: Repository<Resposta>,
-    @InjectEntityManager()
-    private readonly entityManager: EntityManager,
   ) {}
-
-  async createInscricao(
-    createInscricaoDto: CreateInscricaoDto,
-  ): Promise<InscricaoResponseDto> {
+  async createInscricao(createInscricaoDto: CreateInscricaoDto) {
     try {
+      const { aluno, edital, data_inscricao, documentos } = createInscricaoDto;
+
       const alunoExiste = await this.alunoRepository.findOne({
-        where: { aluno_id: createInscricaoDto.aluno },
+        where: { aluno_id: aluno },
+      });
+      const editalExiste = await this.editalRepository.findOne({
+        where: { id: edital },
       });
 
       if (!alunoExiste) {
-        throw new NotFoundException('Aluno não encontrado');
+        throw new NotFoundException('Aluno ou Edital não encontrado');
       }
-
-      const editalExiste = await this.editalRepository.findOne({
-        where: { id: createInscricaoDto.edital },
-      });
 
       if (!editalExiste) {
-        throw new NotFoundException('Edital não encontrado');
+        throw new NotFoundException('Aluno ou Edital não encontrado');
       }
 
-      const respostas = plainToInstance(Resposta, createInscricaoDto.respostas);
+      const inscricao = new Inscricao();
+      inscricao.aluno = alunoExiste;
+      inscricao.edital = editalExiste;
+      inscricao.data_inscricao = data_inscricao;
 
-      const inscricao = new Inscricao({
-        aluno: alunoExiste,
-        edital: editalExiste,
-        respostas,
-      });
+      if (documentos && documentos.length > 0) {
+        const documentos_finais = await this.documentoRepository.find({
+          where: { documento_id: In(documentos) },
+        });
+        if (documentos_finais.length > 0) {
+          inscricao.documentos = documentos_finais;
+        } else {
+          throw new NotFoundException(
+            'Alguns documentos não foram encontrados',
+          );
+        }
+      }
 
-      const result = await this.entityManager.transaction(
-        async (transactionalEntityManager) => {
-          for (const tipo_documento of editalExiste.tipo_documentos) {
-            const documento = new Documento({
-              tipo_documento: tipo_documento,
-              inscricao: inscricao,
-            });
-            await transactionalEntityManager.save(documento);
-          }
-
-          const inscricaoFinal =
-            await transactionalEntityManager.save(inscricao);
-          return inscricaoFinal;
-        },
-      );
-
-      return plainToInstance(InscricaoResponseDto, result, {
-        excludeExtraneousValues: true,
-      });
+      const inscricaoFinal = await this.inscricaoRepository.save(inscricao);
+      return {
+        sucess: true,
+        inscricao: inscricaoFinal,
+      };
     } catch (error) {
       const e = error as Error;
       console.error('Falha ao submeter uma inscrição', error);
@@ -81,15 +68,16 @@ export class InscricaoService {
       );
     }
   }
-
   async updateInscricao(
     inscricaoId: number,
-    updateInscricaoDto: UpdateInscricaoDto,
-  ): Promise<InscricaoResponseDto> {
+    updateInscricaoDto: CreateInscricaoDto,
+  ) {
     try {
+      const { aluno, edital, data_inscricao, documentos } = updateInscricaoDto;
+
       const inscricaoExistente = await this.inscricaoRepository.findOne({
-        where: { id: inscricaoId },
-        relations: ['aluno', 'edital'],
+        where: { inscricao_id: inscricaoId },
+        relations: ['aluno', 'edital', 'formulario', 'documentos'],
       });
 
       if (!inscricaoExistente) {
@@ -97,33 +85,44 @@ export class InscricaoService {
       }
 
       const alunoExiste = await this.alunoRepository.findOne({
-        where: { aluno_id: updateInscricaoDto.aluno },
+        where: { aluno_id: aluno },
+      });
+      const editalExiste = await this.editalRepository.findOne({
+        where: { id: edital },
       });
 
       if (!alunoExiste) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
-      const editalExiste = await this.editalRepository.findOne({
-        where: { id: updateInscricaoDto.edital },
-      });
-
       if (!editalExiste) {
         throw new NotFoundException('Edital não encontrado');
       }
 
-      const result = await this.entityManager.transaction(
-        async (transactionalEntityManager) => {
-          Object.assign(inscricaoExistente, updateInscricaoDto);
-          const updatedInscricao =
-            await transactionalEntityManager.save(inscricaoExistente);
-          return updatedInscricao;
-        },
-      );
+      inscricaoExistente.aluno = alunoExiste;
+      inscricaoExistente.edital = editalExiste;
+      inscricaoExistente.data_inscricao = data_inscricao;
 
-      return plainToInstance(InscricaoResponseDto, result, {
-        excludeExtraneousValues: true,
-      });
+      if (documentos && documentos.length > 0) {
+        const documentosFinais = await this.documentoRepository.find({
+          where: { documento_id: In(documentos) },
+        });
+        if (documentosFinais.length > 0) {
+          inscricaoExistente.documentos = documentosFinais;
+        } else {
+          throw new NotFoundException(
+            'Alguns documentos não foram encontrados',
+          );
+        }
+      }
+
+      const inscricaoAtualizada =
+        await this.inscricaoRepository.save(inscricaoExistente);
+
+      return {
+        success: true,
+        inscricao: inscricaoAtualizada,
+      };
     } catch (error) {
       const e = error as Error;
       console.error('Falha ao editar a inscrição', error);

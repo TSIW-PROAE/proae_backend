@@ -17,12 +17,12 @@ export class DocumentoService {
     private readonly documentoRepository: Repository<Documento>,
     @InjectRepository(Inscricao)
     private inscricaoRepository: Repository<Inscricao>,
-  ) { }
+  ) {}
 
   async createDocumento(createDocumentoDto: CreateDocumentoDto) {
     try {
       const inscricao = await this.inscricaoRepository.findOne({
-        where: { id: createDocumentoDto.inscricao },
+        where: { inscricao_id: createDocumentoDto.inscricao },
       });
 
       if (!inscricao) {
@@ -47,7 +47,7 @@ export class DocumentoService {
   async findAllDocumentoByInscricao(inscricaoId: number) {
     try {
       const documentos = await this.documentoRepository.find({
-        where: { inscricao: { id: inscricaoId } },
+        where: { inscricao: { inscricao_id: inscricaoId } },
       });
 
       if (!documentos.length) {

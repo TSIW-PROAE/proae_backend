@@ -17,10 +17,6 @@ export class Documento {
   @Column()
   documento_url: string;
 
-  @Column({ type: 'enum', enum: StatusDocumento, default: StatusDocumento.NAO_ENVIADO })
+  @Column({ type: 'enum', enum: StatusDocumento })
   status_documento: StatusDocumento;
-
-  constructor(entity: Partial<Documento>) {
-    Object.assign(this, entity);
-  }
 }

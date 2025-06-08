@@ -12,21 +12,22 @@ import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
 import { Documento } from '../documento/documento.entity';
 import { Beneficio } from '../beneficio/beneficio.entity';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
-import { Resposta } from './resposta.entity';
-import { AbstractEntity } from 'src/db/abstract.entity';
 
 @Entity()
-export class Inscricao extends AbstractEntity<Inscricao> {
+export class Inscricao {
+  @PrimaryGeneratedColumn()
+  inscricao_id: number;
+
   @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
   aluno: Aluno;
 
   @ManyToOne(() => Edital, (edital) => edital.inscricoes)
   edital: Edital;
 
-  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  @Column({ type: 'date' })
   data_inscricao: Date;
 
-  @Column({ type: 'enum', enum: StatusInscricao, default: StatusInscricao.PENDENTE })
+  @Column({ type: 'enum', enum: StatusInscricao, nullable: true })
   status_inscricao: StatusInscricao;
 
   @OneToMany(() => Documento, (documento) => documento.inscricao, {
@@ -34,17 +35,11 @@ export class Inscricao extends AbstractEntity<Inscricao> {
   })
   documentos: Documento[];
 
-  @OneToMany(() => Resposta, (resposta) => resposta.inscricao, {
+  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.inscricao, {
     nullable: true,
   })
-
-  respostas: Resposta[];
+  resultadosEtapas: ResultadoEtapa[];
 
   @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao)
   beneficio: Beneficio;
-  
-  constructor(entity: Partial<Inscricao>) {
-    super();
-    Object.assign(this, entity);
-  }
 }
