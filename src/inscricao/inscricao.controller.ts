@@ -6,6 +6,7 @@ import {
   Param,
   Req,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { InscricaoService } from './inscricao.service';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
@@ -26,7 +27,7 @@ export class InscricaoController {
     return await this.inscricaoService.createInscricao(createInscricaoDto);
   }
 
-  @Put(':id')
+  @Patch(':id')
   async updateInscricao(
     @Param('id') id: number,
     @Body() updateInscricaoDto: UpdateInscricaoDto,

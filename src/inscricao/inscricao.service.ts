@@ -73,11 +73,12 @@ export class InscricaoService {
     updateInscricaoDto: CreateInscricaoDto,
   ) {
     try {
-      const { aluno, edital, data_inscricao, documentos } = updateInscricaoDto;
+      const { aluno, edital, data_inscricao, status_inscricao, documentos } =
+        updateInscricaoDto;
 
       const inscricaoExistente = await this.inscricaoRepository.findOne({
         where: { inscricao_id: inscricaoId },
-        relations: ['aluno', 'edital', 'formulario', 'documentos'],
+        relations: ['aluno', 'edital', 'documentos'],
       });
 
       if (!inscricaoExistente) {
@@ -102,6 +103,10 @@ export class InscricaoService {
       inscricaoExistente.aluno = alunoExiste;
       inscricaoExistente.edital = editalExiste;
       inscricaoExistente.data_inscricao = data_inscricao;
+
+      if (status_inscricao !== undefined) {
+        inscricaoExistente.status_inscricao = status_inscricao;
+      }
 
       if (documentos && documentos.length > 0) {
         const documentosFinais = await this.documentoRepository.find({
