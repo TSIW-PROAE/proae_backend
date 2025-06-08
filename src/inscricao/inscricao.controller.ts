@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Put, Param } from '@nestjs/common';
+import { Controller, Post, Body, Put, Param, HttpException, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiCreatedResponse,
@@ -24,6 +24,10 @@ export class InscricaoController {
     type: InscricaoResponseDto,
     description: 'Inscrição criada com sucesso',
   })
+  @ApiNotFoundResponse({
+    description: 'Aluno ou Edital não encontrado',
+    schema: { example: errorExamples.notFound },
+  })
   @ApiBadRequestResponse({
     description: 'Dados inválidos fornecidos',
     schema: { example: errorExamples.badRequest },
@@ -36,7 +40,7 @@ export class InscricaoController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async createInscricao(@Body() createInscricaoDto: CreateInscricaoDto) {
+  async createInscricao(@Body() createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
     return await this.inscricaoService.createInscricao(createInscricaoDto);
   }
 
