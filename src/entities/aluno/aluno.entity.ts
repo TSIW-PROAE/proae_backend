@@ -27,8 +27,8 @@ export class Aluno {
   @Column({ unique: true })
   cpf: string;
 
-  @Column({ type: 'date' })
-  data_ingresso: Date;
+  @Column()
+  data_ingresso: string;
 
   @Column()
   celular: string;
