@@ -40,7 +40,7 @@ export class Edital extends AbstractEntity<Edital> {
   @OneToMany(() => Step, (step) => step.edital)
   steps: Step[];
 
-  @Column({ type: 'simple-array' })
+  @Column({ type: 'simple-array', nullable: true })
   tipo_documentos: EnumTipoDocumento[];
 
   constructor(entity: Partial<Edital>) {
