@@ -10,6 +10,8 @@ import { Resposta } from 'src/entities/inscricao/resposta.entity';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { plainToInstance } from 'class-transformer';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { Pergunta } from 'src/entities/edital/pergunta.entity';
+
 export class InscricaoService {
   constructor(
     @InjectRepository(Inscricao)
@@ -22,6 +24,8 @@ export class InscricaoService {
     private readonly documentoRepository: Repository<Documento>,
     @InjectRepository(Resposta)
     private readonly respostaRepository: Repository<Resposta>,
+    @InjectRepository(Pergunta)
+    private readonly perguntaRepository: Repository<Pergunta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {}
@@ -46,7 +50,35 @@ export class InscricaoService {
         throw new NotFoundException('Edital não encontrado');
       }
 
-      const respostas = plainToInstance(Resposta, createInscricaoDto.respostas);
+      // Busca todas as perguntas do edital
+      const perguntas = await this.perguntaRepository.find({
+        where: {
+          step: {
+            edital: { id: editalExiste.id }
+          }
+        }
+      });
+
+      // Cria um mapa de perguntas por ID para fácil acesso
+      const perguntasMap = new Map(perguntas.map(p => [p.id, p]));
+
+      // Valida e associa as perguntas às respostas
+      const respostas = await Promise.all(
+        createInscricaoDto.respostas.map(async (respostaDto) => {
+          const pergunta = perguntasMap.get(respostaDto.pergunta_id);
+          
+          if (!pergunta) {
+            throw new NotFoundException(
+              `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`
+            );
+          }
+
+          return new Resposta({
+            pergunta,
+            texto: respostaDto.texto,
+          });
+        })
+      );
 
       const inscricao = new Inscricao({
         aluno: alunoExiste,
@@ -56,17 +88,21 @@ export class InscricaoService {
 
       const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
-          for (const tipo_documento of editalExiste.tipo_documentos) {
-            const documento = new Documento({
-              tipo_documento: tipo_documento,
-              inscricao: inscricao,
-            });
-            await transactionalEntityManager.save(documento);
+          // Salva a inscrição com as respostas em cascade
+          const inscricaoSalva = await transactionalEntityManager.save(inscricao);
+
+          // Cria documentos apenas se houver tipos de documentos definidos
+          if (editalExiste.tipo_documentos && editalExiste.tipo_documentos.length > 0) {
+            for (const tipo_documento of editalExiste.tipo_documentos) {
+              const documento = new Documento({
+                tipo_documento: tipo_documento,
+                inscricao: inscricaoSalva,
+              });
+              await transactionalEntityManager.save(documento);
+            }
           }
 
-          const inscricaoFinal =
-            await transactionalEntityManager.save(inscricao);
-          return inscricaoFinal;
+          return inscricaoSalva;
         },
       );
 

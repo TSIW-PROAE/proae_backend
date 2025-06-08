@@ -34,6 +34,7 @@ export class Inscricao extends AbstractEntity<Inscricao> {
 
   @OneToMany(() => Resposta, (resposta) => resposta.inscricao, {
     nullable: true,
+    cascade: true
   })
   respostas: Resposta[];
 
