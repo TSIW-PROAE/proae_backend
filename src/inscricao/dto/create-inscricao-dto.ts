@@ -1,36 +1,33 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsNumber,
-  IsDate,
-  IsEnum,
   IsOptional,
   IsArray,
+  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
+import { CreateRespostaDto } from './create-resposta-dto';
 
 export class CreateInscricaoDto {
+  @ApiProperty({ type: Number, description: 'ID do aluno' })
   @IsNotEmpty()
   @IsNumber()
   aluno: number;
 
+  @ApiProperty({ type: Number, description: 'ID do edital' })
   @IsNotEmpty()
   @IsNumber()
   edital: number;
 
-  @IsDate()
-  @Type(() => Date)
-  data_inscricao: Date;
-
+  @ApiProperty({
+    type: [CreateRespostaDto],
+    description: 'Lista de respostas da inscrição',
+  })
   @IsOptional()
-  @IsEnum(StatusInscricao)
-  status_inscricao?: StatusInscricao;
-
-  @IsOptional()
-  @IsNumber()
-  formulario?: number;
-
-  @IsOptional()
-  @IsArray({ each: true })
-  documentos: number[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateRespostaDto)
+  respostas: CreateRespostaDto[];
 }

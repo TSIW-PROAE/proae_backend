@@ -25,6 +25,8 @@ http://b8ckk40k0ook00gckgk44s84.201.54.12.165.sslip.io/
 
 ## 🔧 Instalação Rápida
 
+vá no site e baixe [node.js](https://nodejs.org/) e instale no computador. depois siga as orientações abaixo
+
 ```bash
 # Clonar repositório
 git clone https://github.com/TSIW-PROAE/proae_backend
