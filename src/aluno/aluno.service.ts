@@ -67,15 +67,6 @@ export class AlunoService {
     atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     try {
-      // Check if the request body is empty
-      const hasAnyData = Object.values(atualizaDadosAlunoDTO).some(
-        (value) => value !== undefined && value !== null && value !== '',
-      );
-
-      if (!hasAnyData) {
-        throw new BadRequestException('Dados para atualização não fornecidos.');
-      }
-
       const alunoClerk = await this.clerk.users.getUser(id);
       if (!alunoClerk) {
         throw new NotFoundException('Aluno não encontrado.');
