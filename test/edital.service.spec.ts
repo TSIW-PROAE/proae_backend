@@ -5,7 +5,7 @@ import { Edital } from 'src/entities/edital/edital.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
-import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
+import { EtapaInscricao } from 'src/entities/etapaEdital/etapaEdital.entity';
 import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
 import { StatusEtapa } from 'src/enum/enumStatusEtapa';
 

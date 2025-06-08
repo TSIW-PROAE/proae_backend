@@ -1,6 +1,6 @@
 import { Entity, Column, OneToMany } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
-import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
+import { EtapaEdital } from '../etapaEdital/etapaEdital.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
@@ -25,15 +25,15 @@ export class Edital extends AbstractEntity<Edital> {
   @Column({
     type: 'enum',
     enum: StatusEdital,
-    default: StatusEdital.ABERTO
+    default: StatusEdital.ABERTO,
   })
   status_edital: StatusEdital;
 
   @OneToMany(() => Inscricao, (inscricao) => inscricao.edital)
   inscricoes: Inscricao[];
 
-  @OneToMany(() => EtapaInscricao, (etapa) => etapa.edital, { cascade: true })
-  etapas: EtapaInscricao[];
+  @OneToMany(() => EtapaEdital, (etapa) => etapa.edital, { cascade: true }) // corrigido aqui
+  etapas: EtapaEdital[];
 
   constructor(entity: Partial<Edital>) {
     super();

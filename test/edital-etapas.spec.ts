@@ -4,7 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
-import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
+import { EtapaInscricao } from 'src/entities/etapaEdital/etapaEdital.entity';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { CreateEtapasDto } from '../src/edital/dto/create-etapas-edital.dto';

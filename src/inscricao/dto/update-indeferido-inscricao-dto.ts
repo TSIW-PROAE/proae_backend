@@ -12,4 +12,4 @@ export class UpdateIndeferidoInscricaoDto {
 
   @IsNotEmpty()
   status_inscricao: StatusInscricao;
-} 
+}

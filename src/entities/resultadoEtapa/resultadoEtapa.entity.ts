@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Inscricao } from '../inscricao/inscricao.entity';
-import { EtapaInscricao } from '../etapaInscricao/etapaInscricao.entity';
+import { EtapaEdital } from '../etapaEdital/etapaEdital.entity';
 import { StatusEtapa } from '../../enum/enumStatusEtapa';
 
 @Entity()
@@ -11,8 +11,8 @@ export class ResultadoEtapa {
   @ManyToOne(() => Inscricao, (inscricao) => inscricao.resultadosEtapas)
   inscricao: Inscricao;
 
-  @ManyToOne(() => EtapaInscricao, (etapa) => etapa.resultados)
-  etapa: EtapaInscricao;
+  @ManyToOne(() => EtapaEdital, (etapa) => etapa.resultados)
+  etapa: EtapaEdital;
 
   @Column({ type: 'enum', enum: StatusEtapa })
   status_etapa: StatusEtapa;

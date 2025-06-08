@@ -24,4 +24,12 @@ export class AlunoController {
     const { id } = request.user;
     return this.alunoService.updateStudentData(id, atualizaDadosAlunoDTO);
   }
+
+  @UseGuards(AuthGuard)
+  @Get('/inscricoes')
+  async getStudentRegistration(@Req() request: AuthenticatedRequest) {
+    console.log('request.user:', request.user);
+    const { id } = request.user;
+    return this.alunoService.getStudentRegistration(id);
+  }
 }
