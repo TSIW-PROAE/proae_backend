@@ -27,20 +27,26 @@ export class EditalService {
     try {
       const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
-          const etapas = createEditalDto.etapas.map((etapaDto) => {
-            return new EtapaEdital(etapaDto);
-          });
-
           const edital = new Edital({
             ...createEditalDto,
-            etapas,
+            etapas: [],
           });
 
           const savedEdital = await transactionalEntityManager.save(edital);
+
+          const etapas = createEditalDto.etapas.map((etapaDto) => {
+            const etapa = new EtapaEdital(etapaDto);
+            etapa.edital = savedEdital;
+            return etapa;
+          });
+
+          const savedEtapas = await transactionalEntityManager.save(etapas);
+
+          savedEdital.etapas = savedEtapas;
+
           return savedEdital;
         },
       );
-
       return plainToInstance(EditalResponseDto, result, {
         excludeExtraneousValues: true,
       });

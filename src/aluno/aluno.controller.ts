@@ -28,7 +28,6 @@ export class AlunoController {
   @UseGuards(AuthGuard)
   @Get('/inscricoes')
   async getStudentRegistration(@Req() request: AuthenticatedRequest) {
-    console.log('request.user:', request.user);
     const { id } = request.user;
     return this.alunoService.getStudentRegistration(id);
   }

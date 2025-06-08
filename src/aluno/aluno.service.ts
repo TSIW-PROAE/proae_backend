@@ -136,7 +136,12 @@ export class AlunoService {
     try {
       const aluno = await this.alunoRepository.findOne({
         where: { id_clerk: clerkId },
-        relations: ['inscricoes', 'inscricoes.edital', 'inscricoes.documentos'],
+        relations: [
+          'inscricoes',
+          'inscricoes.edital',
+          'inscricoes.edital.etapas',
+          'inscricoes.documentos',
+        ],
       });
 
       if (!aluno) {
@@ -160,6 +165,7 @@ export class AlunoService {
           edital_id: edital.id,
           titulo_edital: edital.titulo_edital,
           status_edital: edital.status_edital,
+          etapas_edital: edital.etapas,
           status_inscricao: inscricao.status_inscricao,
           possui_pendencias: possuiPendencias,
         };

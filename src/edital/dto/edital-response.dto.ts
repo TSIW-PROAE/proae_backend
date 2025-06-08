@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
-import { EtapaEdital } from 'src/entities/etapaEdital/etapaEdital.entity';
+import { EtapaEditalResponseDto } from './etapa-edital-response.dto';
 
 export class EditalResponseDto {
   @ApiProperty({ type: Number, description: 'ID do edital' })
@@ -36,8 +36,11 @@ export class EditalResponseDto {
   @Expose()
   status_edital: StatusEdital;
 
-  @ApiProperty({ type: [EtapaEdital], description: 'Etapas do edital' })
+  @ApiProperty({
+    type: [EtapaEditalResponseDto],
+    description: 'Etapas do edital',
+  })
   @Expose()
-  @Type(() => EtapaEdital)
-  etapas: EtapaEdital[];
+  @Type(() => EtapaEditalResponseDto)
+  etapas: EtapaEditalResponseDto[];
 }
