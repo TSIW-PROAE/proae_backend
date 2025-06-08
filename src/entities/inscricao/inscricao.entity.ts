@@ -4,12 +4,14 @@ import {
   Column,
   OneToMany,
   ManyToOne,
+  OneToOne,
   JoinColumn,
 } from 'typeorm';
 import { Aluno } from '../aluno/aluno.entity';
 import { Edital } from '../edital/edital.entity';
 import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
 import { Documento } from '../documento/documento.entity';
+import { Beneficio } from '../beneficio/beneficio.entity';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 
 @Entity()
@@ -35,8 +37,4 @@ export class Inscricao {
     nullable: true,
   })
   resultadosEtapas: ResultadoEtapa[];
-
-  @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
-  @JoinColumn({ name: 'aluno_id' })
-  aluno: Aluno;
 }
