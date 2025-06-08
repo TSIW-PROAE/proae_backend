@@ -31,6 +31,7 @@ export class CreateInscricaoDto {
   formulario?: number;
 
   @IsOptional()
-  @IsArray({ each: true })
-  documentos: number[];
+  @IsArray()
+  @IsNumber({}, { each: true })
+  documentos?: number[];
 }

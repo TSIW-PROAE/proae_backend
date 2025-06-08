@@ -4,6 +4,7 @@ import {
   Column,
   OneToMany,
   ManyToOne,
+  JoinColumn,
   OneToOne,
 } from 'typeorm';
 import { Aluno } from '../aluno/aluno.entity';
@@ -17,9 +18,6 @@ import { StatusInscricao } from '../../enum/enumStatusInscricao';
 export class Inscricao {
   @PrimaryGeneratedColumn()
   inscricao_id: number;
-
-  @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
-  aluno: Aluno;
 
   @ManyToOne(() => Edital, (edital) => edital.inscricoes)
   edital: Edital;
@@ -39,6 +37,9 @@ export class Inscricao {
     nullable: true,
   })
   resultadosEtapas: ResultadoEtapa[];
+
+  @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
+  aluno: Aluno;
 
   @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao)
   beneficio: Beneficio;
