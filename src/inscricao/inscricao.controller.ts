@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
   Patch,
+  Get,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,6 +25,7 @@ import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { errorExamples } from '../common/swagger/error-examples';
+import AuthenticatedRequest from 'src/types/authenticated-request.interface';
 
 @ApiTags('Inscrições')
 @ApiBearerAuth()
@@ -93,5 +95,34 @@ export class InscricaoController {
     @Body() updateInscricaoDto: UpdateInscricaoDto,
   ) {
     return await this.inscricaoService.updateInscricao(id, updateInscricaoDto);
+  }
+
+  @Get()
+  @ApiOkResponse({
+    type: InscricaoResponseDto,
+    description: 'Inscrição encontrada com sucesso',
+  })
+  @ApiNotFoundResponse({
+    description: 'Inscrição não encontrada',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiBadRequestResponse({
+    description: 'Dados inválidos fornecidos',
+    schema: { example: errorExamples.badRequest },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Erro de validação nos dados fornecidos',
+    schema: { example: errorExamples.unprocessableEntity },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Não autorizado',
+    schema: { example: errorExamples.unauthorized },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Erro interno do servidor',
+    schema: { example: errorExamples.internalServerError },
+  })
+  async getInscricoesAluno(@Req() request: AuthenticatedRequest) {
+    return await this.inscricaoService.getInscricoesByAluno(request.user.id);
   }
 }

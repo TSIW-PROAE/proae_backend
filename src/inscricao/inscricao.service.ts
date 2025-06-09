@@ -12,6 +12,7 @@ import { plainToInstance } from 'class-transformer';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { Pergunta } from '../entities/edital/pergunta.entity';
 import { StatusEdital } from '../enum/enumStatusEdital';
+import { StatusDocumento } from '../enum/statusDocumento';
 
 export class InscricaoService {
   constructor(
@@ -288,6 +289,57 @@ export class InscricaoService {
       
       throw new InternalServerErrorException(
         'Ocorreu um erro ao processar a atualização da inscrição. Por favor, tente novamente mais tarde.'
+      );
+    }
+  }
+
+  async getInscricoesByAluno(idClerk: string) {
+    try {
+      const aluno = await this.alunoRepository.findOne({
+        where: { id_clerk: idClerk },
+      });
+
+      if (!aluno) {
+        throw new NotFoundException('Aluno não encontrado');
+      }
+
+      const inscricoes = await this.inscricaoRepository.find({
+        where: { 
+          aluno: { aluno_id: aluno.aluno_id },
+          documentos: {
+            status_documento: StatusDocumento.PENDENTE
+          }
+        },
+        relations: ['edital', 'documentos', 'documentos.validacoes'],
+      });
+
+      return inscricoes.map(inscricao => ({
+        titulo_edital: inscricao.edital.titulo_edital,
+        tipo_edital: [inscricao.edital.tipo_edital],
+        documentos: inscricao.documentos.filter(documento => 
+          documento.status_documento === StatusDocumento.PENDENTE
+        ).map(documento => {
+          // Pegar a validação mais recente (se houver)
+          const validacaoMaisRecente = documento.validacoes && documento.validacoes.length > 0
+            ? documento.validacoes.sort((a, b) => 
+                new Date(b.data_validacao || 0).getTime() - new Date(a.data_validacao || 0).getTime()
+              )[0]
+            : null;
+
+          return {
+            tipo_documento: documento.tipo_documento,
+            status_documento: documento.status_documento,
+            documento_url: documento.documento_url,
+            parecer: validacaoMaisRecente?.parecer || null,
+            data_validacao: validacaoMaisRecente?.data_validacao || null,
+          };
+        }),
+      })).filter(inscricao => inscricao.documentos.length > 0);
+    } catch (error) {
+      const e = error as Error;
+      console.error('Falha ao buscar inscrições com pendências do aluno', error);
+      throw new BadRequestException(
+        `Falha ao buscar inscrições com pendências do aluno: ${e.message}`,
       );
     }
   }
