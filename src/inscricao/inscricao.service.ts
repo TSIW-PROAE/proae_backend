@@ -155,7 +155,7 @@ export class InscricaoService {
             status_documento: StatusDocumento.PENDENTE
           }
         },
-        relations: ['edital', 'documentos'],
+        relations: ['edital', 'documentos', 'documentos.validacoes'],
       });
 
       return inscricoes.map(inscricao => ({
@@ -163,11 +163,22 @@ export class InscricaoService {
         tipo_edital: [inscricao.edital.tipo_edital],
         documentos: inscricao.documentos.filter(documento => 
           documento.status_documento === StatusDocumento.PENDENTE
-        ).map(documento => ({
-          tipo_documento: documento.tipo_documento,
-          status_documento: documento.status_documento,
-          documento_url: documento.documento_url,
-        })),
+        ).map(documento => {
+          // Pegar a validação mais recente (se houver)
+          const validacaoMaisRecente = documento.validacoes && documento.validacoes.length > 0
+            ? documento.validacoes.sort((a, b) => 
+                new Date(b.data_validacao || 0).getTime() - new Date(a.data_validacao || 0).getTime()
+              )[0]
+            : null;
+
+          return {
+            tipo_documento: documento.tipo_documento,
+            status_documento: documento.status_documento,
+            documento_url: documento.documento_url,
+            parecer: validacaoMaisRecente?.parecer || null,
+            data_validacao: validacaoMaisRecente?.data_validacao || null,
+          };
+        }),
       })).filter(inscricao => inscricao.documentos.length > 0);
     } catch (error) {
       const e = error as Error;

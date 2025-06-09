@@ -7,6 +7,7 @@ import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Documento } from '../entities/documento/documento.entity';
+import { Validacao } from '../entities/validacao/validacao.entity';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { EditalEnum } from '../enum/enumEdital';
 import { EnumTipoDocumento } from '../enum/enumTipoDocumento';
@@ -32,19 +33,28 @@ describe('InscricaoService', () => {
     inscricoes: [],
   } as Partial<Edital>;
 
+  const mockValidacao = {
+    id: 1,
+    status: StatusDocumento.PENDENTE,
+    parecer: 'Documento necessita correção',
+    data_validacao: new Date('2024-01-15'),
+  } as Validacao;
+
   const mockDocumentoPendente = {
     documento_id: 1,
     tipo_documento: EnumTipoDocumento.RG,
     status_documento: StatusDocumento.PENDENTE,
     documento_url: 'http://example.com/rg.pdf',
-  } as Documento;
+    validacoes: [mockValidacao],
+  } as Partial<Documento>;
 
   const mockDocumentoAprovado = {
     documento_id: 2,
     tipo_documento: EnumTipoDocumento.CPF,
     status_documento: StatusDocumento.APROVADO,
     documento_url: 'http://example.com/cpf.pdf',
-  } as Documento;
+    validacoes: [],
+  } as Partial<Documento>;
 
   const mockInscricao = {
     inscricao_id: 1,
@@ -115,7 +125,7 @@ describe('InscricaoService', () => {
   });
 
   describe('getInscricoesByAluno', () => {
-    it('should return inscriptions with pending documents for a valid student', async () => {
+    it('should return inscriptions with pending documents and validation data for a valid student', async () => {
       jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
       jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([mockInscricao]);
 
@@ -130,6 +140,8 @@ describe('InscricaoService', () => {
               tipo_documento: EnumTipoDocumento.RG,
               status_documento: StatusDocumento.PENDENTE,
               documento_url: 'http://example.com/rg.pdf',
+              parecer: 'Documento necessita correção',
+              data_validacao: new Date('2024-01-15'),
             },
           ],
         },
@@ -146,7 +158,7 @@ describe('InscricaoService', () => {
             status_documento: StatusDocumento.PENDENTE,
           },
         },
-        relations: ['edital', 'documentos'],
+        relations: ['edital', 'documentos', 'documentos.validacoes'],
       });
     });
 
@@ -194,7 +206,14 @@ describe('InscricaoService', () => {
       );
     });
 
-    it('should filter out approved documents and keep only pending ones', async () => {
+    it('should filter out approved documents and keep only pending ones with validation data', async () => {
+      const mockValidacao2 = {
+        id: 2,
+        status: StatusDocumento.PENDENTE,
+        parecer: 'Documento em análise',
+        data_validacao: new Date('2024-01-20'),
+      } as Validacao;
+
       const mockInscricaoMultiplosDocumentos = {
         ...mockInscricao,
         documentos: [
@@ -205,7 +224,8 @@ describe('InscricaoService', () => {
             tipo_documento: EnumTipoDocumento.HISTORICO_ESCOLAR,
             status_documento: StatusDocumento.PENDENTE,
             documento_url: 'http://example.com/historico.pdf',
-          } as Documento,
+            validacoes: [mockValidacao2],
+          } as Partial<Documento>,
         ],
       };
 
@@ -216,6 +236,31 @@ describe('InscricaoService', () => {
 
       expect(result[0].documentos).toHaveLength(2);
       expect(result[0].documentos.every(doc => doc.status_documento === StatusDocumento.PENDENTE)).toBe(true);
+      expect(result[0].documentos[0].parecer).toBe('Documento necessita correção');
+      expect(result[0].documentos[1].parecer).toBe('Documento em análise');
+    });
+
+    it('should return null validation fields when document has no validations', async () => {
+      const mockDocumentoSemValidacao = {
+        documento_id: 4,
+        tipo_documento: EnumTipoDocumento.COMPROVANTE_MATRICULA,
+        status_documento: StatusDocumento.PENDENTE,
+        documento_url: 'http://example.com/matricula.pdf',
+        validacoes: [],
+      } as Partial<Documento>;
+
+      const mockInscricaoSemValidacao = {
+        ...mockInscricao,
+        documentos: [mockDocumentoSemValidacao],
+      };
+
+      jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
+      jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([mockInscricaoSemValidacao]);
+
+      const result = await service.getInscricoesByAluno('clerk_123');
+
+      expect(result[0].documentos[0].parecer).toBeNull();
+      expect(result[0].documentos[0].data_validacao).toBeNull();
     });
   });
 }); 
