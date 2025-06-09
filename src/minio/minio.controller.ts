@@ -16,10 +16,10 @@ import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
 
 @Controller('documents')
+@UseGuards(AuthGuard)
 export class MinioClientController {
   constructor(private readonly minioClientService: MinioClientService) {}
 
-  @UseGuards(AuthGuard)
   @Post('upload')
   @UseInterceptors(FilesInterceptor('files'))
   async uploadDocuments(
@@ -35,7 +35,6 @@ export class MinioClientController {
     return this.minioClientService.uploadDocuments(id, files);
   }
 
-  @UseGuards(AuthGuard)
   @Get(':filename')
   async getDocument(
     @Param('filename') filename: string,

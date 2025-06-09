@@ -15,6 +15,8 @@ import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
   ApiUnprocessableEntityResponse,
+  ApiUnauthorizedResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { InscricaoService } from './inscricao.service';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
@@ -24,12 +26,13 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { errorExamples } from '../common/swagger/error-examples';
 
-@ApiTags('inscricoes')
+@ApiTags('Inscrições')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 @Controller('inscricoes')
 export class InscricaoController {
   constructor(private readonly inscricaoService: InscricaoService) {}
 
-  @UseGuards(AuthGuard)
   @Post()
   @ApiCreatedResponse({
     type: InscricaoResponseDto,
@@ -47,12 +50,15 @@ export class InscricaoController {
     description: 'Erro de validação nos dados fornecidos',
     schema: { example: errorExamples.unprocessableEntity },
   })
+  @ApiUnauthorizedResponse({
+    description: 'Não autorizado',
+    schema: { example: errorExamples.unauthorized },
+  })
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
   async createInscricao(
-    @Req() request: AuthenticatedRequest,
     @Body() createInscricaoDto: CreateInscricaoDto,
   ): Promise<InscricaoResponseDto> {
     return await this.inscricaoService.createInscricao(createInscricaoDto);
@@ -74,6 +80,10 @@ export class InscricaoController {
   @ApiUnprocessableEntityResponse({
     description: 'Erro de validação nos dados fornecidos',
     schema: { example: errorExamples.unprocessableEntity },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Não autorizado',
+    schema: { example: errorExamples.unauthorized },
   })
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
