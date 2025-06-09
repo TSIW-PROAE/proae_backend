@@ -11,6 +11,7 @@ import { Validacao } from '../entities/validacao/validacao.entity';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { EditalEnum } from '../enum/enumEdital';
 import { EnumTipoDocumento } from '../enum/enumTipoDocumento';
+import { Pergunta } from 'src/entities/edital/pergunta.entity';
 
 describe('InscricaoService', () => {
   let service: InscricaoService;
@@ -97,6 +98,13 @@ describe('InscricaoService', () => {
           provide: getRepositoryToken(Documento),
           useValue: {
             find: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Pergunta),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
           },
         },
       ],
