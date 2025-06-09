@@ -10,6 +10,7 @@ import { InscricaoModule } from './inscricao/inscricao.module';
 import { DocumentoModule } from './documentos/documentos.module';
 import { ValidacaoModule } from './validacao/validacao.module';
 import { BeneficioModule } from './beneficio/beneficio.module';
+import { StepModule } from './step/step.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { BeneficioModule } from './beneficio/beneficio.module';
     DocumentoModule,
     ValidacaoModule,
     BeneficioModule,
+    StepModule,
   ],
 })
 export class AppModule {}
