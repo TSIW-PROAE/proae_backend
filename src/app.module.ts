@@ -9,6 +9,7 @@ import { MinioClientModule } from './minio/minio-client.module';
 import { InscricaoModule } from './inscricao/inscricao.module';
 import { DocumentoModule } from './documentos/documentos.module';
 import { ValidacaoModule } from './validacao/validacao.module';
+import { BeneficioModule } from './beneficio/beneficio.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ValidacaoModule } from './validacao/validacao.module';
     InscricaoModule,
     DocumentoModule,
     ValidacaoModule,
+    BeneficioModule,
   ],
 })
 export class AppModule {}

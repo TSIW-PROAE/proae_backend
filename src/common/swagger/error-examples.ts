@@ -18,5 +18,10 @@ export const errorExamples = {
         statusCode: 500,
         message: 'Erro interno do servidor',
         timestamp: '2024-03-21T10:00:00.000Z'
+    },
+    unauthorized: {
+        statusCode: 401,
+        message: 'Não autorizado',
+        timestamp: '2024-03-21T10:00:00.000Z'
     }
 }; 

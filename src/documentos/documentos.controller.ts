@@ -16,8 +16,11 @@ import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { ResubmitDocumentoDto } from './dto/resubmit-documento.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('documentos')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class DocumentoController {
   constructor(private readonly documentoService: DocumentoService) {}
 
