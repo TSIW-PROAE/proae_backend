@@ -69,4 +69,10 @@ export class DocumentoController {
     const { id: clerkId } = request.user;
     return await this.documentoService.resubmitDocument(clerkId, id, resubmitDocumentoDto);
   }
+
+  @Get('pendencias/meus')
+  async getMyDocumentsWithProblems(@Req() request: AuthenticatedRequest) {
+    const { id } = request.user;
+    return await this.documentoService.getDocumentsWithProblemsByStudent(id);
+  }
 }

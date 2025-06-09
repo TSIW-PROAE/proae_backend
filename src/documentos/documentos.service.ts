@@ -201,6 +201,39 @@ export class DocumentoService {
     }
   }
 
+    /**
+   * Get all pendent documents for a student
+   */
+    async getDocumentsWithProblemsByStudent(clerkId: string) {
+      try {
+        const aluno = await this.alunoRepository.findOne({
+          where: { id_clerk: clerkId },
+          relations: ['inscricoes', 'inscricoes.documentos'],
+        });
+  
+        if (!aluno) {
+          throw new NotFoundException('Aluno não encontrado');
+        }
+  
+        const pendentDocuments: Documento[] = [];
+        for (const inscricao of aluno.inscricoes) {
+          const documentosPendentes = inscricao.documentos.filter(
+            doc => doc.status_documento !== StatusDocumento.APROVADO
+          );
+          pendentDocuments.push(...documentosPendentes);
+        }
+  
+        return {
+          success: true,
+          documentos: pendentDocuments,
+        };
+      } catch (error) {
+        const e = error as Error;
+        console.error('Erro ao buscar documentos pendentes', error);
+        throw new BadRequestException(`Erro ao buscar documentos pendentes: ${e.message}`);
+      }
+    }
+
   /**
    * Allow resubmission of a document (reset status to PENDENTE)
    */
