@@ -10,12 +10,16 @@ import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { StatusDocumento } from '../enum/statusDocumento';
+import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
+import { StatusEdital } from 'src/enum/enumStatusEdital';
 
 @Injectable()
 export class AlunoService {
   constructor(
     @InjectRepository(Aluno)
-    private alunoRepository: Repository<Aluno>,
+    private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(Aluno)
+    private readonly inscricaoRepository: Repository<Inscricao>,
   ) {}
 
   private clerk = createClerkClient({
@@ -181,6 +185,50 @@ export class AlunoService {
       const e = error as Error;
       console.error('Erro ao verificar permissão de atualização', error);
       throw new BadRequestException(`Erro ao verificar permissões: ${e.message}`);
+    }
+  }
+
+  async getStudentRegistration(clerkId: string) {
+    try {
+      const aluno = await this.alunoRepository.findOne({
+        where: { id_clerk: clerkId },
+        relations: [
+          'inscricoes',
+          'inscricoes.edital',
+          'inscricoes.edital.etapas',
+          'inscricoes.documentos',
+        ],
+      });
+
+      if (!aluno) {
+        throw new NotFoundException('Aluno não encontrado.');
+      }
+
+      if (!aluno.inscricoes || aluno.inscricoes.length === 0) {
+        throw new NotFoundException(
+          'O aluno não está inscrito em nenhum edital.',
+        );
+      }
+
+      return aluno.inscricoes.map((inscricao) => {
+        const edital = inscricao.edital;
+
+        const possuiPendencias =
+          edital.status_edital === StatusEdital.EM_ANDAMENTO &&
+          (!inscricao.documentos || inscricao.documentos.length === 0);
+
+        return {
+          edital_id: edital.id,
+          titulo_edital: edital.titulo_edital,
+          status_edital: edital.status_edital,
+          etapas_edital: edital.etapas,
+          status_inscricao: inscricao.status_inscricao,
+          possui_pendencias: possuiPendencias,
+        };
+      });
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException('Erro ao retornar inscricoes do aluno.');
     }
   }
 }

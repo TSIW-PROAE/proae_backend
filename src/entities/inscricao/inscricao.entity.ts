@@ -1,22 +1,20 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   OneToMany,
   ManyToOne,
+  OneToOne,
 } from 'typeorm';
 import { Aluno } from '../aluno/aluno.entity';
 import { Edital } from '../edital/edital.entity';
-import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
 import { Documento } from '../documento/documento.entity';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { Resposta } from './resposta.entity';
-import { AbstractEntity } from 'src/db/abstract.entity';
+import { AbstractEntity } from '../../db/abstract.entity';
+import { Beneficio } from '../beneficio/beneficio.entity';
 
 @Entity()
 export class Inscricao extends AbstractEntity<Inscricao> {
-  @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
-  aluno: Aluno;
 
   @ManyToOne(() => Edital, (edital) => edital.inscricoes)
   edital: Edital;
@@ -37,6 +35,12 @@ export class Inscricao extends AbstractEntity<Inscricao> {
     cascade: true
   })
   respostas: Resposta[];
+  
+  @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
+  aluno: Aluno;
+
+  @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao)
+  beneficio: Beneficio;
 
   constructor(entity: Partial<Inscricao>) {
     super();

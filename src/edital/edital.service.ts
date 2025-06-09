@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
   InternalServerErrorException,
@@ -9,10 +8,9 @@ import { CreateEditalDto } from './dto/create-edital.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EtapaInscricao } from 'src/entities/etapaInscricao/etapaInscricao.entity';
-import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
+import { EtapaEdital } from 'src/entities/etapaEdital/etapaEdital.entity';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
-import { EditalResponseDto } from './dto/response-edital.dto';
+import { EditalResponseDto } from './dto/edital-response.dto';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
@@ -22,27 +20,35 @@ export class EditalService {
     private readonly editaisRepository: Repository<Edital>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) { }
+  ) {}
 
   async create(createEditalDto: CreateEditalDto): Promise<EditalResponseDto> {
     try {
       const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
-          const etapas = createEditalDto.etapas.map((etapaDto) => {
-            return new EtapaInscricao(etapaDto);
-          });
-
           const edital = new Edital({
             ...createEditalDto,
-            etapas,
+            etapas: [],
           });
 
           const savedEdital = await transactionalEntityManager.save(edital);
+
+          const etapas = createEditalDto.etapas.map((etapaDto) => {
+            const etapa = new EtapaEdital(etapaDto);
+            etapa.edital = savedEdital;
+            return etapa;
+          });
+
+          const savedEtapas = await transactionalEntityManager.save(etapas);
+
+          savedEdital.etapas = savedEtapas;
+
           return savedEdital;
         },
       );
-
-      return plainToInstance(EditalResponseDto, result, { excludeExtraneousValues: true });
+      return plainToInstance(EditalResponseDto, result, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       console.error('Erro ao criar o edital:', error);
       throw new InternalServerErrorException();
@@ -53,13 +59,15 @@ export class EditalService {
     try {
       const editais = await this.editaisRepository.find({
         relations: {
-          etapas: { resultados: true },
+          etapas: true,
         },
         order: {
           etapas: { ordem: 'ASC' },
         },
       });
-      return plainToInstance(EditalResponseDto, editais, { excludeExtraneousValues: true });
+      return plainToInstance(EditalResponseDto, editais, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       console.error('Erro ao buscar editais:', error);
       throw new InternalServerErrorException();
@@ -71,7 +79,7 @@ export class EditalService {
       const edital = await this.editaisRepository.findOne({
         where: { id },
         relations: {
-          etapas: { resultados: true },
+          etapas: true,
         },
         order: {
           etapas: { ordem: 'ASC' },
@@ -82,7 +90,9 @@ export class EditalService {
         throw new NotFoundException();
       }
 
-      return plainToInstance(EditalResponseDto, edital, { excludeExtraneousValues: true });
+      return plainToInstance(EditalResponseDto, edital, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -92,7 +102,10 @@ export class EditalService {
     }
   }
 
-  async update(id: number, updateEditalDto: UpdateEditalDto): Promise<EditalResponseDto> {
+  async update(
+    id: number,
+    updateEditalDto: UpdateEditalDto,
+  ): Promise<EditalResponseDto> {
     try {
       const edital = await this.editaisRepository.findOneBy({ id });
 
@@ -108,7 +121,9 @@ export class EditalService {
         },
       );
 
-      return plainToInstance(EditalResponseDto, result, { excludeExtraneousValues: true });
+      return plainToInstance(EditalResponseDto, result, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -125,7 +140,7 @@ export class EditalService {
           const edital = await transactionalEntityManager.findOne(Edital, {
             where: { id },
             relations: {
-              etapas: { resultados: true },
+              etapas: true,
             },
           });
 
@@ -133,17 +148,8 @@ export class EditalService {
             throw new NotFoundException();
           }
 
-          // Exclui os resultados associados às etapas do edital
-          for (const etapa of edital.etapas) {
-            if (etapa.resultados && etapa.resultados.length > 0) {
-              await transactionalEntityManager.delete(ResultadoEtapa, {
-                etapa: { id: etapa.id },
-              });
-            }
-          }
-
           // Exclui as etapas associadas ao edital
-          await transactionalEntityManager.delete(EtapaInscricao, {
+          await transactionalEntityManager.delete(EtapaEdital, {
             edital: { id },
           });
 
@@ -169,13 +175,15 @@ export class EditalService {
       const editais = await this.editaisRepository.find({
         where: { status_edital: StatusEdital.ABERTO },
         relations: {
-          etapas: { resultados: true },
+          etapas: true,
         },
         order: {
           etapas: { ordem: 'ASC' },
         },
       });
-      return plainToInstance(EditalResponseDto, editais, { excludeExtraneousValues: true });
+      return plainToInstance(EditalResponseDto, editais, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       console.error('Erro ao buscar editais abertos:', error);
       throw new InternalServerErrorException();

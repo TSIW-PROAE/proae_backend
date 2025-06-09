@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Put, Param, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  Patch,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiCreatedResponse,
@@ -10,7 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { InscricaoService } from './inscricao.service';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
-import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { UpdateInscricaoDto } from './dto/upload-inscricao-dto';
+import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import { AuthGuard } from 'src/auth/auth.guard';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { errorExamples } from '../common/swagger/error-examples';
 
@@ -19,6 +29,7 @@ import { errorExamples } from '../common/swagger/error-examples';
 export class InscricaoController {
   constructor(private readonly inscricaoService: InscricaoService) {}
 
+  @UseGuards(AuthGuard)
   @Post()
   @ApiCreatedResponse({
     type: InscricaoResponseDto,
@@ -40,11 +51,14 @@ export class InscricaoController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async createInscricao(@Body() createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
+  async createInscricao(
+    @Req() request: AuthenticatedRequest,
+    @Body() createInscricaoDto: CreateInscricaoDto,
+  ): Promise<InscricaoResponseDto> {
     return await this.inscricaoService.createInscricao(createInscricaoDto);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @ApiOkResponse({
     type: InscricaoResponseDto,
     description: 'Inscrição atualizada com sucesso',
@@ -64,7 +78,7 @@ export class InscricaoController {
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
-  })
+  })  
   async updateInscricao(
     @Param('id') id: number,
     @Body() updateInscricaoDto: UpdateInscricaoDto,

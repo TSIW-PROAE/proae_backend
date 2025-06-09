@@ -1,10 +1,9 @@
 import { Entity, Column, ManyToOne, OneToMany } from 'typeorm';
 import { Edital } from '../edital/edital.entity';
-import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
 
 @Entity()
-export class EtapaInscricao extends AbstractEntity<EtapaInscricao> {
+export class EtapaEdital extends AbstractEntity<EtapaEdital> {
   @ManyToOne(() => Edital, (edital) => edital.etapas)
   edital: Edital;
 
@@ -20,12 +19,7 @@ export class EtapaInscricao extends AbstractEntity<EtapaInscricao> {
   @Column({ type: 'date' })
   data_fim: Date;
 
-  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.etapa, {
-    nullable: true,
-  })
-  resultados: ResultadoEtapa[];
-
-  constructor(entity: Partial<EtapaInscricao>) {
+  constructor(entity: Partial<EtapaEdital>) {
     super();
     Object.assign(this, entity);
   }

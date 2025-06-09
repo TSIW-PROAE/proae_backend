@@ -1,17 +1,17 @@
-import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
-import { EntityManager, In, Repository } from 'typeorm';
-import { Aluno } from 'src/entities/aluno/aluno.entity';
-import { Edital } from 'src/entities/edital/edital.entity';
+import { EntityManager, Repository } from 'typeorm';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { Edital } from '../entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { Documento } from 'src/entities/documento/documento.entity';
-import { Resposta } from 'src/entities/inscricao/resposta.entity';
+import { Documento } from '../entities/documento/documento.entity';
+import { Resposta } from '../entities/inscricao/resposta.entity';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { plainToInstance } from 'class-transformer';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
-import { Pergunta } from 'src/entities/edital/pergunta.entity';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { Pergunta } from '../entities/edital/pergunta.entity';
+import { StatusEdital } from '../enum/enumStatusEdital';
 
 export class InscricaoService {
   constructor(
@@ -26,7 +26,7 @@ export class InscricaoService {
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {}
-
+  
   async createInscricao(
     createInscricaoDto: CreateInscricaoDto,
   ): Promise<InscricaoResponseDto> {
