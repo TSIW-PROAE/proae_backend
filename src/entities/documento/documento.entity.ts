@@ -14,7 +14,7 @@ export class Documento {
   @Column({ type: 'enum', enum: EnumTipoDocumento })
   tipo_documento: EnumTipoDocumento;
 
-  @Column()
+  @Column({ nullable: true })
   documento_url: string;
 
   @Column({ type: 'enum', enum: StatusDocumento, default: StatusDocumento.NAO_ENVIADO })
