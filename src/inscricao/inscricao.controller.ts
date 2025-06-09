@@ -7,6 +7,7 @@ import {
   Req,
   UseGuards,
   Patch,
+  Get,
 } from '@nestjs/common';
 import { InscricaoService } from './inscricao.service';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
@@ -33,5 +34,11 @@ export class InscricaoController {
     @Body() updateInscricaoDto: UpdateInscricaoDto,
   ) {
     return await this.inscricaoService.updateInscricao(id, updateInscricaoDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get()
+  async getInscricoesAluno(@Req() request: AuthenticatedRequest) {
+    return await this.inscricaoService.getInscricoesByAluno(request.user.id);
   }
 }

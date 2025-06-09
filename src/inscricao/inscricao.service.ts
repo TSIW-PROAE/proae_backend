@@ -6,6 +6,7 @@ import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Documento } from 'src/entities/documento/documento.entity';
+import { StatusDocumento } from 'src/enum/statusDocumento';
 
 export class InscricaoService {
   constructor(
@@ -133,6 +134,46 @@ export class InscricaoService {
       console.error('Falha ao editar a inscrição', error);
       throw new BadRequestException(
         `Falha ao editar a inscrição: ${e.message}`,
+      );
+    }
+  }
+
+  async getInscricoesByAluno(idClerk: string) {
+    try {
+      const aluno = await this.alunoRepository.findOne({
+        where: { id_clerk: idClerk },
+      });
+
+      if (!aluno) {
+        throw new NotFoundException('Aluno não encontrado');
+      }
+
+      const inscricoes = await this.inscricaoRepository.find({
+        where: { 
+          aluno: { aluno_id: aluno.aluno_id },
+          documentos: {
+            status_documento: StatusDocumento.PENDENTE
+          }
+        },
+        relations: ['edital', 'documentos'],
+      });
+
+      return inscricoes.map(inscricao => ({
+        titulo_edital: inscricao.edital.titulo_edital,
+        tipo_edital: [inscricao.edital.tipo_edital],
+        documentos: inscricao.documentos.filter(documento => 
+          documento.status_documento === StatusDocumento.PENDENTE
+        ).map(documento => ({
+          tipo_documento: documento.tipo_documento,
+          status_documento: documento.status_documento,
+          documento_url: documento.documento_url,
+        })),
+      })).filter(inscricao => inscricao.documentos.length > 0);
+    } catch (error) {
+      const e = error as Error;
+      console.error('Falha ao buscar inscrições com pendências do aluno', error);
+      throw new BadRequestException(
+        `Falha ao buscar inscrições com pendências do aluno: ${e.message}`,
       );
     }
   }
