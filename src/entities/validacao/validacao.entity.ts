@@ -5,8 +5,6 @@ import { Documento } from '../documento/documento.entity';
 
 @Entity()
 export class Validacao extends AbstractEntity<Validacao> {
-    @Column({ type: 'enum', enum: StatusDocumento })
-    status: StatusDocumento;
 
     @Column({ type: 'text', nullable: true })
     parecer: string;

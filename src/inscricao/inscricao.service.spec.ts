@@ -35,10 +35,9 @@ describe('InscricaoService', () => {
 
   const mockValidacao = {
     id: 1,
-    status: StatusDocumento.PENDENTE,
     parecer: 'Documento necessita correção',
     data_validacao: new Date('2024-01-15'),
-  } as Validacao;
+  } as Partial<Validacao>;
 
   const mockDocumentoPendente = {
     documento_id: 1,
@@ -209,10 +208,9 @@ describe('InscricaoService', () => {
     it('should filter out approved documents and keep only pending ones with validation data', async () => {
       const mockValidacao2 = {
         id: 2,
-        status: StatusDocumento.PENDENTE,
         parecer: 'Documento em análise',
         data_validacao: new Date('2024-01-20'),
-      } as Validacao;
+      } as Partial<Validacao>;
 
       const mockInscricaoMultiplosDocumentos = {
         ...mockInscricao,
