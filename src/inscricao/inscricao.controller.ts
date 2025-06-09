@@ -20,8 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { InscricaoService } from './inscricao.service';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
-import { UpdateInscricaoDto } from './dto/upload-inscricao-dto';
-import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { errorExamples } from '../common/swagger/error-examples';

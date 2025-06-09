@@ -125,11 +125,11 @@ export class InscricaoService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
+      console.error('Falha ao submeter uma inscrição', error);
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       
-      console.error('Falha ao submeter uma inscrição', error);
       throw new InternalServerErrorException(
         'Ocorreu um erro ao processar sua inscrição. Por favor, tente novamente mais tarde.'
       );
@@ -174,6 +174,92 @@ export class InscricaoService {
         throw new BadRequestException('Edital não está aberto para atualizações');
       }
 
+      // Validação das respostas
+      if (updateInscricaoDto.respostas && updateInscricaoDto.respostas.length &&
+        updateInscricaoDto.respostas_editadas && updateInscricaoDto.respostas_editadas.length) {
+
+        // Busca todas as perguntas do edital
+        const perguntas = await this.perguntaRepository.find({
+          where: {
+            step: {
+              edital: { id: editalExiste.id }
+            }
+          }
+        });
+
+        // Cria um mapa de perguntas por ID para fácil acesso
+        const perguntasMap = new Map(perguntas.map(p => [p.id, p]));
+
+        // Valida e associa as respostas
+        const respostas = await Promise.all(
+
+          // cria as novas respostas
+          updateInscricaoDto.respostas.map(async (respostaDto) => {
+            const pergunta = perguntasMap.get(respostaDto.pergunta_id);
+            
+            if (!pergunta) {
+              throw new NotFoundException(
+                `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`
+              );
+            }
+
+            if (!respostaDto.texto || respostaDto.texto.trim() === '') {
+              throw new BadRequestException(
+                `Resposta para a pergunta ${pergunta.pergunta} não pode estar vazia`
+              );
+            }
+
+            return new Resposta({
+              pergunta,
+              texto: respostaDto.texto,
+            });
+          })
+        );
+
+        // atualiza as respostas existentes
+        const respostasAtualizadas = await Promise.all(
+          updateInscricaoDto.respostas_editadas.map(async (respostaDto) => {
+            
+            if (typeof respostaDto.pergunta_id !== 'number') {
+              throw new BadRequestException('ID da pergunta inválido');
+            }
+            
+            const pergunta = perguntasMap.get(respostaDto.pergunta_id);
+            if (!pergunta) {
+              throw new NotFoundException(
+                `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`
+              );
+            }
+            
+            if (!respostaDto.texto || respostaDto.texto.trim() === '') {
+              throw new BadRequestException(
+                `Resposta para a pergunta ${pergunta.pergunta} não pode estar vazia`
+              );
+            }
+
+            const respostaExistente = inscricaoExistente.respostas.find(r => r.id === respostaDto.id);
+            if (!respostaExistente) {
+              throw new NotFoundException(
+                `Resposta com ID ${respostaDto.id} não encontrada na inscrição`
+              );
+            }
+
+            Object.assign(
+              respostaExistente,
+              {
+                texto: respostaDto.texto,
+              }
+            );
+
+            return respostaExistente;
+          })
+        );
+
+        // Atualiza as respostas existentes
+        inscricaoExistente.respostas = [...respostas, ...respostasAtualizadas];
+
+      }
+
       // Atualiza os dados básicos da inscrição
       Object.assign(inscricaoExistente, {
         aluno: alunoExiste,
@@ -195,11 +281,11 @@ export class InscricaoService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
+      console.error('Falha ao atualizar a inscrição', error);
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       
-      console.error('Falha ao atualizar a inscrição', error);
       throw new InternalServerErrorException(
         'Ocorreu um erro ao processar a atualização da inscrição. Por favor, tente novamente mais tarde.'
       );

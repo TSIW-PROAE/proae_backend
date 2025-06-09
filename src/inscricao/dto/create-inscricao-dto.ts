@@ -7,16 +7,23 @@ import {
   IsArray,
   ValidateNested,
 } from 'class-validator';
-import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { CreateRespostaDto } from './create-resposta-dto';
 
 export class CreateInscricaoDto {
-  @ApiProperty({ type: Number, description: 'ID do aluno' })
+  @ApiProperty({
+    description: 'ID do aluno',
+    example: 1,
+    required: true,
+  })
   @IsNotEmpty()
   @IsNumber()
   aluno: number;
 
-  @ApiProperty({ type: Number, description: 'ID do edital' })
+  @ApiProperty({
+    description: 'ID do edital',
+    example: 1,
+    required: true,
+  })
   @IsNotEmpty()
   @IsNumber()
   edital: number;

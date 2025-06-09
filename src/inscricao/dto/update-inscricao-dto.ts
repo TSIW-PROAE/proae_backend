@@ -9,38 +9,38 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { UpdateRespostaDto } from './update-resposta-dto';
+import { CreateInscricaoDto } from './create-inscricao-dto';
 
-export class UpdateInscricaoDto {
-  @IsNotEmpty()
-  @IsNumber()
-  aluno: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  edital: number;
-
+export class UpdateInscricaoDto extends PartialType(CreateInscricaoDto) {
+  @ApiProperty({
+    description: 'Data da inscrição',
+    example: '2024-03-21',
+    required: true,
+  })
   @IsDate()
-  @IsNotEmpty()
   @Type(() => Date)
   data_inscricao: Date;
 
-  @ApiProperty({ enum: StatusInscricao, description: 'Status da inscrição' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Status da inscrição',
+    enum: StatusInscricao,
+    example: StatusInscricao.PENDENTE,
+    required: true,
+  })
+  @IsOptional()
   @IsEnum(StatusInscricao)
   status_inscricao?: StatusInscricao;
 
-  /*
   @ApiProperty({
     type: [UpdateRespostaDto],
     description: 'Lista de respostas da inscrição',
-    required: false,
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateRespostaDto)
-  respostas?: UpdateRespostaDto[];
-  */
+  respostas_editadas: UpdateRespostaDto[];
+
 }
