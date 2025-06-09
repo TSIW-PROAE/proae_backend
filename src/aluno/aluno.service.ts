@@ -18,8 +18,6 @@ export class AlunoService {
   constructor(
     @InjectRepository(Aluno)
     private readonly alunoRepository: Repository<Aluno>,
-    @InjectRepository(Aluno)
-    private readonly inscricaoRepository: Repository<Inscricao>,
   ) {}
 
   private clerk = createClerkClient({
@@ -192,12 +190,14 @@ export class AlunoService {
     try {
       const aluno = await this.alunoRepository.findOne({
         where: { id_clerk: clerkId },
-        relations: [
-          'inscricoes',
-          'inscricoes.edital',
-          'inscricoes.edital.etapas',
-          'inscricoes.documentos',
-        ],
+        relations: {
+          inscricoes: {
+            edital: {
+              etapas: true
+            },
+            documentos: true
+          }
+        },
       });
 
       if (!aluno) {
