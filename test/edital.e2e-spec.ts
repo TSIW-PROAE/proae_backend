@@ -1,40 +1,41 @@
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { CreateEditalDto } from 'src/edital/dto/create-edital.dto';
+import { UpdateEditalDto } from 'src/edital/dto/update-edital.dto';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { EditalEnum } from '../src/enum/enumEdital';
 import { StatusEdital } from '../src/enum/enumStatusEdital';
-import { ValidationPipe } from '@nestjs/common';
-import { CreateEditalDto } from 'src/edital/dto/create-edital.dto';
-import { UpdateEditalDto } from 'src/edital/dto/update-edital.dto';
 
 describe('EditalController (e2e)', () => {
   let app: INestApplication;
   let editalId: number;
 
   const createEditalDto: CreateEditalDto = {
-    tipo_beneficio: EditalEnum.AUXILIO_ALIMENTACAO,
+    tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
     descricao: 'Edital de teste e2e',
-    edital_url: 'http://example.com/edital-e2e',
-    data_inicio: new Date('2023-01-01'),
-    data_fim: new Date('2023-12-31'),
+    edital_url: 'http://example.com/edital',
+    titulo_edital: 'Edital de teste e2e',
+    quantidade_bolsas: 10,
     etapas: [
       {
-        nome: 'Etapa de Teste 1',
+        nome: 'Etapa 1',
         ordem: 1,
-        descricao: 'Descrição da etapa de teste 1',
+        data_inicio: new Date('2023-01-01'),
+        data_fim: new Date('2023-06-31'),
       },
       {
-        nome: 'Etapa de Teste 2',
+        nome: 'Etapa 2',
         ordem: 2,
-        descricao: 'Descrição da etapa de teste 2',
+        data_inicio: new Date('2023-07-01'),
+        data_fim: new Date('2023-12-31'),
       },
     ],
   };
 
   const updateEditalDto: UpdateEditalDto = {
     descricao: 'Edital de teste e2e atualizado',
-    status_edital: StatusEdital.DESATIVADO,
+    status_edital: StatusEdital.ENCERRADO,
   };
 
   beforeAll(async () => {
@@ -60,7 +61,7 @@ describe('EditalController (e2e)', () => {
         expect(response.body).toBeDefined();
         expect(response.body.id).toBeDefined();
         expect(response.body.tipo_beneficio).toBe(
-          createEditalDto.tipo_beneficio,
+          createEditalDto.tipo_edital,
         );
         expect(response.body.descricao).toBe(createEditalDto.descricao);
         expect(response.body.edital_url).toBe(createEditalDto.edital_url);
@@ -88,7 +89,7 @@ describe('EditalController (e2e)', () => {
         expect(response.body).toBeDefined();
         expect(response.body.id).toBe(editalId);
         expect(response.body.tipo_beneficio).toBe(
-          createEditalDto.tipo_beneficio,
+          createEditalDto.tipo_edital,
         );
         expect(response.body.descricao).toBe(createEditalDto.descricao);
 

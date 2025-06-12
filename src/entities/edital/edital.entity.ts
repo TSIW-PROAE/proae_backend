@@ -1,11 +1,11 @@
-import { Entity, Column, OneToMany } from 'typeorm';
-import { Inscricao } from '../inscricao/inscricao.entity';
-import { EtapaEdital } from '../etapaEdital/etapaEdital.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
-import { Step } from './step.entity';
 import { EnumTipoDocumento } from 'src/enum/enumTipoDocumento';
+import { Column, Entity, OneToMany } from 'typeorm';
+import { EtapaEdital } from '../etapaEdital/etapaEdital.entity';
+import { Inscricao } from '../inscricao/inscricao.entity';
+import { Step } from './step.entity';
 
 @Entity()
 export class Edital extends AbstractEntity<Edital> {
@@ -15,8 +15,8 @@ export class Edital extends AbstractEntity<Edital> {
   @Column({ type: 'text' })
   descricao: string;
 
-  @Column({ type: 'simple-array' })
-  edital_url: string[];
+  @Column({ type: 'text' })
+  edital_url: string;
 
   @Column({ type: 'text' })
   titulo_edital: string;

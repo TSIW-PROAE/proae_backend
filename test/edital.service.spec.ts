@@ -1,13 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EditalService } from '../src/edital/edital.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Edital } from 'src/entities/edital/edital.entity';
-import { EntityManager, Repository } from 'typeorm';
+import { EtapaEdital } from 'src/entities/etapaEdital/etapaEdital.entity';
 import { EditalEnum } from 'src/enum/enumEdital';
+import { EntityManager, Repository } from 'typeorm';
 import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
-import { EtapaInscricao } from 'src/entities/etapaEdital/etapaEdital.entity';
-import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
-import { StatusEtapa } from 'src/enum/enumStatusEtapa';
+import { EditalService } from '../src/edital/edital.service';
 
 describe('EditalService', () => {
   let service: EditalService;
@@ -58,8 +56,8 @@ describe('EditalService', () => {
 
   test('findAll', async () => {
     const mockEditais = [
-      new Edital({ id: 1, tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE }),
-      new Edital({ id: 2, tipo_beneficio: EditalEnum.AUXILIO_ALIMENTACAO }),
+      new Edital({ id: 1, tipo_edital: EditalEnum.AUXILIO_TRANSPORTE }),
+      new Edital({ id: 2, tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO }),
     ];
 
     jest.spyOn(editalRepository, 'find').mockResolvedValue(mockEditais);
@@ -73,7 +71,7 @@ describe('EditalService', () => {
   test('findOne', async () => {
     const mockEdital = new Edital({
       id: 1,
-      tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
+      tipo_edital: EditalEnum.AUXILIO_TRANSPORTE,
     });
 
     jest.spyOn(editalRepository, 'findOne').mockResolvedValue(mockEdital);
@@ -96,32 +94,34 @@ describe('EditalService', () => {
   test('create', async () => {
     const mockEdital = new Edital({
       id: 1,
-      tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
+      tipo_edital: EditalEnum.AUXILIO_TRANSPORTE,
       descricao: 'testes',
       edital_url: 'www.testes.com',
-      data_inicio: new Date('2025-02-10'),
-      data_fim: new Date('2025-10-21'),
+      titulo_edital: 'testes',
+      quantidade_bolsas: 10,
       etapas: [
-        new EtapaInscricao({
+        new EtapaEdital({
           id: 1,
           ordem: 1,
           nome: 'etapa 1',
-          descricao: 'descricao 1',
+          data_inicio: new Date('2023-01-01'),
+          data_fim: new Date('2023-06-31'),
         }),
       ],
     });
 
     const createEditalDto = {
-      tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
+      tipo_edital: EditalEnum.AUXILIO_TRANSPORTE,
       descricao: 'testes',
       edital_url: 'www.testes.com',
-      data_inicio: new Date('2025-02-10'),
-      data_fim: new Date('2025-10-21'),
+      titulo_edital: 'testes',
+      quantidade_bolsas: 10,
       etapas: [
         {
           ordem: 1,
           nome: 'etapa 1',
-          descricao: 'descricao 1',
+          data_inicio: new Date('2023-01-01'),
+          data_fim: new Date('2023-06-31'),
         },
       ],
     } as CreateEditalDto;
@@ -146,42 +146,28 @@ describe('EditalService', () => {
 
   test('remove should delete edital and related entities with cascade', async () => {
     // Setup mock data
-    const mockResultados = [
-      {
-        resultado_id: 1,
-        status_etapa: StatusEtapa.FINALIZADA,
-        observacao: 'Etapa finalizada',
-        data_avaliacao: new Date(),
-      } as ResultadoEtapa,
-      {
-        resultado_id: 2,
-        status_etapa: StatusEtapa.EM_ANALISE,
-        observacao: 'Etapa em análise',
-        data_avaliacao: new Date(),
-      } as ResultadoEtapa,
-    ];
 
     const mockEdital = new Edital({
       id: 1,
-      tipo_beneficio: EditalEnum.AUXILIO_TRANSPORTE,
+      tipo_edital: EditalEnum.AUXILIO_TRANSPORTE,
       descricao: 'testes',
       edital_url: 'www.testes.com',
-      data_inicio: new Date('2025-02-10'),
-      data_fim: new Date('2025-10-21'),
+      titulo_edital: 'testes',
+      quantidade_bolsas: 10,
       etapas: [
-        new EtapaInscricao({
+        new EtapaEdital({
           id: 1,
           ordem: 1,
           nome: 'etapa 1',
-          descricao: 'descricao 1',
-          resultados: mockResultados,
+          data_inicio: new Date('2023-01-01'),
+          data_fim: new Date('2023-06-31'),
         }),
-        new EtapaInscricao({
+        new EtapaEdital({
           id: 2,
           ordem: 2,
           nome: 'etapa 2',
-          descricao: 'descricao 2',
-          resultados: [],
+          data_inicio: new Date('2023-07-01'),
+          data_fim: new Date('2023-12-31'),
         }),
       ],
     });
@@ -213,13 +199,8 @@ describe('EditalService', () => {
       },
     });
 
-    // Verify ResultadoEtapa deletion was called for etapa with results
-    expect(mockEntityManager.delete).toHaveBeenCalledWith(ResultadoEtapa, {
-      etapa: { id: 1 },
-    });
-
     // Verify EtapaInscricao deletion was called with correct parameters
-    expect(mockEntityManager.delete).toHaveBeenCalledWith(EtapaInscricao, {
+    expect(mockEntityManager.delete).toHaveBeenCalledWith(EtapaEdital, {
       edital: { id: 1 },
     });
 

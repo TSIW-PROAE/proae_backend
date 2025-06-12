@@ -1,17 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { InscricaoService } from './inscricao.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Pergunta } from 'src/entities/edital/pergunta.entity';
+import { EntityManager, Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
-import { Edital } from '../entities/edital/edital.entity';
 import { Documento } from '../entities/documento/documento.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Validacao } from '../entities/validacao/validacao.entity';
-import { StatusDocumento } from '../enum/statusDocumento';
 import { EditalEnum } from '../enum/enumEdital';
 import { EnumTipoDocumento } from '../enum/enumTipoDocumento';
-import { Pergunta } from 'src/entities/edital/pergunta.entity';
+import { StatusDocumento } from '../enum/statusDocumento';
+import { InscricaoService } from './inscricao.service';
 
 describe('InscricaoService', () => {
   let service: InscricaoService;
@@ -105,6 +105,16 @@ describe('InscricaoService', () => {
           useValue: {
             find: jest.fn(),
             findOne: jest.fn(),
+          },
+        },
+        {
+          provide: EntityManager,
+          useValue: {
+            transaction: jest.fn().mockImplementation(async (callback) => {
+              return callback({
+                save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+              });
+            }),
           },
         },
       ],

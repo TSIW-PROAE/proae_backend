@@ -1,18 +1,18 @@
-import { Inscricao } from '../entities/inscricao/inscricao.entity';
-import { CreateInscricaoDto } from './dto/create-inscricao-dto';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
 import { EntityManager, Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
-import { Edital } from '../entities/edital/edital.entity';
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { Documento } from '../entities/documento/documento.entity';
-import { Resposta } from '../entities/inscricao/resposta.entity';
-import { InscricaoResponseDto } from './dto/response-inscricao.dto';
-import { plainToInstance } from 'class-transformer';
-import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { Edital } from '../entities/edital/edital.entity';
 import { Pergunta } from '../entities/edital/pergunta.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Resposta } from '../entities/inscricao/resposta.entity';
 import { StatusEdital } from '../enum/enumStatusEdital';
 import { StatusDocumento } from '../enum/statusDocumento';
+import { CreateInscricaoDto } from './dto/create-inscricao-dto';
+import { InscricaoResponseDto } from './dto/response-inscricao.dto';
+import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 
 export class InscricaoService {
   constructor(
@@ -26,8 +26,8 @@ export class InscricaoService {
     private readonly perguntaRepository: Repository<Pergunta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {}
-  
+  ) { }
+
   async createInscricao(
     createInscricaoDto: CreateInscricaoDto,
   ): Promise<InscricaoResponseDto> {
@@ -76,7 +76,7 @@ export class InscricaoService {
       const respostas = await Promise.all(
         createInscricaoDto.respostas.map(async (respostaDto) => {
           const pergunta = perguntasMap.get(respostaDto.pergunta_id);
-          
+
           if (!pergunta) {
             throw new NotFoundException(
               `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`
@@ -130,7 +130,7 @@ export class InscricaoService {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      
+
       throw new InternalServerErrorException(
         'Ocorreu um erro ao processar sua inscrição. Por favor, tente novamente mais tarde.'
       );
@@ -197,7 +197,7 @@ export class InscricaoService {
           // cria as novas respostas
           updateInscricaoDto.respostas.map(async (respostaDto) => {
             const pergunta = perguntasMap.get(respostaDto.pergunta_id);
-            
+
             if (!pergunta) {
               throw new NotFoundException(
                 `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`
@@ -220,18 +220,18 @@ export class InscricaoService {
         // atualiza as respostas existentes
         const respostasAtualizadas = await Promise.all(
           updateInscricaoDto.respostas_editadas.map(async (respostaDto) => {
-            
+
             if (typeof respostaDto.pergunta_id !== 'number') {
               throw new BadRequestException('ID da pergunta inválido');
             }
-            
+
             const pergunta = perguntasMap.get(respostaDto.pergunta_id);
             if (!pergunta) {
               throw new NotFoundException(
                 `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`
               );
             }
-            
+
             if (!respostaDto.texto || respostaDto.texto.trim() === '') {
               throw new BadRequestException(
                 `Resposta para a pergunta ${pergunta.pergunta} não pode estar vazia`
@@ -286,7 +286,7 @@ export class InscricaoService {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      
+
       throw new InternalServerErrorException(
         'Ocorreu um erro ao processar a atualização da inscrição. Por favor, tente novamente mais tarde.'
       );
@@ -304,7 +304,7 @@ export class InscricaoService {
       }
 
       const inscricoes = await this.inscricaoRepository.find({
-        where: { 
+        where: {
           aluno: { aluno_id: aluno.aluno_id },
           documentos: {
             status_documento: StatusDocumento.PENDENTE
@@ -316,14 +316,14 @@ export class InscricaoService {
       return inscricoes.map(inscricao => ({
         titulo_edital: inscricao.edital.titulo_edital,
         tipo_edital: [inscricao.edital.tipo_edital],
-        documentos: inscricao.documentos.filter(documento => 
+        documentos: inscricao.documentos.filter(documento =>
           documento.status_documento === StatusDocumento.PENDENTE
         ).map(documento => {
           // Pegar a validação mais recente (se houver)
           const validacaoMaisRecente = documento.validacoes && documento.validacoes.length > 0
-            ? documento.validacoes.sort((a, b) => 
-                new Date(b.data_validacao || 0).getTime() - new Date(a.data_validacao || 0).getTime()
-              )[0]
+            ? documento.validacoes.sort((a, b) =>
+              new Date(b.data_validacao || 0).getTime() - new Date(a.data_validacao || 0).getTime()
+            )[0]
             : null;
 
           return {
@@ -338,6 +338,12 @@ export class InscricaoService {
     } catch (error) {
       const e = error as Error;
       console.error('Falha ao buscar inscrições com pendências do aluno', error);
+
+      // Preserva o tipo original da exceção se for NotFoundException
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
       throw new BadRequestException(
         `Falha ao buscar inscrições com pendências do aluno: ${e.message}`,
       );

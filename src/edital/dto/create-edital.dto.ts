@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -7,9 +8,8 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-import { CreateEtapasDto } from './create-etapas-edital.dto';
 import { EditalEnum } from 'src/enum/enumEdital';
+import { CreateEtapasDto } from './create-etapas-edital.dto';
 
 export class CreateEditalDto {
   @ApiProperty({ enum: EditalEnum, description: 'Tipo do edital' })
@@ -21,11 +21,11 @@ export class CreateEditalDto {
   @IsString()
   descricao: string;
 
-  @ApiProperty({ type: [String], description: 'URLs dos documentos do edital' })
+  @ApiProperty({ type: [String], description: 'URL dos documentos do edital' })
   @IsNotEmpty()
   @IsArray()
   @IsString({ each: true })
-  edital_url: string[];
+  edital_url: string;
 
   @ApiProperty({ description: 'Título do edital' })
   @IsNotEmpty()
