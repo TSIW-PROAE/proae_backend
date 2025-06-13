@@ -1,10 +1,10 @@
+import { CreateEditalDto } from '@/src/edital/dto/create-edital.dto';
+import { UpdateEditalDto } from '@/src/edital/dto/update-edital.dto';
+import { EditalController } from '@/src/edital/edital.controller';
+import { EditalService } from '@/src/edital/edital.service';
+import { EditalEnum } from '@/src/enum/enumEdital';
+import { StatusEdital } from '@/src/enum/enumStatusEdital';
 import { Test, TestingModule } from '@nestjs/testing';
-import { EditalEnum } from 'src/enum/enumEdital';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
-import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
-import { UpdateEditalDto } from '../src/edital/dto/update-edital.dto';
-import { EditalController } from '../src/edital/edital.controller';
-import { EditalService } from '../src/edital/edital.service';
 
 describe('EditalController', () => {
   let controller: EditalController;

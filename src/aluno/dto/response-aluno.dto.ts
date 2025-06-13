@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { PronomesEnum } from '../../enum/enumPronomes';
-import { CursosEnum } from '../../enum/enumCursos';
 import { UnidadeEnum } from '../../enum/enumCampus';
+import { CursosEnum } from '../../enum/enumCursos';
+import { PronomesEnum } from '../../enum/enumPronomes';
 
 export class AlunoResponseDto {
   @ApiProperty({ type: Number, description: 'ID do aluno' })

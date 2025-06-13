@@ -1,22 +1,22 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Param,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
   ParseIntPipe,
-  UseGuards,
+  Post,
+  Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { DocumentoService } from './documentos.service';
-import { CreateDocumentoDto } from './dto/create-documento.dto';
-import { UpdateDocumentoDto } from './dto/update-documento.dto';
-import { ResubmitDocumentoDto } from './dto/resubmit-documento.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { DocumentoService } from './documentos.service';
+import { CreateDocumentoDto } from './dto/create-documento.dto';
+import { ResubmitDocumentoDto } from './dto/resubmit-documento.dto';
+import { UpdateDocumentoDto } from './dto/update-documento.dto';
 
 @Controller('documentos')
 @ApiBearerAuth()

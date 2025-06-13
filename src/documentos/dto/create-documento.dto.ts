@@ -1,10 +1,10 @@
 import {
-  IsNotEmpty,
   IsEnum,
-  IsString,
-  IsOptional,
-  IsUrl,
+  IsNotEmpty,
   IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
 } from 'class-validator';
 import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
 import { StatusDocumento } from '../../enum/statusDocumento';

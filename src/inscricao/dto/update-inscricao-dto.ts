@@ -1,17 +1,15 @@
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
-  IsNotEmpty,
-  IsNumber,
+  IsArray,
   IsDate,
   IsEnum,
   IsOptional,
-  IsArray,
-  ValidateNested,
+  ValidateNested
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { UpdateRespostaDto } from './update-resposta-dto';
 import { CreateInscricaoDto } from './create-inscricao-dto';
+import { UpdateRespostaDto } from './update-resposta-dto';
 
 export class UpdateInscricaoDto extends PartialType(CreateInscricaoDto) {
   @ApiProperty({

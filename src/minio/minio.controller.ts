@@ -1,19 +1,19 @@
 import {
   Controller,
-  Post,
+  FileTypeValidator,
   Get,
   Param,
-  UseInterceptors,
-  UploadedFiles,
   ParseFilePipe,
-  FileTypeValidator,
-  UseGuards,
+  Post,
   Req,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { MinioClientService } from './minio.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
+import { MinioClientService } from './minio.service';
 
 @Controller('documents')
 @UseGuards(AuthGuard)

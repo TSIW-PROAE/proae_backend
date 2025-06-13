@@ -1,15 +1,15 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
 import { Validacao } from '../entities/validacao/validacao.entity';
 import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
 import { ValidacaoResponseDto } from './dto/validacao-response.dto';
-import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ValidacaoService {

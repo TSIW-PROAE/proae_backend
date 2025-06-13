@@ -1,11 +1,11 @@
-import { Test } from '@nestjs/testing';
-import { AlunoController } from './aluno.controller';
-import { AlunoService } from './aluno.service';
-import AuthenticatedRequest from '../types/authenticated-request.interface';
-import { PronomesEnum } from '../enum/enumPronomes';
-import { UnidadeEnum } from '../enum/enumCampus';
-import { CursosEnum } from '../enum/enumCursos';
+import { AlunoController } from '@/src/aluno/aluno.controller';
+import { AlunoService } from '@/src/aluno/aluno.service';
+import { UnidadeEnum } from '@/src/enum/enumCampus';
+import { CursosEnum } from '@/src/enum/enumCursos';
+import { PronomesEnum } from '@/src/enum/enumPronomes';
+import AuthenticatedRequest from '@/src/types/authenticated-request.interface';
 import { NotFoundException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 describe('AlunoController', () => {
   let alunoController: AlunoController;

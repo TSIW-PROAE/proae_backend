@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEmail,
@@ -9,7 +10,6 @@ import {
 import { UnidadeEnum } from '../../enum/enumCampus';
 import { CursosEnum } from '../../enum/enumCursos';
 import { PronomesEnum } from '../../enum/enumPronomes';
-import { ApiProperty } from '@nestjs/swagger';
 
 export class AtualizaDadosAlunoDTO {
   @ApiProperty({

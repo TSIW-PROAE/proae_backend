@@ -1,17 +1,17 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsDateString,
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsNumberString,
-  IsEnum,
-  IsDateString,
   IsPhoneNumber,
   Matches,
 } from 'class-validator';
-import { IsCPF } from '../../validators/isCpf.validator';
-import { PronomesEnum } from '../../enum/enumPronomes';
-import { CursosEnum } from '../../enum/enumCursos';
 import { UnidadeEnum } from '../../enum/enumCampus';
-import { ApiProperty } from '@nestjs/swagger';
+import { CursosEnum } from '../../enum/enumCursos';
+import { PronomesEnum } from '../../enum/enumPronomes';
+import { IsCPF } from '../../validators/isCpf.validator';
 
 export class SignupDto {
   @ApiProperty({

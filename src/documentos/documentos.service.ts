@@ -1,17 +1,17 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Aluno } from 'src/entities/aluno/aluno.entity';
 import { Documento } from 'src/entities/documento/documento.entity';
-import { Repository } from 'typeorm';
-import { UpdateDocumentoDto } from './dto/update-documento.dto';
-import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { StatusDocumento } from 'src/enum/statusDocumento';
-import { Aluno } from 'src/entities/aluno/aluno.entity';
+import { Repository } from 'typeorm';
+import { CreateDocumentoDto } from './dto/create-documento.dto';
+import { UpdateDocumentoDto } from './dto/update-documento.dto';
 
 @Injectable()
 export class DocumentoService {

@@ -1,17 +1,16 @@
+import { createClerkClient } from '@clerk/backend';
 import {
-  Injectable,
-  NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
-import { createClerkClient } from '@clerk/backend';
 import { InjectRepository } from '@nestjs/typeorm';
+import { StatusEdital } from 'src/enum/enumStatusEdital';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
-import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { StatusDocumento } from '../enum/statusDocumento';
-import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 
 @Injectable()
 export class AlunoService {

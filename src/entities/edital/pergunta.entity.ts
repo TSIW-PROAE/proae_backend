@@ -1,9 +1,9 @@
-import { Entity, Column, OneToMany, ManyToOne } from 'typeorm';
-import { EnumTipoInput } from '../../enum/enumTipoInput';
-import { EnumInputFormat } from '../../enum/enumInputFormat';
-import { Step } from './step.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { EnumInputFormat } from '../../enum/enumInputFormat';
+import { EnumTipoInput } from '../../enum/enumTipoInput';
 import { Resposta } from '../inscricao/resposta.entity';
+import { Step } from './step.entity';
 
 @Entity()
 export class Pergunta extends AbstractEntity<Pergunta> {

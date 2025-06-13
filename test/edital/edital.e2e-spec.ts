@@ -1,11 +1,11 @@
+import { EditalEnum } from '@/src/enum/enumEdital';
+import { StatusEdital } from '@/src/enum/enumStatusEdital';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateEditalDto } from 'src/edital/dto/create-edital.dto';
 import { UpdateEditalDto } from 'src/edital/dto/update-edital.dto';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { EditalEnum } from '../src/enum/enumEdital';
-import { StatusEdital } from '../src/enum/enumStatusEdital';
+import { AppModule } from '../../src/app.module';
 
 describe('EditalController (e2e)', () => {
   let app: INestApplication;

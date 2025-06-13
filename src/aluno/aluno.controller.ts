@@ -1,12 +1,12 @@
-import { Controller, Get, UseGuards, Req, Body, Patch } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
-import { AlunoService } from './aluno.service';
-import AuthenticatedRequest from '../types/authenticated-request.interface';
-import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
+import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import {
-  ApiTags,
   ApiBearerAuth,
-} from '@nestjs/swagger'; 
+  ApiTags,
+} from '@nestjs/swagger';
+import { AuthGuard } from '../auth/auth.guard';
+import AuthenticatedRequest from '../types/authenticated-request.interface';
+import { AlunoService } from './aluno.service';
+import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 
 @ApiTags('Alunos')
 @ApiBearerAuth()

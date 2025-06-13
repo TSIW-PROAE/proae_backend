@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
 import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
 
 export class ResubmitDocumentoDto {

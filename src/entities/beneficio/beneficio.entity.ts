@@ -1,12 +1,12 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    OneToOne,
-    JoinColumn,
-  } from 'typeorm';
-  import { Inscricao } from '../inscricao/inscricao.entity';
-  import { StatusBeneficio } from '../../enum/enumStatusBeneficio';
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { StatusBeneficio } from '../../enum/enumStatusBeneficio';
+import { Inscricao } from '../inscricao/inscricao.entity';
   
   @Entity()
   export class Beneficio {

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { StatusDocumento } from '../../enum/statusDocumento';
 import { Expose } from 'class-transformer';
+import { StatusDocumento } from '../../enum/statusDocumento';
 
 export class ValidacaoResponseDto {
     @ApiProperty({ type: Number, description: 'ID da validação' })

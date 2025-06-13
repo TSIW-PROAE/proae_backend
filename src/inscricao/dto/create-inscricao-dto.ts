@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsArray,
   ValidateNested,
 } from 'class-validator';
 import { CreateRespostaDto } from './create-resposta-dto';

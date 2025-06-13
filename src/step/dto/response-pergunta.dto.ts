@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform } from 'class-transformer';
-import { EnumInputFormat, InputFormatPlaceholders } from 'src/enum/enumInputFormat';
+import { Expose } from 'class-transformer';
+import { EnumInputFormat } from 'src/enum/enumInputFormat';
 import { EnumTipoInput } from 'src/enum/enumTipoInput';
 
 export class PerguntaResponseDto {

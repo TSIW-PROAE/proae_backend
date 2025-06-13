@@ -1,7 +1,7 @@
-import { Entity, Column, ManyToOne } from 'typeorm';
+import { AbstractEntity } from 'src/db/abstract.entity';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { Pergunta } from '../edital/pergunta.entity';
 import { Inscricao } from './inscricao.entity';
-import { AbstractEntity } from 'src/db/abstract.entity';
 
 @Entity()
 export class Resposta extends AbstractEntity<Resposta> {

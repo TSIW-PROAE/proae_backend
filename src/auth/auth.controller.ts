@@ -1,10 +1,10 @@
-import { Controller, Post, Body, Patch, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
-import { AuthGuard } from './auth.guard';
 import { UpdatePasswordDto } from './dto/updatepassword.dto';
-import AuthenticatedRequest from 'src/types/authenticated-request.interface';
-import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {

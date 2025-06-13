@@ -1,12 +1,12 @@
+import { AuthGuard } from '@/src/auth/auth.guard';
+import { EditalEnum } from '@/src/enum/enumEdital';
+import { StatusEdital } from '@/src/enum/enumStatusEdital';
+import { EnumTipoDocumento } from '@/src/enum/enumTipoDocumento';
+import { StatusDocumento } from '@/src/enum/statusDocumento';
+import { InscricaoController } from '@/src/inscricao/inscricao.controller';
+import { InscricaoService } from '@/src/inscricao/inscricao.service';
+import AuthenticatedRequest from '@/src/types/authenticated-request.interface';
 import { Test, TestingModule } from '@nestjs/testing';
-import { InscricaoController } from './inscricao.controller';
-import { InscricaoService } from './inscricao.service';
-import { AuthGuard } from '../auth/auth.guard';
-import AuthenticatedRequest from '../types/authenticated-request.interface';
-import { StatusDocumento } from '../enum/statusDocumento';
-import { EditalEnum } from '../enum/enumEdital';
-import { EnumTipoDocumento } from '../enum/enumTipoDocumento';
-import { StatusEdital } from '../enum/enumStatusEdital';
 
 describe('InscricaoController', () => {
   let controller: InscricaoController;

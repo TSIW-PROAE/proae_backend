@@ -1,5 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { StatusDocumento } from '../../enum/statusDocumento';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { AbstractEntity } from '../../db/abstract.entity';
 import { Documento } from '../documento/documento.entity';
 

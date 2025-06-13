@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { ValidacaoService } from './validacao.service';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
 import { ValidacaoResponseDto } from './dto/validacao-response.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { ValidacaoService } from './validacao.service';
 
 @ApiTags('Validacao')
 @ApiBearerAuth()

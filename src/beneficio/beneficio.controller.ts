@@ -1,8 +1,8 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { BeneficioService } from './beneficio.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { BeneficioService } from './beneficio.service';
 
 @Controller('beneficios')
 @ApiBearerAuth()  
