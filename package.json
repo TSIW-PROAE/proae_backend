@@ -82,8 +82,8 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
+    "rootDir": ".",
+    "testRegex": "test/.*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
@@ -93,7 +93,8 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/$1"
+      "^src/(.*)$": "<rootDir>/src/$1",
+      "^@/(.*)$": "<rootDir>/$1"
     },
     "reporters": [
       "default",
@@ -107,7 +108,7 @@
         }
       ],
       [
-        "../node_modules/jest-html-reporter",
+        "jest-html-reporter",
         {
           "pageTitle": "Relatório de Testes da API",
           "outputPath": "./coverage/report/index.html",
