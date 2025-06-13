@@ -2,12 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { createClerkClient } from '@clerk/backend';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
+import { StatusDocumento } from '../enum/statusDocumento';
 import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 
@@ -16,8 +18,6 @@ export class AlunoService {
   constructor(
     @InjectRepository(Aluno)
     private readonly alunoRepository: Repository<Aluno>,
-    @InjectRepository(Aluno)
-    private readonly inscricaoRepository: Repository<Inscricao>,
   ) {}
 
   private clerk = createClerkClient({
@@ -63,6 +63,36 @@ export class AlunoService {
     } catch (e) {
       console.error(e);
       throw new BadRequestException('Erro ao buscar aluno');
+    }
+  }
+
+  /**
+   * Check if a student has any documents with "REPROVADO" status
+   */
+  async hasReprovadoDocuments(clerkId: string): Promise<boolean> {
+    try {
+      const aluno = await this.alunoRepository.findOne({
+        where: { id_clerk: clerkId },
+        relations: ['inscricoes', 'inscricoes.documentos'],
+      });
+
+      if (!aluno) {
+        return false;
+      }
+
+      for (const inscricao of aluno.inscricoes) {
+        const hasReprovado = inscricao.documentos.some(
+          doc => doc.status_documento === StatusDocumento.REPROVADO
+        );
+        if (hasReprovado) {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Erro ao verificar documentos reprovados', error);
+      return false;
     }
   }
 
@@ -124,11 +154,35 @@ export class AlunoService {
 
       return {
         success: true,
-        message: 'Dados do aluno atualizados com sucesso!',
+        message: 'Dados do aluno atualizados com sucesso para reenvio!',
       };
     } catch (e) {
       console.log(e);
+      if (e instanceof ForbiddenException || e instanceof NotFoundException) {
+        throw e;
+      }
       throw new BadRequestException('Erro ao atualizar os dados do aluno');
+    }
+  }
+
+  /**
+   * Check if student can update their data
+   */
+  async checkUpdatePermission(clerkId: string) {
+    try {
+      const hasPermission = await this.hasReprovadoDocuments(clerkId);
+
+      return {
+        success: true,
+        canUpdate: hasPermission,
+        message: hasPermission 
+          ? 'Você pode editar seus dados para reenvio'
+          : 'Você não possui documentos reprovados. Edição de dados não permitida.',
+      };
+    } catch (error) {
+      const e = error as Error;
+      console.error('Erro ao verificar permissão de atualização', error);
+      throw new BadRequestException(`Erro ao verificar permissões: ${e.message}`);
     }
   }
 
@@ -136,12 +190,14 @@ export class AlunoService {
     try {
       const aluno = await this.alunoRepository.findOne({
         where: { id_clerk: clerkId },
-        relations: [
-          'inscricoes',
-          'inscricoes.edital',
-          'inscricoes.edital.etapas',
-          'inscricoes.documentos',
-        ],
+        relations: {
+          inscricoes: {
+            edital: {
+              etapas: true
+            },
+            documentos: true
+          }
+        },
       });
 
       if (!aluno) {

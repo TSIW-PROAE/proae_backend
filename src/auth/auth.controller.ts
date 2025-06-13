@@ -4,6 +4,7 @@ import { SignupDto } from './dto/signup.dto';
 import { AuthGuard } from './auth.guard';
 import { UpdatePasswordDto } from './dto/updatepassword.dto';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -14,6 +15,7 @@ export class AuthController {
     return this.authService.signup(body);
   }
 
+  @ApiBearerAuth()
   @UseGuards(AuthGuard)
   @Patch('update-password')
   async updatePassword(

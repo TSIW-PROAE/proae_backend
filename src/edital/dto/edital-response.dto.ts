@@ -17,9 +17,9 @@ export class EditalResponseDto {
   @Expose()
   descricao: string;
 
-  @ApiProperty({ type: [String], description: 'URLs dos documentos do edital' })
+  @ApiProperty({ type: [String], description: 'URL dos documentos do edital' })
   @Expose()
-  edital_url: string[];
+  edital_url: string;
 
   @ApiProperty({ type: String, description: 'Título do edital' })
   @Expose()

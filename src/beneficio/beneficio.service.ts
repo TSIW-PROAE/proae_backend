@@ -4,9 +4,9 @@ import { Repository } from 'typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { StatusInscricao } from '../enum/enumStatusInscricao';
 import { StatusEdital } from '../enum/enumStatusEdital';
-import { Beneficio } from 'src/entities/beneficio/beneficio.entity';
-import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
-import { StatusBeneficio } from 'src/enum/enumStatusBeneficio';
+import { Beneficio } from '../entities/beneficio/beneficio.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { StatusBeneficio } from '../enum/enumStatusBeneficio';
 import { CreateBeneficioDto } from './dto/create-beneficio-dto';
 import { ReturnBeneficioDto } from './dto/retorno-beneficio.dto';
 
@@ -61,7 +61,7 @@ export class BeneficioService {
         if (editalEncerrado && inscricaoAprovada) {
           if (!inscricao.beneficio) {
             const beneficioDto: CreateBeneficioDto = {
-              inscricaoId: inscricao.inscricao_id,
+              inscricaoId: inscricao.id,
               data_inicio: new Date().toISOString().split('T')[0],
               status_beneficio: StatusBeneficio.ATIVO,
             };

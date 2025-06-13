@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EditalController } from '../src/edital/edital.controller';
-import { EditalService } from '../src/edital/edital.service';
-import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
-import { UpdateEditalDto } from '../src/edital/dto/update-edital.dto';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
+import { UpdateEditalDto } from '../src/edital/dto/update-edital.dto';
+import { EditalController } from '../src/edital/edital.controller';
+import { EditalService } from '../src/edital/edital.service';
 
 describe('EditalController', () => {
   let controller: EditalController;
@@ -17,7 +17,7 @@ describe('EditalController', () => {
     edital_url: 'http://example.com/edital',
     data_inicio: new Date('2023-01-01'),
     data_fim: new Date('2023-12-31'),
-    status_edital: StatusEdital.ATIVO,
+    status_edital: StatusEdital.ABERTO,
     etapas: [
       {
         id: 1,
@@ -30,23 +30,24 @@ describe('EditalController', () => {
   };
 
   const mockCreateEditalDto: CreateEditalDto = {
-    tipo_beneficio: EditalEnum.AUXILIO_ALIMENTACAO,
+    tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
     descricao: 'Edital de teste',
     edital_url: 'http://example.com/edital',
-    data_inicio: new Date('2023-01-01'),
-    data_fim: new Date('2023-12-31'),
+    titulo_edital: 'Edital de teste',
+    quantidade_bolsas: 10,
     etapas: [
       {
         nome: 'Etapa 1',
         ordem: 1,
-        descricao: 'Descrição da etapa 1',
+        data_inicio: new Date('2023-01-01'),
+        data_fim: new Date('2023-06-31'),
       },
     ],
   };
 
   const mockUpdateEditalDto: UpdateEditalDto = {
     descricao: 'Edital atualizado',
-    status_edital: StatusEdital.DESATIVADO,
+    status_edital: StatusEdital.ENCERRADO,
   };
 
   const mockEditalService = {

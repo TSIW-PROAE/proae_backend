@@ -7,12 +7,20 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { DocumentoService } from './documentos.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
+import { ResubmitDocumentoDto } from './dto/resubmit-documento.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import AuthenticatedRequest from '../types/authenticated-request.interface';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('documentos')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class DocumentoController {
   constructor(private readonly documentoService: DocumentoService) {}
 
@@ -44,5 +52,27 @@ export class DocumentoController {
   @Delete(':id')
   async removeDocumento(@Param('id', ParseIntPipe) id: number) {
     return await this.documentoService.removeDocumento(id);
+  }
+
+  @Get('reprovados/meus')
+  async getMyReprovadoDocuments(@Req() request: AuthenticatedRequest) {
+    const { id } = request.user;
+    return await this.documentoService.getReprovadoDocumentsByStudent(id);
+  }
+
+  @Put('resubmissao/:id')
+  async resubmitDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() resubmitDocumentoDto: ResubmitDocumentoDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const { id: clerkId } = request.user;
+    return await this.documentoService.resubmitDocument(clerkId, id, resubmitDocumentoDto);
+  }
+
+  @Get('pendencias/meus')
+  async getMyDocumentsWithProblems(@Req() request: AuthenticatedRequest) {
+    const { id } = request.user;
+    return await this.documentoService.getDocumentsWithProblemsByStudent(id);
   }
 }

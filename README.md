@@ -188,12 +188,62 @@ DELETE /editais/:id
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="https://avatars.githubusercontent.com/u/24979899?s=96&v=4" width="70px;" alt=""/><br><b>Thales</b></td>
-    <td align="center"><img src="https://avatars.githubusercontent.com/u/20570844?v=4" width="70px;" alt=""/><br><b>Mauricio</b></td>
-    <td align="center"><img src="https://avatars.githubusercontent.com/u/83249854?s=64&v=4" width="70px;" alt=""/><br><b>Hugo</b></td>
-    <td align="center"><img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="70px;" alt=""/><br><b>Jessica</b></td>
-    <td align="center"><img src="https://avatars.githubusercontent.com/u/53127444?s=64&v=4" width="70px;" alt=""/><br><b>Lucas</b></td>
-    <td align="center"><img src="https://avatars.githubusercontent.com/u/11302968?s=70&v=4" width="70px;" alt=""/><br><b>Marcos</b></td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/24979899?s=96&v=4" width="100px;" alt="Foto do Thales no GitHub"/><br>
+        <sub>
+          <b>Thales Macêdo</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/20570844?v=4" width="100px;" alt="Foto do Maurício no GitHub"/><br>
+        <sub>
+          <b>Mauricio Menezes</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/83249854?s=64&v=4" width="100px;" alt="Foto do Hugo no GitHub"/><br>
+        <sub>
+          <b>Hugo Chaves</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/95954597?s=64&v=4" width="100px;" alt="Foto da Jessica no GitHub"/><br>
+        <sub>
+          <b>Jessica Ellen</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/53127444?s=64&v=4" width="100px;" alt="Foto do Lucas no GitHub"/><br>
+        <sub>
+          <b>Lucas Lima</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/11302968?s=70&v=4" width="100px;" alt="Foto do Marcos no GitHub"/><br>
+        <sub>
+          <b>Marcos Vinicius</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="#" title="defina o título do link">
+        <img src="https://avatars.githubusercontent.com/u/101533543?v=4" width="100px;" alt="Foto do Matheus no GitHub"/><br>
+        <sub>
+          <b>Matheus Salaroli</b>
+        </sub>
+       </a>
+    </td>
   </tr>
 </table>
 </div>

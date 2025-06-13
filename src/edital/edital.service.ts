@@ -9,7 +9,6 @@ import { UpdateEditalDto } from './dto/update-edital.dto';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EtapaEdital } from 'src/entities/etapaEdital/etapaEdital.entity';
-import { ResultadoEtapa } from 'src/entities/resultadoEtapa/resultadoEtapa.entity';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { plainToInstance } from 'class-transformer';
@@ -60,7 +59,7 @@ export class EditalService {
     try {
       const editais = await this.editaisRepository.find({
         relations: {
-          etapas: { resultados: true },
+          etapas: true,
         },
         order: {
           etapas: { ordem: 'ASC' },
@@ -80,7 +79,7 @@ export class EditalService {
       const edital = await this.editaisRepository.findOne({
         where: { id },
         relations: {
-          etapas: { resultados: true },
+          etapas: true,
         },
         order: {
           etapas: { ordem: 'ASC' },
@@ -141,21 +140,12 @@ export class EditalService {
           const edital = await transactionalEntityManager.findOne(Edital, {
             where: { id },
             relations: {
-              etapas: { resultados: true },
+              etapas: true,
             },
           });
 
           if (!edital) {
             throw new NotFoundException();
-          }
-
-          // Exclui os resultados associados às etapas do edital
-          for (const etapa of edital.etapas) {
-            if (etapa.resultados && etapa.resultados.length > 0) {
-              await transactionalEntityManager.delete(ResultadoEtapa, {
-                etapa: { id: etapa.id },
-              });
-            }
           }
 
           // Exclui as etapas associadas ao edital
@@ -185,7 +175,7 @@ export class EditalService {
       const editais = await this.editaisRepository.find({
         where: { status_edital: StatusEdital.ABERTO },
         relations: {
-          etapas: { resultados: true },
+          etapas: true,
         },
         order: {
           etapas: { ordem: 'ASC' },

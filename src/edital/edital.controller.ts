@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,14 +14,16 @@ import {
   ApiOkResponse,
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { EditalService } from './edital.service';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { errorExamples } from '../common/swagger/error-examples';
+import { AuthGuard } from '../auth/auth.guard';
 
-@ApiTags('editais')
+@ApiTags('Editais')
 @Controller('editais')
 export class EditalController {
   constructor(private readonly editalService: EditalService) {}
@@ -34,6 +37,8 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
   async create(@Body() createEditalDto: CreateEditalDto) {
     return this.editalService.create(createEditalDto);
   }
@@ -94,6 +99,8 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
   async update(
     @Param('id') id: string,
     @Body() updateEditalDto: UpdateEditalDto,
@@ -111,6 +118,8 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
   async remove(@Param('id') id: string) {
     return this.editalService.remove(+id);
   }

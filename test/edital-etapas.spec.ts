@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EditalService } from '../src/edital/edital.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Edital } from 'src/entities/edital/edital.entity';
-import { EntityManager, Repository } from 'typeorm';
-import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
-import { EtapaInscricao } from 'src/entities/etapaEdital/etapaEdital.entity';
+import { EtapaEdital } from 'src/entities/etapaEdital/etapaEdital.entity';
 import { EditalEnum } from 'src/enum/enumEdital';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { EntityManager, Repository } from 'typeorm';
+import { CreateEditalDto } from '../src/edital/dto/create-edital.dto';
 import { CreateEtapasDto } from '../src/edital/dto/create-etapas-edital.dto';
+import { EditalService } from '../src/edital/edital.service';
 
 describe('EditalEtapas', () => {
   let service: EditalService;
@@ -18,12 +18,14 @@ describe('EditalEtapas', () => {
     {
       nome: 'Etapa 1',
       ordem: 1,
-      descricao: 'Descrição da etapa 1',
+      data_inicio: new Date('2023-01-01'),
+      data_fim: new Date('2023-06-31'),
     },
     {
       nome: 'Etapa 2',
       ordem: 2,
-      descricao: 'Descrição da etapa 2',
+      data_inicio: new Date('2023-07-01'),
+      data_fim: new Date('2023-12-31'),
     },
   ];
 
@@ -34,7 +36,7 @@ describe('EditalEtapas', () => {
     edital_url: 'http://example.com/edital',
     data_inicio: new Date('2023-01-01'),
     data_fim: new Date('2023-12-31'),
-    status_edital: StatusEdital.ATIVO,
+    status_edital: StatusEdital.ABERTO,
     etapas: mockEtapas.map((etapa, index) => ({
       id: index + 1,
       ...etapa,
@@ -43,12 +45,12 @@ describe('EditalEtapas', () => {
   };
 
   const mockCreateEditalDto: CreateEditalDto = {
-    tipo_beneficio: EditalEnum.AUXILIO_ALIMENTACAO,
-    descricao: 'Edital de teste',
+    tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
+    descricao: 'Edital de teste n1',
     edital_url: 'http://example.com/edital',
-    data_inicio: new Date('2023-01-01'),
-    data_fim: new Date('2023-12-31'),
     etapas: mockEtapas,
+    titulo_edital: 'Edital de teste',
+    quantidade_bolsas: 10,
   };
 
   const mockRepository = {
@@ -107,8 +109,8 @@ describe('EditalEtapas', () => {
       expect(mockEntityManager.save).toHaveBeenCalledWith(
         expect.objectContaining({
           etapas: expect.arrayContaining([
-            expect.any(EtapaInscricao),
-            expect.any(EtapaInscricao),
+            expect.any(EtapaEdital),
+            expect.any(EtapaEdital),
           ]),
         }),
       );
