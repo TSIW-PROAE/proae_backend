@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsArray } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 
 export class UpdateIndeferidoInscricaoDto {

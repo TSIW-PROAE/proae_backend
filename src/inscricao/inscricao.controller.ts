@@ -1,31 +1,31 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
+  Get,
   Param,
+  Patch,
+  Post,
   Req,
   UseGuards,
-  Patch,
-  Get,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiNotFoundResponse,
   ApiBadRequestResponse,
-  ApiInternalServerErrorResponse,
-  ApiUnprocessableEntityResponse,
-  ApiUnauthorizedResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { InscricaoService } from './inscricao.service';
-import { CreateInscricaoDto } from './dto/create-inscricao-dto';
-import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { InscricaoResponseDto } from './dto/response-inscricao.dto';
-import { errorExamples } from '../common/swagger/error-examples';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import { errorExamples } from '../common/swagger/error-examples';
+import { CreateInscricaoDto } from './dto/create-inscricao-dto';
+import { InscricaoResponseDto } from './dto/response-inscricao.dto';
+import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { InscricaoService } from './inscricao.service';
 
 @ApiTags('Inscrições')
 @ApiBearerAuth()

@@ -1,27 +1,27 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
+  Delete,
   Get,
   Param,
   Patch,
-  Delete,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiNotFoundResponse,
-  ApiInternalServerErrorResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { EditalService } from './edital.service';
-import { CreateEditalDto } from './dto/create-edital.dto';
-import { UpdateEditalDto } from './dto/update-edital.dto';
-import { EditalResponseDto } from './dto/edital-response.dto';
-import { errorExamples } from '../common/swagger/error-examples';
 import { AuthGuard } from '../auth/auth.guard';
+import { errorExamples } from '../common/swagger/error-examples';
+import { CreateEditalDto } from './dto/create-edital.dto';
+import { EditalResponseDto } from './dto/edital-response.dto';
+import { UpdateEditalDto } from './dto/update-edital.dto';
+import { EditalService } from './edital.service';
 
 @ApiTags('Editais')
 @Controller('editais')

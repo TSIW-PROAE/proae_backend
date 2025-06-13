@@ -1,6 +1,6 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
-import { MINIO_CONNECTION } from 'nestjs-minio';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { Client } from 'minio';
+import { MINIO_CONNECTION } from 'nestjs-minio';
 
 @Injectable()
 export class MinioClientService {

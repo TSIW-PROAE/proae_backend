@@ -3,15 +3,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Pergunta } from 'src/entities/edital/pergunta.entity';
 import { EntityManager, Repository } from 'typeorm';
-import { Aluno } from '../entities/aluno/aluno.entity';
-import { Documento } from '../entities/documento/documento.entity';
-import { Edital } from '../entities/edital/edital.entity';
-import { Inscricao } from '../entities/inscricao/inscricao.entity';
-import { Validacao } from '../entities/validacao/validacao.entity';
-import { EditalEnum } from '../enum/enumEdital';
-import { EnumTipoDocumento } from '../enum/enumTipoDocumento';
-import { StatusDocumento } from '../enum/statusDocumento';
-import { InscricaoService } from './inscricao.service';
+import { Aluno } from '../src/entities/aluno/aluno.entity';
+import { Documento } from '../src/entities/documento/documento.entity';
+import { Edital } from '../src/entities/edital/edital.entity';
+import { Inscricao } from '../src/entities/inscricao/inscricao.entity';
+import { Validacao } from '../src/entities/validacao/validacao.entity';
+import { EditalEnum } from '../src/enum/enumEdital';
+import { EnumTipoDocumento } from '../src/enum/enumTipoDocumento';
+import { StatusDocumento } from '../src/enum/statusDocumento';
+import { InscricaoService } from '../src/inscricao/inscricao.service';
 
 describe('InscricaoService', () => {
   let service: InscricaoService;
