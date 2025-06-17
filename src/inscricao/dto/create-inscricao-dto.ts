@@ -11,15 +11,6 @@ import { CreateRespostaDto } from './create-resposta-dto';
 
 export class CreateInscricaoDto {
   @ApiProperty({
-    description: 'ID do aluno',
-    example: 1,
-    required: true,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  aluno: number;
-
-  @ApiProperty({
     description: 'ID do edital',
     example: 1,
     required: true,

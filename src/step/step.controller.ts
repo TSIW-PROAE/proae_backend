@@ -5,7 +5,7 @@ import { StepService } from './step.service';
 
 @ApiTags('Steps')
 @ApiBearerAuth()
-//@UseGuards(AuthGuard)
+@UseGuards(AuthGuard)
 @Controller('steps')
 export class StepController {
   constructor(private readonly stepService: StepService) {}
