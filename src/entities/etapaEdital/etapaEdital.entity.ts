@@ -1,6 +1,6 @@
-import { Entity, Column, ManyToOne, OneToMany } from 'typeorm';
-import { Edital } from '../edital/edital.entity';
 import { AbstractEntity } from 'src/db/abstract.entity';
+import { Column, Entity, ManyToOne } from 'typeorm';
+import { Edital } from '../edital/edital.entity';
 
 @Entity()
 export class EtapaEdital extends AbstractEntity<EtapaEdital> {

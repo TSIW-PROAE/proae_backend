@@ -1,12 +1,12 @@
-import { Aluno } from '../entities/aluno/aluno.entity';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { StatusInscricao } from '../enum/enumStatusInscricao';
-import { StatusEdital } from '../enum/enumStatusEdital';
+import { Aluno } from '../entities/aluno/aluno.entity';
 import { Beneficio } from '../entities/beneficio/beneficio.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusBeneficio } from '../enum/enumStatusBeneficio';
+import { StatusEdital } from '../enum/enumStatusEdital';
+import { StatusInscricao } from '../enum/enumStatusInscricao';
 import { CreateBeneficioDto } from './dto/create-beneficio-dto';
 import { ReturnBeneficioDto } from './dto/retorno-beneficio.dto';
 

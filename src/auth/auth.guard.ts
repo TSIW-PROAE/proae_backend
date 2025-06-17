@@ -1,10 +1,10 @@
+import { verifyToken } from '@clerk/backend';
 import {
   CanActivate,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { verifyToken } from '@clerk/backend';
 import type { Request } from 'express';
 
 @Injectable()

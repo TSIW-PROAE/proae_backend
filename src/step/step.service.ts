@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
 import { Step } from '../entities/edital/step.entity';
-import { StepResponseDto } from './dto/response-step.dto';
-import { PerguntaResponseDto } from './dto/response-pergunta.dto';
-import { plainToInstance } from 'class-transformer';
 import { InputFormatPlaceholders } from '../enum/enumInputFormat';
+import { PerguntaResponseDto } from './dto/response-pergunta.dto';
+import { StepResponseDto } from './dto/response-step.dto';
 
 @Injectable()
 export class StepService {

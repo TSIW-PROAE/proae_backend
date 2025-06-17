@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-import { Inscricao } from '../inscricao/inscricao.entity';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
 import { StatusDocumento } from '../../enum/statusDocumento';
+import { Inscricao } from '../inscricao/inscricao.entity';
 import { Validacao } from '../validacao/validacao.entity';
 
 @Entity()

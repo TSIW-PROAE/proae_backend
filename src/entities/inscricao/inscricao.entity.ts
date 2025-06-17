@@ -1,17 +1,17 @@
 import {
-  Entity,
   Column,
-  OneToMany,
+  Entity,
   ManyToOne,
+  OneToMany,
   OneToOne,
 } from 'typeorm';
-import { Aluno } from '../aluno/aluno.entity';
-import { Edital } from '../edital/edital.entity';
-import { Documento } from '../documento/documento.entity';
-import { StatusInscricao } from '../../enum/enumStatusInscricao';
-import { Resposta } from './resposta.entity';
 import { AbstractEntity } from '../../db/abstract.entity';
+import { StatusInscricao } from '../../enum/enumStatusInscricao';
+import { Aluno } from '../aluno/aluno.entity';
 import { Beneficio } from '../beneficio/beneficio.entity';
+import { Documento } from '../documento/documento.entity';
+import { Edital } from '../edital/edital.entity';
+import { Resposta } from './resposta.entity';
 
 @Entity()
 export class Inscricao extends AbstractEntity<Inscricao> {

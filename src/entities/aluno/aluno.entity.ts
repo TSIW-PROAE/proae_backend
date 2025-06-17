@@ -1,8 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Inscricao } from '../inscricao/inscricao.entity';
-import { PronomesEnum } from '../../enum/enumPronomes';
-import { CursosEnum } from '../../enum/enumCursos';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { UnidadeEnum } from '../../enum/enumCampus';
+import { CursosEnum } from '../../enum/enumCursos';
+import { PronomesEnum } from '../../enum/enumPronomes';
+import { Inscricao } from '../inscricao/inscricao.entity';
 
 @Entity()
 export class Aluno {

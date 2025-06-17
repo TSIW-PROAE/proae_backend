@@ -1,7 +1,6 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { IsNotEmpty, IsNumber } from 'class-validator';
 import { CreateRespostaDto } from './create-resposta-dto';
-import { IsNotEmpty } from 'class-validator';
-import { IsNumber } from 'class-validator';
 
 export class UpdateRespostaDto extends PartialType(CreateRespostaDto) {
     @ApiProperty({

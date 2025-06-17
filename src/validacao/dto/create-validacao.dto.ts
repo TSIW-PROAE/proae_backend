@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { StatusDocumento } from '../../enum/statusDocumento';
-import { IsDate, IsOptional, IsString } from 'class-validator';
-import { IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsDate, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { StatusDocumento } from '../../enum/statusDocumento';
 
 export class CreateValidacaoDto {
     @IsNotEmpty()

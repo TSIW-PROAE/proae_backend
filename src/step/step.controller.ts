@@ -1,8 +1,7 @@
-import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { StepService } from './step.service';
 import { StepResponseDto } from './dto/response-step.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { StepService } from './step.service';
 
 @ApiTags('Steps')
 @ApiBearerAuth()

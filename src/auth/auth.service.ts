@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
 import { createClerkClient, User } from '@clerk/backend';
-import { SignupDto } from './dto/signup.dto';
-import { Aluno } from '../entities/aluno/aluno.entity';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, type Repository } from 'typeorm';
-import { BadRequestException } from '@nestjs/common';
 import * as cpf from 'validation-br/dist/cpf';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { SignupDto } from './dto/signup.dto';
 
 @Injectable()
 export class AuthService {

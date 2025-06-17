@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { AbstractEntity } from 'src/db/abstract.entity';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { Edital } from '../edital/edital.entity';
 import { Pergunta } from './pergunta.entity';
-import { AbstractEntity } from 'src/db/abstract.entity';
 
 @Entity()
 export class Step extends AbstractEntity<Step> {
