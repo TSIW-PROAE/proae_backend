@@ -59,9 +59,7 @@ export class InscricaoController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async createInscricao(
-    @Body() createInscricaoDto: CreateInscricaoDto,
-  ): Promise<InscricaoResponseDto> {
+  async createInscricao(@Body() createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
     return await this.inscricaoService.createInscricao(createInscricaoDto);
   }
 

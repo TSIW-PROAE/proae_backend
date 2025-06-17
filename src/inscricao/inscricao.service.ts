@@ -13,6 +13,7 @@ import { StatusDocumento } from '../enum/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { AuthGuard } from '../auth/auth.guard';
 
 export class InscricaoService {
   constructor(
@@ -28,16 +29,13 @@ export class InscricaoService {
     private readonly entityManager: EntityManager,
   ) { }
 
-  async createInscricao(
-    createInscricaoDto: CreateInscricaoDto,
-  ): Promise<InscricaoResponseDto> {
+  async createInscricao(createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
     try {
-      // Validação do aluno
-      const alunoExiste = await this.alunoRepository.findOne({
-        where: { aluno_id: createInscricaoDto.aluno },
+      const alunoExists = await this.alunoRepository.findOneBy({
+        id_clerk: AuthGuard.getClerkId()
       });
 
-      if (!alunoExiste) {
+      if (!alunoExists) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
@@ -97,7 +95,7 @@ export class InscricaoService {
       );
 
       const inscricao = new Inscricao({
-        aluno: alunoExiste,
+        aluno: alunoExists,
         edital: editalExiste,
         respostas,
       });
@@ -137,10 +135,7 @@ export class InscricaoService {
     }
   }
 
-  async updateInscricao(
-    inscricaoId: number,
-    updateInscricaoDto: UpdateInscricaoDto,
-  ): Promise<InscricaoResponseDto> {
+  async updateInscricao(inscricaoId: number, updateInscricaoDto: UpdateInscricaoDto): Promise<InscricaoResponseDto> {
     try {
       // Validação da inscrição
       const inscricaoExistente = await this.inscricaoRepository.findOne({
@@ -152,12 +147,11 @@ export class InscricaoService {
         throw new NotFoundException('Inscrição não encontrada');
       }
 
-      // Validação do aluno
-      const alunoExiste = await this.alunoRepository.findOne({
-        where: { aluno_id: updateInscricaoDto.aluno },
+      const alunoExists = await this.alunoRepository.findOneBy({
+        id_clerk: AuthGuard.getClerkId()
       });
 
-      if (!alunoExiste) {
+      if (!alunoExists) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
@@ -263,7 +257,7 @@ export class InscricaoService {
 
       // Atualiza os dados básicos da inscrição
       Object.assign(inscricaoExistente, {
-        aluno: alunoExiste,
+        aluno: alunoExists,
         edital: editalExiste,
         data_inscricao: updateInscricaoDto.data_inscricao,
         status_inscricao: updateInscricaoDto.status_inscricao,
