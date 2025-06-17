@@ -79,10 +79,6 @@ export class BeneficioService {
         }
       }
 
-      if (beneficios.length === 0) {
-        throw new NotFoundException('Nenhum benefício encontrado para o aluno');
-      }
-
       return {
         sucesso: true,
         dados: { beneficios },
