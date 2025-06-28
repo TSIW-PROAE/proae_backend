@@ -9,52 +9,41 @@ import { StepResponseDto } from './dto/response-step.dto';
 
 @Injectable()
 export class StepService {
-  constructor(
-    @InjectRepository(Step)
-    private readonly stepRepository: Repository<Step>,
-  ) {}
+  constructor(@InjectRepository(Step) private readonly stepRepository: Repository<Step>) {}
 
   async findStepsByEdital(id: number): Promise<StepResponseDto[]> {
-    try {
-      const steps = await this.stepRepository.find({
-        where: { edital: { id } },
-        relations: {
-          perguntas: true
-        }
+    const steps = await this.stepRepository.find({
+      where: { edital: { id } },
+      relations: {
+        perguntas: true,
+      },
+    });
+
+    if (!steps || steps.length === 0) {
+      throw new NotFoundException('Nenhum step encontrado para este edital');
+    }
+
+    // Transform steps and their perguntas
+    return steps.map(step => {
+      const transformedStep = plainToInstance(StepResponseDto, step, {
+        excludeExtraneousValues: true,
       });
 
-      if (!steps || steps.length === 0) {
-        throw new NotFoundException('Nenhum step encontrado para este edital');
-      }
-
-      // Transform steps and their perguntas
-      return steps.map(step => {
-        const transformedStep = plainToInstance(StepResponseDto, step, {
+      // Transform perguntas separately to ensure placeholder is calculated
+      const transformedPerguntas = step.perguntas.map(pergunta => {
+        const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
           excludeExtraneousValues: true,
         });
 
-        // Transform perguntas separately to ensure placeholder is calculated
-        const transformedPerguntas = step.perguntas.map(pergunta => {
-          const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
-            excludeExtraneousValues: true,
-          });
+        perguntaDto.placeholder = InputFormatPlaceholders[pergunta.tipo_formatacao];
 
-          perguntaDto.placeholder = InputFormatPlaceholders[pergunta.tipo_formatacao];
-
-          return perguntaDto;
-        });
-
-        return {
-          ...transformedStep,
-          perguntas: transformedPerguntas
-        };
+        return perguntaDto;
       });
-    } catch (error) {
-      console.error('Erro ao buscar step:', error);
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException();
-    }
+
+      return {
+        ...transformedStep,
+        perguntas: transformedPerguntas,
+      };
+    });
   }
 } 
