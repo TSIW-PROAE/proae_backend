@@ -11,6 +11,7 @@ import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
 
 @Injectable()
 export class AlunoService {
@@ -81,7 +82,7 @@ export class AlunoService {
 
       for (const inscricao of aluno.inscricoes) {
         const hasReprovado = inscricao.documentos.some(
-          doc => doc.status_documento === StatusDocumento.REPROVADO
+          (doc) => doc.status_documento === StatusDocumento.REPROVADO,
         );
         if (hasReprovado) {
           return true;
@@ -174,14 +175,16 @@ export class AlunoService {
       return {
         success: true,
         canUpdate: hasPermission,
-        message: hasPermission 
+        message: hasPermission
           ? 'Você pode editar seus dados para reenvio'
           : 'Você não possui documentos reprovados. Edição de dados não permitida.',
       };
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao verificar permissão de atualização', error);
-      throw new BadRequestException(`Erro ao verificar permissões: ${e.message}`);
+      throw new BadRequestException(
+        `Erro ao verificar permissões: ${e.message}`,
+      );
     }
   }
 
@@ -192,10 +195,10 @@ export class AlunoService {
         relations: {
           inscricoes: {
             edital: {
-              etapas: true
+              etapas: true,
             },
-            documentos: true
-          }
+            documentos: true,
+          },
         },
       });
 
@@ -209,7 +212,7 @@ export class AlunoService {
         );
       }
 
-      return aluno.inscricoes.map((inscricao) => {
+      return aluno.inscricoes.map((inscricao: Inscricao) => {
         const edital = inscricao.edital;
 
         const possuiPendencias =
@@ -218,6 +221,7 @@ export class AlunoService {
 
         return {
           edital_id: edital.id,
+          inscricao_id: inscricao.id,
           titulo_edital: edital.titulo_edital,
           status_edital: edital.status_edital,
           etapas_edital: edital.etapas,
