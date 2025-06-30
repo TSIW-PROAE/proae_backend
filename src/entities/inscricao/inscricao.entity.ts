@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  OneToOne,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { AbstractEntity } from '../../db/abstract.entity';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { Aluno } from '../aluno/aluno.entity';
@@ -15,14 +9,17 @@ import { Resposta } from './resposta.entity';
 
 @Entity()
 export class Inscricao extends AbstractEntity<Inscricao> {
-
   @ManyToOne(() => Edital, (edital) => edital.inscricoes)
   edital: Edital;
 
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })
   data_inscricao: Date;
 
-  @Column({ type: 'enum', enum: StatusInscricao, default: StatusInscricao.PENDENTE })
+  @Column({
+    type: 'enum',
+    enum: StatusInscricao,
+    default: StatusInscricao.PENDENTE,
+  })
   status_inscricao: StatusInscricao;
 
   @OneToMany(() => Documento, (documento) => documento.inscricao, {
@@ -32,10 +29,10 @@ export class Inscricao extends AbstractEntity<Inscricao> {
 
   @OneToMany(() => Resposta, (resposta) => resposta.inscricao, {
     nullable: true,
-    cascade: true
+    cascade: true,
   })
   respostas: Resposta[];
-  
+
   @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
   aluno: Aluno;
 
