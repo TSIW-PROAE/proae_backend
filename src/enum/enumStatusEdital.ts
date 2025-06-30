@@ -1,5 +1,5 @@
 export enum StatusEdital {
-  ATIVO = 'Beneficio ativo',
-  DESATIVADO = 'Beneficio desativado',
-  EM_ANÁLISE = 'Benefício em análise',
+  ABERTO = 'Edital em aberto',
+  ENCERRADO = 'Edital encerrado',
+  EM_ANDAMENTO = 'Edital em andamento',
 }
