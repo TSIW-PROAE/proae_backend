@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
+import { StatusDocumento } from '../../enum/statusDocumento';
 import { Inscricao } from '../inscricao/inscricao.entity';
-import { EnumTipoDocumento } from 'src/enum/enumTipoDocumento';
-import { StatusDocumento } from 'src/enum/statusDocumento';
+import { Validacao } from '../validacao/validacao.entity';
 
 @Entity()
 export class Documento {
@@ -14,9 +15,18 @@ export class Documento {
   @Column({ type: 'enum', enum: EnumTipoDocumento })
   tipo_documento: EnumTipoDocumento;
 
-  @Column()
+  @Column({ nullable: true })
   documento_url: string;
 
-  @Column({ type: 'enum', enum: StatusDocumento })
+  @Column({ type: 'enum', enum: StatusDocumento, default: StatusDocumento.NAO_ENVIADO })
   status_documento: StatusDocumento;
+
+  @OneToMany(() => Validacao, (validacao) => validacao.documento, {
+    nullable: true,
+  })
+  validacoes: Validacao[];
+
+  constructor(entity: Partial<Documento>) {
+    Object.assign(this, entity);
+  }
 }
