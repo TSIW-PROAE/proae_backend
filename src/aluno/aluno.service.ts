@@ -9,9 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
-import { Inscricao } from '../entities/inscricao/inscricao.entity';
 
 @Injectable()
 export class AlunoService {
@@ -215,9 +215,20 @@ export class AlunoService {
       return aluno.inscricoes.map((inscricao: Inscricao) => {
         const edital = inscricao.edital;
 
+        
         const possuiPendencias =
-          edital.status_edital === StatusEdital.EM_ANDAMENTO &&
-          (!inscricao.documentos || inscricao.documentos.length === 0);
+          (edital.status_edital === StatusEdital.ABERTO ||
+          edital.status_edital === StatusEdital.EM_ANDAMENTO) &&
+          inscricao.documentos &&
+          inscricao.documentos.some(
+            (doc) =>
+              doc.status_documento !== StatusDocumento.APROVADO &&
+              doc.status_documento !== StatusDocumento.REPROVADO
+          );
+
+        // const possuiPendencias =
+        //   edital.status_edital === StatusEdital.EM_ANDAMENTO &&
+        //   (!inscricao.documentos || inscricao.documentos.length === 0);
 
         return {
           edital_id: edital.id,
