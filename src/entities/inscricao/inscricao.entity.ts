@@ -1,41 +1,46 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToOne,
-  OneToOne,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { AbstractEntity } from '../../db/abstract.entity';
+import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { Aluno } from '../aluno/aluno.entity';
-import { Edital } from '../edital/edital.entity';
-import { ResultadoEtapa } from '../resultadoEtapa/resultadoEtapa.entity';
+import { Beneficio } from '../beneficio/beneficio.entity';
 import { Documento } from '../documento/documento.entity';
-import { Formulario } from '../formulario/formulario.entity';
-import { StatusInscricao } from 'src/enum/enumStatusInscricao';
+import { Edital } from '../edital/edital.entity';
+import { Resposta } from './resposta.entity';
 
 @Entity()
-export class Inscricao {
-  @PrimaryGeneratedColumn()
-  inscricao_id: number;
+export class Inscricao extends AbstractEntity<Inscricao> {
+  @ManyToOne(() => Edital, (edital) => edital.inscricoes)
+  edital: Edital;
+
+  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  data_inscricao: Date;
+
+  @Column({
+    type: 'enum',
+    enum: StatusInscricao,
+    default: StatusInscricao.PENDENTE,
+  })
+  status_inscricao: StatusInscricao;
+
+  @OneToMany(() => Documento, (documento) => documento.inscricao, {
+    nullable: true,
+  })
+  documentos: Documento[];
+
+  @OneToMany(() => Resposta, (resposta) => resposta.inscricao, {
+    nullable: true,
+    cascade: true,
+  })
+  respostas: Resposta[];
 
   @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
   aluno: Aluno;
 
-  @ManyToOne(() => Edital, (edital) => edital.inscricoes)
-  edital: Edital;
+  @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao)
+  beneficio: Beneficio;
 
-  @Column({ type: 'date' })
-  data_inscricao: Date;
-
-  @Column({ type: 'enum', enum: StatusInscricao })
-  status_inscricao: StatusInscricao;
-
-  @OneToMany(() => Documento, (documento) => documento.inscricao)
-  documentos: Documento[];
-
-  @OneToMany(() => ResultadoEtapa, (resultado) => resultado.inscricao)
-  resultadosEtapas: ResultadoEtapa[];
-
-  @OneToOne(() => Formulario, (formulario) => formulario.inscricao)
-  formulario: Formulario;
+  constructor(entity: Partial<Inscricao>) {
+    super();
+    Object.assign(this, entity);
+  }
 }
