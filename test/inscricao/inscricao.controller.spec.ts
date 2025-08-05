@@ -72,9 +72,9 @@ describe('InscricaoController', () => {
         },
       ],
     })
-    .overrideGuard(AuthGuard)
-    .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-    .compile();
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
 
     controller = module.get<InscricaoController>(InscricaoController);
     service = module.get<InscricaoService>(InscricaoService);
@@ -88,31 +88,43 @@ describe('InscricaoController', () => {
 
   describe('getInscricoesAluno', () => {
     it('should return inscriptions with pending documents for authenticated student', async () => {
-      mockInscricaoService.getInscricoesByAluno.mockResolvedValue(mockInscricoesComPendencias);
+      mockInscricaoService.getInscricoesByAluno.mockResolvedValue(
+        mockInscricoesComPendencias,
+      );
 
-      const result = await controller.getInscricoesAluno(mockAuthenticatedRequest);
+      const result = await controller.getInscricoesAluno(
+        mockAuthenticatedRequest,
+      );
 
       expect(result).toEqual(mockInscricoesComPendencias);
-      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith('clerk_123');
+      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith(
+        'clerk_123',
+      );
     });
 
     it('should return empty array when student has no inscriptions with pending documents', async () => {
       mockInscricaoService.getInscricoesByAluno.mockResolvedValue([]);
 
-      const result = await controller.getInscricoesAluno(mockAuthenticatedRequest);
+      const result = await controller.getInscricoesAluno(
+        mockAuthenticatedRequest,
+      );
 
       expect(result).toEqual([]);
-      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith('clerk_123');
+      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith(
+        'clerk_123',
+      );
     });
 
     it('should handle service errors properly', async () => {
       const error = new Error('Database connection failed');
       mockInscricaoService.getInscricoesByAluno.mockRejectedValue(error);
 
-      await expect(controller.getInscricoesAluno(mockAuthenticatedRequest)).rejects.toThrow(
-        'Database connection failed',
+      await expect(
+        controller.getInscricoesAluno(mockAuthenticatedRequest),
+      ).rejects.toThrow('Database connection failed');
+      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith(
+        'clerk_123',
       );
-      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith('clerk_123');
     });
 
     it('should call service with correct clerk id from authenticated request', async () => {
@@ -127,7 +139,9 @@ describe('InscricaoController', () => {
 
       await controller.getInscricoesAluno(customRequest);
 
-      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith('clerk_different');
+      expect(mockInscricaoService.getInscricoesByAluno).toHaveBeenCalledWith(
+        'clerk_different',
+      );
     });
   });
-}); 
+});

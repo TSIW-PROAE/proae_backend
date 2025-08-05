@@ -68,7 +68,7 @@ POST /auth/signup
     "lastName": "Sobrenome"
   }
   ```
-- **Resposta:** Dados do usuário cadastrado com ID do Clerk
+- **Resposta:** Dados do usuário cadastrado com ID 
 
 ### 👤 Alunos
 

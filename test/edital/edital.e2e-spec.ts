@@ -60,9 +60,7 @@ describe('EditalController (e2e)', () => {
       .then((response) => {
         expect(response.body).toBeDefined();
         expect(response.body.id).toBeDefined();
-        expect(response.body.tipo_beneficio).toBe(
-          createEditalDto.tipo_edital,
-        );
+        expect(response.body.tipo_beneficio).toBe(createEditalDto.tipo_edital);
         expect(response.body.descricao).toBe(createEditalDto.descricao);
         expect(response.body.edital_url).toBe(createEditalDto.edital_url);
 
@@ -88,9 +86,7 @@ describe('EditalController (e2e)', () => {
       .then((response) => {
         expect(response.body).toBeDefined();
         expect(response.body.id).toBe(editalId);
-        expect(response.body.tipo_beneficio).toBe(
-          createEditalDto.tipo_edital,
-        );
+        expect(response.body.tipo_beneficio).toBe(createEditalDto.tipo_edital);
         expect(response.body.descricao).toBe(createEditalDto.descricao);
 
         // Check that etapas were created properly

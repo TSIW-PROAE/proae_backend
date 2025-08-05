@@ -22,7 +22,7 @@ export class DocumentoService {
     private inscricaoRepository: Repository<Inscricao>,
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
-  ) { }
+  ) {}
 
   async createDocumento(createDocumentoDto: CreateDocumentoDto) {
     try {
@@ -140,10 +140,10 @@ export class DocumentoService {
   /**
    * Check if a student has any documents with "REPROVADO" status
    */
-  async hasReprovadoDocuments(clerkId: string): Promise<boolean> {
+  async hasReprovadoDocuments(userId: number): Promise<boolean> {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: userId },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -153,7 +153,7 @@ export class DocumentoService {
 
       for (const inscricao of aluno.inscricoes) {
         const hasReprovado = inscricao.documentos.some(
-          doc => doc.status_documento === StatusDocumento.REPROVADO
+          (doc) => doc.status_documento === StatusDocumento.REPROVADO,
         );
         if (hasReprovado) {
           return true;
@@ -164,17 +164,19 @@ export class DocumentoService {
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao verificar documentos reprovados', error);
-      throw new BadRequestException(`Erro ao verificar status dos documentos: ${e.message}`);
+      throw new BadRequestException(
+        `Erro ao verificar status dos documentos: ${e.message}`,
+      );
     }
   }
 
   /**
    * Get all reprovado documents for a student
    */
-  async getReprovadoDocumentsByStudent(clerkId: string) {
+  async getReprovadoDocumentsByStudent(userId: number) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: userId },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -185,7 +187,7 @@ export class DocumentoService {
       const reprovadoDocuments: Documento[] = [];
       for (const inscricao of aluno.inscricoes) {
         const documentosReprovados = inscricao.documentos.filter(
-          doc => doc.status_documento === StatusDocumento.REPROVADO
+          (doc) => doc.status_documento === StatusDocumento.REPROVADO,
         );
         reprovadoDocuments.push(...documentosReprovados);
       }
@@ -197,54 +199,62 @@ export class DocumentoService {
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao buscar documentos reprovados', error);
-      throw new BadRequestException(`Erro ao buscar documentos reprovados: ${e.message}`);
+      throw new BadRequestException(
+        `Erro ao buscar documentos reprovados: ${e.message}`,
+      );
     }
   }
 
-    /**
+  /**
    * Get all pendent documents for a student
    */
-    async getDocumentsWithProblemsByStudent(clerkId: string) {
-      try {
-        const aluno = await this.alunoRepository.findOne({
-          where: { id_clerk: clerkId },
-          relations: ['inscricoes', 'inscricoes.documentos'],
-        });
-  
-        if (!aluno) {
-          throw new NotFoundException('Aluno não encontrado');
-        }
-  
-        const pendentDocuments: Documento[] = [];
-        for (const inscricao of aluno.inscricoes) {
-          const documentosPendentes = inscricao.documentos.filter(
-            doc => doc.status_documento !== StatusDocumento.APROVADO
-          );
-          pendentDocuments.push(...documentosPendentes);
-        }
-  
-        return {
-          success: true,
-          documentos: pendentDocuments,
-        };
-      } catch (error) {
-        const e = error as Error;
-        console.error('Erro ao buscar documentos pendentes', error);
-        throw new BadRequestException(`Erro ao buscar documentos pendentes: ${e.message}`);
+  async getDocumentsWithProblemsByStudent(userId: number) {
+    try {
+      const aluno = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+        relations: ['inscricoes', 'inscricoes.documentos'],
+      });
+
+      if (!aluno) {
+        throw new NotFoundException('Aluno não encontrado');
       }
+
+      const pendentDocuments: Documento[] = [];
+      for (const inscricao of aluno.inscricoes) {
+        const documentosPendentes = inscricao.documentos.filter(
+          (doc) => doc.status_documento !== StatusDocumento.APROVADO,
+        );
+        pendentDocuments.push(...documentosPendentes);
+      }
+
+      return {
+        success: true,
+        documentos: pendentDocuments,
+      };
+    } catch (error) {
+      const e = error as Error;
+      console.error('Erro ao buscar documentos pendentes', error);
+      throw new BadRequestException(
+        `Erro ao buscar documentos pendentes: ${e.message}`,
+      );
     }
+  }
 
   /**
    * Allow resubmission of a document (reset status to PENDENTE)
    */
-  async resubmitDocument(clerkId: string, documentoId: number, updateData: Partial<UpdateDocumentoDto>) {
+  async resubmitDocument(
+    userId: number,
+    documentoId: number,
+    updateData: Partial<UpdateDocumentoDto>,
+  ) {
     try {
       // First, check if the student has permission to resubmit (has at least one reprovado document)
-      const hasPermission = await this.hasReprovadoDocuments(clerkId);
-      
+      const hasPermission = await this.hasReprovadoDocuments(userId);
+
       if (!hasPermission) {
         throw new ForbiddenException(
-          'Você só pode editar documentos se tiver pelo menos um documento reprovado'
+          'Você só pode editar documentos se tiver pelo menos um documento reprovado',
         );
       }
 
@@ -258,8 +268,10 @@ export class DocumentoService {
       }
 
       // Verify the document belongs to the requesting student
-      if (documento.inscricao.aluno.id_clerk !== clerkId) {
-        throw new ForbiddenException('Você não tem permissão para editar este documento');
+      if (documento.inscricao.aluno.aluno_id !== userId) {
+        throw new ForbiddenException(
+          'Você não tem permissão para editar este documento',
+        );
       }
 
       // Update the document and reset status to PENDENTE for reanalysis
@@ -268,7 +280,8 @@ export class DocumentoService {
         status_documento: StatusDocumento.PENDENTE, // Reset to pending for reanalysis
       });
 
-      const documentoAtualizado = await this.documentoRepository.save(documento);
+      const documentoAtualizado =
+        await this.documentoRepository.save(documento);
 
       return {
         success: true,
@@ -278,7 +291,10 @@ export class DocumentoService {
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao reenviar documento', error);
-      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
       throw new BadRequestException(`Erro ao reenviar documento: ${e.message}`);
@@ -288,23 +304,26 @@ export class DocumentoService {
   /**
    * Check if a student can edit their documents and data
    */
-  async checkResubmissionPermission(clerkId: string) {
+  async checkResubmissionPermission(userId: number) {
     try {
-      const hasPermission = await this.hasReprovadoDocuments(clerkId);
-      const reprovadoDocsData = await this.getReprovadoDocumentsByStudent(clerkId);
+      const hasPermission = await this.hasReprovadoDocuments(userId);
+      const reprovadoDocsData =
+        await this.getReprovadoDocumentsByStudent(userId);
 
       return {
         success: true,
         canResubmit: hasPermission,
         reprovadoDocuments: reprovadoDocsData.documentos,
-        message: hasPermission 
+        message: hasPermission
           ? 'Você pode editar seus documentos e dados para reenvio'
           : 'Você não possui documentos reprovados. Edição não permitida.',
       };
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao verificar permissão de reenvio', error);
-      throw new BadRequestException(`Erro ao verificar permissões: ${e.message}`);
+      throw new BadRequestException(
+        `Erro ao verificar permissões: ${e.message}`,
+      );
     }
   }
 }

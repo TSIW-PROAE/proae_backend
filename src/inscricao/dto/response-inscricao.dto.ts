@@ -4,28 +4,31 @@ import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { RespostaResponseDto } from './response-resposta.dto';
 
 export class InscricaoResponseDto {
-    @ApiProperty({ type: Number, description: 'ID da inscrição' })
-    @Expose()
-    inscricao_id: number;
+  @ApiProperty({ type: Number, description: 'ID da inscrição' })
+  @Expose()
+  inscricao_id: number;
 
-    @ApiProperty({ type: Number, description: 'ID do aluno' })
-    @Expose()
-    aluno_id: number;
+  @ApiProperty({ type: Number, description: 'ID do aluno' })
+  @Expose()
+  aluno_id: number;
 
-    @ApiProperty({ type: Number, description: 'ID do edital' })
-    @Expose()
-    edital_id: number;
+  @ApiProperty({ type: Number, description: 'ID do edital' })
+  @Expose()
+  edital_id: number;
 
-    @ApiProperty({ type: Date, description: 'Data da inscrição' })
-    @Expose()
-    data_inscricao: Date;
+  @ApiProperty({ type: Date, description: 'Data da inscrição' })
+  @Expose()
+  data_inscricao: Date;
 
-    @ApiProperty({ enum: StatusInscricao, description: 'Status da inscrição' })
-    @Expose()
-    status_inscricao: StatusInscricao;
+  @ApiProperty({ enum: StatusInscricao, description: 'Status da inscrição' })
+  @Expose()
+  status_inscricao: StatusInscricao;
 
-    @ApiProperty({ type: [RespostaResponseDto], description: 'Lista de respostas da inscrição' })
-    @Expose()
-    @Type(() => RespostaResponseDto)
-    respostas: RespostaResponseDto[];
-} 
+  @ApiProperty({
+    type: [RespostaResponseDto],
+    description: 'Lista de respostas da inscrição',
+  })
+  @Expose()
+  @Type(() => RespostaResponseDto)
+  respostas: RespostaResponseDto[];
+}

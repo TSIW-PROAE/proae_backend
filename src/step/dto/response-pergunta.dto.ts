@@ -9,11 +9,17 @@ export class PerguntaResponseDto {
   id: number;
 
   @Expose()
-  @ApiProperty({ example: 'Qual sua renda familiar?', description: 'Texto da pergunta' })
+  @ApiProperty({
+    example: 'Qual sua renda familiar?',
+    description: 'Texto da pergunta',
+  })
   pergunta: string;
 
   @Expose()
-  @ApiProperty({ example: EnumTipoInput.INPUT, description: 'Tipo da pergunta' })
+  @ApiProperty({
+    example: EnumTipoInput.INPUT,
+    description: 'Tipo da pergunta',
+  })
   tipo_Pergunta: EnumTipoInput;
 
   @Expose()
@@ -21,19 +27,24 @@ export class PerguntaResponseDto {
   obrigatoriedade: boolean;
 
   @Expose()
-  @ApiProperty({ 
+  @ApiProperty({
     enum: EnumInputFormat,
     example: EnumInputFormat.CPF,
-    description: 'Formato de entrada da pergunta' 
+    description: 'Formato de entrada da pergunta',
   })
   tipo_formatacao: EnumInputFormat;
-  
+
   @Expose()
-  @ApiProperty({ example: 'Digite sua renda familiar mensal', description: 'Placeholder da pergunta' })
+  @ApiProperty({
+    example: 'Digite sua renda familiar mensal',
+    description: 'Placeholder da pergunta',
+  })
   placeholder: string;
 
   @Expose()
-  @ApiProperty({ example: ['Opção 1', 'Opção 2'], description: 'Opções para perguntas do tipo select' })
+  @ApiProperty({
+    example: ['Opção 1', 'Opção 2'],
+    description: 'Opções para perguntas do tipo select',
+  })
   opcoes: string[] = [];
-  
-} 
+}

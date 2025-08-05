@@ -9,8 +9,14 @@ export class Aluno {
   @PrimaryGeneratedColumn()
   aluno_id: number;
 
-  @Column()
-  id_clerk: string;
+  @Column({ type: 'varchar', length: 255, unique: true })
+  email: string;
+
+  @Column({ type: 'varchar', length: 50, unique: true })
+  matricula: string;
+
+  @Column({ type: 'varchar', length: 255, select: false })
+  senha_hash: string;
 
   @Column({ type: 'enum', enum: PronomesEnum })
   pronome: PronomesEnum;

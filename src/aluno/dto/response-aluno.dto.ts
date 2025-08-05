@@ -25,7 +25,10 @@ export class AlunoResponseDto {
   @Expose()
   matricula: string;
 
-  @ApiProperty({ enum: PronomesEnum, description: 'Pronome de tratamento do aluno' })
+  @ApiProperty({
+    enum: PronomesEnum,
+    description: 'Pronome de tratamento do aluno',
+  })
   @Expose()
   pronome: PronomesEnum;
 
@@ -52,4 +55,4 @@ export class AlunoResponseDto {
   @ApiProperty({ type: String, description: 'Número de celular do aluno' })
   @Expose()
   celular: string;
-} 
+}

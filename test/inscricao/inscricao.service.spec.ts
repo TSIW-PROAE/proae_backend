@@ -13,7 +13,6 @@ import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { Validacao } from 'src/entities/validacao/validacao.entity';
 import { EntityManager, Repository } from 'typeorm';
 
-
 describe('InscricaoService', () => {
   let service: InscricaoService;
   let inscricaoRepository: Repository<Inscricao>;
@@ -113,7 +112,9 @@ describe('InscricaoService', () => {
           useValue: {
             transaction: jest.fn().mockImplementation(async (callback) => {
               return callback({
-                save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+                save: jest
+                  .fn()
+                  .mockImplementation((entity) => Promise.resolve(entity)),
               });
             }),
           },
@@ -125,9 +126,7 @@ describe('InscricaoService', () => {
     inscricaoRepository = module.get<Repository<Inscricao>>(
       getRepositoryToken(Inscricao),
     );
-    alunoRepository = module.get<Repository<Aluno>>(
-      getRepositoryToken(Aluno),
-    );
+    alunoRepository = module.get<Repository<Aluno>>(getRepositoryToken(Aluno));
     editalRepository = module.get<Repository<Edital>>(
       getRepositoryToken(Edital),
     );
@@ -144,8 +143,12 @@ describe('InscricaoService', () => {
 
   describe('getInscricoesByAluno', () => {
     it('should return inscriptions with pending documents and validation data for a valid student', async () => {
-      jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
-      jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([mockInscricao as Inscricao]);
+      jest
+        .spyOn(alunoRepository, 'findOne')
+        .mockResolvedValue(mockAluno as Aluno);
+      jest
+        .spyOn(inscricaoRepository, 'find')
+        .mockResolvedValue([mockInscricao as Inscricao]);
 
       const result = await service.getInscricoesByAluno('clerk_123');
 
@@ -181,8 +184,12 @@ describe('InscricaoService', () => {
     });
 
     it('should return empty array when student has no inscriptions with pending documents', async () => {
-      jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
-      jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([mockInscricaoSemPendencias as Inscricao]);
+      jest
+        .spyOn(alunoRepository, 'findOne')
+        .mockResolvedValue(mockAluno as Aluno);
+      jest
+        .spyOn(inscricaoRepository, 'find')
+        .mockResolvedValue([mockInscricaoSemPendencias as Inscricao]);
 
       const result = await service.getInscricoesByAluno('clerk_123');
 
@@ -190,7 +197,9 @@ describe('InscricaoService', () => {
     });
 
     it('should return empty array when student has no inscriptions', async () => {
-      jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
+      jest
+        .spyOn(alunoRepository, 'findOne')
+        .mockResolvedValue(mockAluno as Aluno);
       jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([]);
 
       const result = await service.getInscricoesByAluno('clerk_123');
@@ -201,12 +210,12 @@ describe('InscricaoService', () => {
     it('should throw NotFoundException when student is not found', async () => {
       jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.getInscricoesByAluno('clerk_inexistente')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.getInscricoesByAluno('clerk_inexistente')).rejects.toThrow(
-        'Aluno não encontrado',
-      );
+      await expect(
+        service.getInscricoesByAluno('clerk_inexistente'),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.getInscricoesByAluno('clerk_inexistente'),
+      ).rejects.toThrow('Aluno não encontrado');
 
       expect(alunoRepository.findOne).toHaveBeenCalledWith({
         where: { id_clerk: 'clerk_inexistente' },
@@ -214,7 +223,9 @@ describe('InscricaoService', () => {
     });
 
     it('should throw BadRequestException when repository throws an error', async () => {
-      jest.spyOn(alunoRepository, 'findOne').mockRejectedValue(new Error('Database error'));
+      jest
+        .spyOn(alunoRepository, 'findOne')
+        .mockRejectedValue(new Error('Database error'));
 
       await expect(service.getInscricoesByAluno('clerk_123')).rejects.toThrow(
         BadRequestException,
@@ -246,14 +257,24 @@ describe('InscricaoService', () => {
         ],
       };
 
-      jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
-      jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([mockInscricaoMultiplosDocumentos as Inscricao]);
+      jest
+        .spyOn(alunoRepository, 'findOne')
+        .mockResolvedValue(mockAluno as Aluno);
+      jest
+        .spyOn(inscricaoRepository, 'find')
+        .mockResolvedValue([mockInscricaoMultiplosDocumentos as Inscricao]);
 
       const result = await service.getInscricoesByAluno('clerk_123');
 
       expect(result[0].documentos).toHaveLength(2);
-      expect(result[0].documentos.every(doc => doc.status_documento === StatusDocumento.PENDENTE)).toBe(true);
-      expect(result[0].documentos[0].parecer).toBe('Documento necessita correção');
+      expect(
+        result[0].documentos.every(
+          (doc) => doc.status_documento === StatusDocumento.PENDENTE,
+        ),
+      ).toBe(true);
+      expect(result[0].documentos[0].parecer).toBe(
+        'Documento necessita correção',
+      );
       expect(result[0].documentos[1].parecer).toBe('Documento em análise');
     });
 
@@ -271,8 +292,12 @@ describe('InscricaoService', () => {
         documentos: [mockDocumentoSemValidacao],
       };
 
-      jest.spyOn(alunoRepository, 'findOne').mockResolvedValue(mockAluno as Aluno);
-      jest.spyOn(inscricaoRepository, 'find').mockResolvedValue([mockInscricaoSemValidacao as Inscricao]);
+      jest
+        .spyOn(alunoRepository, 'findOne')
+        .mockResolvedValue(mockAluno as Aluno);
+      jest
+        .spyOn(inscricaoRepository, 'find')
+        .mockResolvedValue([mockInscricaoSemValidacao as Inscricao]);
 
       const result = await service.getInscricoesByAluno('clerk_123');
 
@@ -280,4 +305,4 @@ describe('InscricaoService', () => {
       expect(result[0].documentos[0].data_validacao).toBeNull();
     });
   });
-}); 
+});

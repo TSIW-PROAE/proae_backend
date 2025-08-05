@@ -10,10 +10,26 @@ import { UnidadeEnum } from '../../enum/enumCampus';
 import { CursosEnum } from '../../enum/enumCursos';
 import { PronomesEnum } from '../../enum/enumPronomes';
 import { IsCPF } from '../../validators/isCpf.validator';
-import { IsStrongPassword } from '../../validators/strong-password.validator';
-import { IsUfbaEmail } from '../../validators/is-ufba-email.validator';
 
-export class SignupDto {
+export class CompleteGoogleSignupDto {
+  @ApiProperty({
+    description: 'Email do Google (readonly)',
+    example: 'usuario@ufba.br',
+  })
+  email: string;
+
+  @ApiProperty({
+    description: 'Nome do usuário (vem do Google)',
+    example: 'João',
+  })
+  nome: string;
+
+  @ApiProperty({
+    description: 'Sobrenome do usuário (vem do Google)',
+    example: 'Silva',
+  })
+  sobrenome: string;
+
   @ApiProperty({
     description: 'Matrícula do aluno',
     example: '202301234',
@@ -23,42 +39,7 @@ export class SignupDto {
   matricula: string;
 
   @ApiProperty({
-    description: 'Email institucional do aluno (apenas @ufba.br)',
-    example: 'aluno@ufba.br',
-  })
-  @IsNotEmpty()
-  @IsUfbaEmail({
-    message: 'Email deve ser do domínio @ufba.br',
-  })
-  email: string;
-
-  @ApiProperty({
-    description:
-      'Senha do aluno (deve ser forte e não ter sido vazada anteriormente)',
-    example: 'Kj9#mP2$vL8nQ4!',
-  })
-  @IsNotEmpty()
-  @IsStrongPassword({
-    message: 'Senha deve ser forte e não ter sido vazada anteriormente',
-  })
-  senha: string;
-
-  @ApiProperty({
-    description: 'Nome do aluno',
-    example: 'João',
-  })
-  @IsNotEmpty()
-  nome: string;
-
-  @ApiProperty({
-    description: 'Sobrenome do aluno',
-    example: 'Silva',
-  })
-  @IsNotEmpty()
-  sobrenome: string;
-
-  @ApiProperty({
-    description: 'Pronome de tratamento do aluno',
+    description: 'Pronome de tratamento',
     enum: PronomesEnum,
     example: PronomesEnum.ELE_DELE,
   })
@@ -67,7 +48,7 @@ export class SignupDto {
   pronome: PronomesEnum;
 
   @ApiProperty({
-    description: 'Data de nascimento do aluno (formato: YYYY-MM-DD)',
+    description: 'Data de nascimento (YYYY-MM-DD)',
     example: '2000-01-01',
   })
   @IsNotEmpty()
@@ -86,29 +67,29 @@ export class SignupDto {
   @ApiProperty({
     description: 'Campus do aluno',
     enum: UnidadeEnum,
-    example: UnidadeEnum.VITORIA_CONQUISTA,
+    example: UnidadeEnum.SALVADOR,
   })
   @IsNotEmpty()
   @IsEnum(UnidadeEnum)
   campus: UnidadeEnum;
 
   @ApiProperty({
-    description: 'CPF do aluno (formato: XXX.XXX.XXX-XX)',
-    example: '123.456.789-00',
+    description: 'CPF (XXX.XXX.XXX-XX)',
+    example: '111.444.777-35',
   })
   @IsNotEmpty()
   @IsCPF()
   cpf: string;
 
   @ApiProperty({
-    description: 'Semestre de ingresso do aluno (formato: YYYY.S)',
+    description: 'Semestre de ingresso (YYYY.S)',
     example: '2023.1',
   })
   @IsNotEmpty()
   data_ingresso: string;
 
   @ApiProperty({
-    description: 'Número de celular do aluno (formato: +55DDDNUMERO)',
+    description: 'Celular (+55DDDNUMERO)',
     example: '+5584999999999',
   })
   @IsNotEmpty()

@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { NestMinioModule } from 'nestjs-minio';
+import { AuthModule } from '../auth/auth.module';
 import { MinioClientController } from './minio.controller';
 import { MinioClientService } from './minio.service';
 
@@ -8,11 +9,15 @@ import { MinioClientService } from './minio.service';
     NestMinioModule.register({
       isGlobal: true,
       endPoint: process.env.MINIO_ENDPOINT as string,
-      useSSL: process.env.MINIO_USE_SSL === undefined ? true : process.env.MINIO_USE_SSL === 'true',
+      useSSL:
+        process.env.MINIO_USE_SSL === undefined
+          ? true
+          : process.env.MINIO_USE_SSL === 'true',
       accessKey: process.env.MINIO_ACCESS_KEY,
       secretKey: process.env.MINIO_SECRET_KEY,
-      port: parseInt(process.env.MINIO_PORT || "443", 10),
+      port: parseInt(process.env.MINIO_PORT || '443', 10),
     }),
+    forwardRef(() => AuthModule),
   ],
   providers: [MinioClientService],
   controllers: [MinioClientController],

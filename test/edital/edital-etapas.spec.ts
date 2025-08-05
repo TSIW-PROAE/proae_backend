@@ -232,7 +232,7 @@ describe('EditalEtapas', () => {
       );
     });
   });
-/*
+  /*
   describe('find edital with etapas', () => {
     it('should return edital with etapas in the correct order', async () => {
       mockRepository.findOne.mockResolvedValue(new Edital({
