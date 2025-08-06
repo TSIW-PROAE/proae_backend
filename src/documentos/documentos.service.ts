@@ -140,10 +140,10 @@ export class DocumentoService {
   /**
    * Check if a student has any documents with "REPROVADO" status
    */
-  async hasReprovadoDocuments(clerkId: string): Promise<boolean> {
+  async hasReprovadoDocuments(alunoId: number): Promise<boolean> {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: alunoId },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -171,10 +171,10 @@ export class DocumentoService {
   /**
    * Get all reprovado documents for a student
    */
-  async getReprovadoDocumentsByStudent(clerkId: string) {
+  async getReprovadoDocumentsByStudent(alunoId: number) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: alunoId },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -204,10 +204,10 @@ export class DocumentoService {
     /**
    * Get all pendent documents for a student
    */
-    async getDocumentsWithProblemsByStudent(clerkId: string) {
+    async getDocumentsWithProblemsByStudent(id: number) {
       try {
         const aluno = await this.alunoRepository.findOne({
-          where: { id_clerk: clerkId },
+          where: { aluno_id: id },
           relations: ['inscricoes', 'inscricoes.documentos'],
         });
   
@@ -237,11 +237,11 @@ export class DocumentoService {
   /**
    * Allow resubmission of a document (reset status to PENDENTE)
    */
-  async resubmitDocument(clerkId: string, documentoId: number, updateData: Partial<UpdateDocumentoDto>) {
+  async resubmitDocument(alunoId: number, documentoId: number, updateData: Partial<UpdateDocumentoDto>) {
     try {
       // First, check if the student has permission to resubmit (has at least one reprovado document)
-      const hasPermission = await this.hasReprovadoDocuments(clerkId);
-      
+      const hasPermission = await this.hasReprovadoDocuments(alunoId);
+
       if (!hasPermission) {
         throw new ForbiddenException(
           'Você só pode editar documentos se tiver pelo menos um documento reprovado'
@@ -258,7 +258,7 @@ export class DocumentoService {
       }
 
       // Verify the document belongs to the requesting student
-      if (documento.inscricao.aluno.id_clerk !== clerkId) {
+      if (documento.inscricao.aluno.aluno_id !== alunoId) {
         throw new ForbiddenException('Você não tem permissão para editar este documento');
       }
 
@@ -288,10 +288,10 @@ export class DocumentoService {
   /**
    * Check if a student can edit their documents and data
    */
-  async checkResubmissionPermission(clerkId: string) {
+  async checkResubmissionPermission(alunoId: number) {
     try {
-      const hasPermission = await this.hasReprovadoDocuments(clerkId);
-      const reprovadoDocsData = await this.getReprovadoDocumentsByStudent(clerkId);
+      const hasPermission = await this.hasReprovadoDocuments(alunoId);
+      const reprovadoDocsData = await this.getReprovadoDocumentsByStudent(alunoId);
 
       return {
         success: true,

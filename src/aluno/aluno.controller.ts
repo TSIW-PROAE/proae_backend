@@ -3,7 +3,6 @@ import {
   ApiBearerAuth,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
 import { AlunoService } from './aluno.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
@@ -11,14 +10,13 @@ import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 @ApiTags('Alunos')
 @ApiBearerAuth()
 @Controller('aluno')
-@UseGuards(AuthGuard)
 export class AlunoController {
   constructor(private readonly alunoService: AlunoService) {}
 
   @Get()
   async findOne(@Req() request: AuthenticatedRequest) {
     const { id } = request.user;
-    return this.alunoService.findByClerkId(id);
+    return this.alunoService.findById(id);
   }
 
   @Patch('/update')

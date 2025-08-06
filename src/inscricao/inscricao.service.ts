@@ -13,7 +13,7 @@ import { StatusDocumento } from '../enum/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuardJwt } from '../auth/auth.guard.jwt';
 
 export class InscricaoService {
   constructor(
@@ -32,7 +32,7 @@ export class InscricaoService {
   async createInscricao(createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
     try {
       const alunoExists = await this.alunoRepository.findOneBy({
-        id_clerk: AuthGuard.getClerkId()
+        aluno_id: AuthGuardJwt.getUserId()
       });
 
       if (!alunoExists) {
@@ -148,7 +148,7 @@ export class InscricaoService {
       }
 
       const alunoExists = await this.alunoRepository.findOneBy({
-        id_clerk: AuthGuard.getClerkId()
+        aluno_id: AuthGuardJwt.getUserId()
       });
 
       if (!alunoExists) {
@@ -287,10 +287,10 @@ export class InscricaoService {
     }
   }
 
-  async getInscricoesByAluno(idClerk: string) {
+  async getInscricoesByAluno(id: number) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: idClerk },
+        where: { aluno_id: id },
       });
 
       if (!aluno) {

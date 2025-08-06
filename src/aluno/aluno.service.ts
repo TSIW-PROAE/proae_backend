@@ -1,4 +1,3 @@
-import { createClerkClient } from '@clerk/backend';
 import {
   BadRequestException,
   ForbiddenException,
@@ -20,48 +19,40 @@ export class AlunoService {
     private readonly alunoRepository: Repository<Aluno>,
   ) {}
 
-  private clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  async findByClerkId(id: string) {
+  async findById(id: number): Promise<Aluno | null> {
     try {
-      const clerkUserData = await this.clerk.users.getUser(id);
-
-      if (!clerkUserData) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      const dbUserData = await this.alunoRepository.findOneBy({
-        id_clerk: id,
-      });
-
-      if (!dbUserData) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      return {
-        sucesso: true,
-        dados: {
-          aluno: {
-            aluno_id: dbUserData.aluno_id,
-            nome: clerkUserData.firstName,
-            sobrenome: clerkUserData.lastName,
-            email: clerkUserData.primaryEmailAddress!.emailAddress,
-            matricula: clerkUserData.username,
-            pronome: dbUserData.pronome,
-            data_nascimento: dbUserData.data_nascimento,
-            curso: dbUserData.curso,
-            campus: dbUserData.campus,
-            cpf: dbUserData.cpf,
-            data_ingresso: dbUserData.data_ingresso,
-            celular: dbUserData.celular,
-            inscricoes: dbUserData.inscricoes,
+      return await this.alunoRepository.findOne({
+        where: { aluno_id: id },
+        relations: {
+          inscricoes: {
+            edital: {
+              etapas: true,
+            },
+          documentos: true,
           },
         },
-      };
-    } catch (e) {
-      console.error(e);
+      });
+    } catch (error) {
+      console.error(error);
+      throw new BadRequestException('Erro ao buscar aluno');
+    }
+  }
+
+  async findByEmail(email: string): Promise<Aluno | null> {
+    try {
+      return await this.alunoRepository.findOne({
+        where: { email },
+        relations: {
+          inscricoes: {
+            edital: {
+              etapas: true,
+            },
+          documentos: true,
+          },
+        },
+      });
+    } catch (error) {
+      console.error(error);
       throw new BadRequestException('Erro ao buscar aluno');
     }
   }
@@ -69,12 +60,9 @@ export class AlunoService {
   /**
    * Check if a student has any documents with "REPROVADO" status
    */
-  async hasReprovadoDocuments(clerkId: string): Promise<boolean> {
+  async hasReprovadoDocuments(id: number): Promise<boolean> {
     try {
-      const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
-        relations: ['inscricoes', 'inscricoes.documentos'],
-      });
+      const aluno = await (await this.findById(id));
 
       if (!aluno) {
         return false;
@@ -97,7 +85,7 @@ export class AlunoService {
   }
 
   async updateStudentData(
-    id: string,
+    id: number,
     atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     try {
@@ -109,40 +97,29 @@ export class AlunoService {
       if (!hasAnyData) {
         throw new BadRequestException('Dados para atualização não fornecidos.');
       }
-
-      const alunoClerk = await this.clerk.users.getUser(id);
-      if (!alunoClerk) {
-        throw new NotFoundException('Aluno não encontrado.');
-      }
-      const aluno = await this.alunoRepository.findOneBy({ id_clerk: id });
+      
+      const aluno = await this.alunoRepository.findOneBy({ aluno_id: id });
+      
       if (!aluno) {
         throw new NotFoundException('Aluno não encontrado.');
       }
       const emailNovo = atualizaDadosAlunoDTO.email;
-      const emailAtual = alunoClerk.primaryEmailAddress?.emailAddress;
+      const emailAtual = aluno.email;
       const novoEmailDiferente = emailNovo && emailNovo !== emailAtual;
 
-      let primaryEmailId = alunoClerk.primaryEmailAddress?.id;
-
       if (novoEmailDiferente) {
-        const emailExistente = alunoClerk.emailAddresses.find(
-          (email) => email.emailAddress === emailNovo,
-        );
+        const emailExistente = await this.findByEmail(emailNovo);
 
         if (!emailExistente) {
           throw new BadRequestException('Novo email não validado.');
         }
-
-        primaryEmailId = emailExistente.id;
       }
 
-      await this.clerk.users.updateUser(id, {
-        firstName: atualizaDadosAlunoDTO.nome,
-        lastName: atualizaDadosAlunoDTO.sobrenome,
-        username: `m-${atualizaDadosAlunoDTO.matricula}`,
-        primaryEmailAddressID: primaryEmailId,
-      });
       Object.assign(aluno, {
+        email: emailNovo,
+        matricula: atualizaDadosAlunoDTO.matricula,
+        nome: atualizaDadosAlunoDTO.nome,
+        sobrenome: atualizaDadosAlunoDTO.sobrenome,
         pronome: atualizaDadosAlunoDTO.pronome,
         data_nascimento: atualizaDadosAlunoDTO.data_nascimento,
         curso: atualizaDadosAlunoDTO.curso,
@@ -150,6 +127,7 @@ export class AlunoService {
         data_ingresso: atualizaDadosAlunoDTO.data_ingresso,
         celular: atualizaDadosAlunoDTO.celular,
       });
+
       await this.alunoRepository.save(aluno);
 
       return {
@@ -168,9 +146,9 @@ export class AlunoService {
   /**
    * Check if student can update their data
    */
-  async checkUpdatePermission(clerkId: string) {
+  async checkUpdatePermission(id: number) {
     try {
-      const hasPermission = await this.hasReprovadoDocuments(clerkId);
+      const hasPermission = await this.hasReprovadoDocuments(id);
 
       return {
         success: true,
@@ -188,19 +166,9 @@ export class AlunoService {
     }
   }
 
-  async getStudentRegistration(clerkId: string) {
+  async getStudentRegistration(id: number) {
     try {
-      const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
-        relations: {
-          inscricoes: {
-            edital: {
-              etapas: true,
-            },
-            documentos: true,
-          },
-        },
-      });
+      const aluno = await this.findById(id);
 
       if (!aluno) {
         throw new NotFoundException('Aluno não encontrado.');

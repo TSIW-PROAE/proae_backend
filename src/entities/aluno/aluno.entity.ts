@@ -10,7 +10,19 @@ export class Aluno {
   aluno_id: number;
 
   @Column()
-  id_clerk: string;
+  matricula: string;
+
+  @Column()
+  email: string;
+
+  @Column()
+  senha: string;
+
+  @Column()
+  nome: string;
+
+  @Column()
+  sobrenome: string;
 
   @Column({ type: 'enum', enum: PronomesEnum })
   pronome: PronomesEnum;

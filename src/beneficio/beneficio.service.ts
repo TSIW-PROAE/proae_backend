@@ -34,10 +34,10 @@ export class BeneficioService {
     return await this.beneficioRepository.save(beneficio);
   }
 
-  async findBenefitsByStudentId(clerkId: string) {
+  async findBenefitsByStudentId(id: number) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: id },
         relations: {
           inscricoes: {
             beneficio: true,

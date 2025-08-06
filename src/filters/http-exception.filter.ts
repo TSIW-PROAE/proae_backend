@@ -14,6 +14,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         [HttpStatus.NOT_FOUND]: 'Recurso não encontrado',
         [HttpStatus.UNPROCESSABLE_ENTITY]: 'Erro de validação nos dados fornecidos',
         [HttpStatus.INTERNAL_SERVER_ERROR]: 'Erro interno do servidor',
+        [HttpStatus.UNAUTHORIZED]: 'Não autorizado',
     };
 
     catch(exception: unknown, host: ArgumentsHost) {

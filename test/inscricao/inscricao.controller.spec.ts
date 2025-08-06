@@ -1,4 +1,4 @@
-import { AuthGuard } from '@/src/auth/auth.guard';
+import { AuthGuard } from '@/src/auth/auth.guard.clerk';
 import { EditalEnum } from '@/src/enum/enumEdital';
 import { StatusEdital } from '@/src/enum/enumStatusEdital';
 import { EnumTipoDocumento } from '@/src/enum/enumTipoDocumento';

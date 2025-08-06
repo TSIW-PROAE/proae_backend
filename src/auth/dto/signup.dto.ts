@@ -31,15 +31,15 @@ export class SignupDto {
   email: string;
 
   @ApiProperty({
-    description: 'Senha do aluno (mínimo 8 caracteres, incluindo letras, números e caracteres especiais)',
-    example: 'Senha@123',
+    description: 'Senha do aluno (mínimo 8 caracteres, incluindo letras, números e caracteres especiais). Evite senhas comuns ou comprometidas.',
+    example: 'MinhaSenh@Segura2024!',
   })
   @IsNotEmpty()
   @Matches(
     /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/,
     {
       message:
-        'A senha deve conter pelo menos uma letra, um número e um caractere especial e no minimo 8 caracteres',
+        'A senha deve conter pelo menos uma letra, um número e um caractere especial e no mínimo 8 caracteres. Evite senhas comuns ou já comprometidas.',
     },
   )
   senha: string;
@@ -95,7 +95,7 @@ export class SignupDto {
 
   @ApiProperty({
     description: 'CPF do aluno (formato: XXX.XXX.XXX-XX)',
-    example: '123.456.789-00',
+    example: '123.456.789-09',
   })
   @IsNotEmpty()
   @IsCPF()
@@ -103,7 +103,7 @@ export class SignupDto {
 
   @ApiProperty({
     description: 'Data de ingresso do aluno (formato: YYYY-MM-DD)',
-    example: '2023.1',
+    example: '2023-01-01',
   })
   @IsNotEmpty()
   @IsDateString()

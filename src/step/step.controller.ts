@@ -2,12 +2,10 @@ import { Controller, Get, InternalServerErrorException, NotFoundException, Param
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
 import { StepResponseDto } from './dto/response-step.dto';
 import { StepService } from './step.service';
-import { AuthGuard } from '@/src/auth/auth.guard';
 import { errorExamples } from '@/src/common/swagger/error-examples';
 
 @ApiTags('Steps')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
 @Controller('steps')
 export class StepController {
   constructor(private readonly stepService: StepService) {}

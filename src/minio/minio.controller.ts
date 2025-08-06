@@ -7,19 +7,18 @@ import {
   Post,
   Req,
   UploadedFiles,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
 import { MinioClientService } from './minio.service';
+import { Public } from '../common/decorators/public';
 
 @Controller('documents')
-@UseGuards(AuthGuard)
 export class MinioClientController {
   constructor(private readonly minioClientService: MinioClientService) {}
 
+  @Public()
   @Post('upload')
   @UseInterceptors(FilesInterceptor('files'))
   async uploadDocuments(
@@ -35,6 +34,7 @@ export class MinioClientController {
     return this.minioClientService.uploadDocuments(id, files);
   }
 
+  @Public()
   @Get(':filename')
   async getDocument(
     @Param('filename') filename: string,

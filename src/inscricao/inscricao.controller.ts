@@ -6,7 +6,6 @@ import {
   Patch,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -19,7 +18,6 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from 'src/auth/auth.guard';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
@@ -29,7 +27,6 @@ import { InscricaoService } from './inscricao.service';
 
 @ApiTags('Inscrições')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
 @Controller('inscricoes')
 export class InscricaoController {
   constructor(private readonly inscricaoService: InscricaoService) {}

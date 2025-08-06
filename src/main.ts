@@ -27,6 +27,7 @@ async function bootstrap() {
       .setTitle('API de Inscrição')
       .setDescription('A Documentação da API do sistema proae.')
       .setVersion('1.0')
+      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

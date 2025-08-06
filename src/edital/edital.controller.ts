@@ -16,12 +16,12 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/auth.guard';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
 import { EditalService } from './edital.service';
+import { Public } from '../common/decorators/public';
 
 @ApiTags('Editais')
 @Controller('editais')
@@ -38,11 +38,11 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   async create(@Body() createEditalDto: CreateEditalDto) {
     return this.editalService.create(createEditalDto);
   }
 
+  @Public()
   @Get()
   @ApiOkResponse({
     type: [EditalResponseDto],
@@ -56,6 +56,7 @@ export class EditalController {
     return this.editalService.findAll();
   }
 
+  @Public()
   @Get('abertos')
   @ApiOkResponse({
     type: [EditalResponseDto],
@@ -69,6 +70,7 @@ export class EditalController {
     return this.editalService.getEditalOpedened();
   }
 
+  @Public()
   @Get(':id')
   @ApiOkResponse({
     type: EditalResponseDto,
@@ -100,7 +102,6 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   async update(
     @Param('id') id: string,
     @Body() updateEditalDto: UpdateEditalDto,
@@ -119,7 +120,6 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   async remove(@Param('id') id: string) {
     return this.editalService.remove(+id);
   }
