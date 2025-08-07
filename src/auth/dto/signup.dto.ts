@@ -101,8 +101,8 @@ export class SignupDto {
   cpf: string;
 
   @ApiProperty({
-    description: 'Semestre de ingresso do aluno (formato: YYYY.S)',
-    example: '2023.1',
+    description: 'Semestre de ingresso do aluno (formato: YYYY-MM-DD)',
+    example: '2023-01-01',
   })
   @IsNotEmpty()
   data_ingresso: string;
