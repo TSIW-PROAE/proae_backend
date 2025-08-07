@@ -51,7 +51,7 @@ describe('EditalService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-/*
+  /*
   test('findAll', async () => {
     const mockEditais = [
       new Edital({ id: 1, tipo_edital: EditalEnum.AUXILIO_TRANSPORTE }),

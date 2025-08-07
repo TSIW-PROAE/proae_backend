@@ -61,7 +61,9 @@ describe('AlunoController', () => {
         },
       };
 
-      jest.spyOn(alunoService, 'findByClerkId').mockResolvedValue(mockResponse as any);
+      jest
+        .spyOn(alunoService, 'findByClerkId')
+        .mockResolvedValue(mockResponse as any);
 
       const result = await alunoController.findOne(
         mockRequest as AuthenticatedRequest,

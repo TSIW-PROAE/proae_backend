@@ -31,8 +31,8 @@ export class MinioClientController {
     files: Express.Multer.File[],
     @Req() request: AuthenticatedRequest,
   ) {
-    const { id } = request.user;
-    return this.minioClientService.uploadDocuments(id, files);
+    const { userId } = request.user;
+    return this.minioClientService.uploadDocuments(userId, files);
   }
 
   @Get(':filename')
@@ -40,7 +40,7 @@ export class MinioClientController {
     @Param('filename') filename: string,
     @Req() request: AuthenticatedRequest,
   ) {
-    const { id } = request.user;
-    return await this.minioClientService.getDocument(id, filename);
+    const { userId } = request.user;
+    return await this.minioClientService.getDocument(userId, filename);
   }
 }

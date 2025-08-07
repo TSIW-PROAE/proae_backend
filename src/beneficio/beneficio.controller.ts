@@ -5,14 +5,14 @@ import AuthenticatedRequest from '../types/authenticated-request.interface';
 import { BeneficioService } from './beneficio.service';
 
 @Controller('beneficios')
-@ApiBearerAuth()  
+@ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class BeneficioController {
   constructor(private readonly beneficioService: BeneficioService) {}
 
   @Get('aluno')
   async findOne(@Req() request: AuthenticatedRequest) {
-    const { id } = request.user;
-    return this.beneficioService.findBenefitsByStudentId(id);
+    const { userId } = request.user;
+    return this.beneficioService.findBenefitsByStudentId(userId);
   }
 }

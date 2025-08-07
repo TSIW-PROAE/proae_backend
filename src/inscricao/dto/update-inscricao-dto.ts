@@ -5,7 +5,7 @@ import {
   IsDate,
   IsEnum,
   IsOptional,
-  ValidateNested
+  ValidateNested,
 } from 'class-validator';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { CreateInscricaoDto } from './create-inscricao-dto';
@@ -40,5 +40,4 @@ export class UpdateInscricaoDto extends PartialType(CreateInscricaoDto) {
   @ValidateNested({ each: true })
   @Type(() => UpdateRespostaDto)
   respostas_editadas: UpdateRespostaDto[];
-
 }

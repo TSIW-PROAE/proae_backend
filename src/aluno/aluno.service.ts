@@ -1,4 +1,3 @@
-import { createClerkClient } from '@clerk/backend';
 import {
   BadRequestException,
   ForbiddenException,
@@ -20,23 +19,14 @@ export class AlunoService {
     private readonly alunoRepository: Repository<Aluno>,
   ) {}
 
-  private clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  async findByClerkId(id: string) {
+  async findByUserId(userId: number) {
     try {
-      const clerkUserData = await this.clerk.users.getUser(id);
-
-      if (!clerkUserData) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      const dbUserData = await this.alunoRepository.findOneBy({
-        id_clerk: id,
+      const aluno = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+        relations: ['inscricoes'],
       });
 
-      if (!dbUserData) {
+      if (!aluno) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
@@ -44,19 +34,17 @@ export class AlunoService {
         sucesso: true,
         dados: {
           aluno: {
-            aluno_id: dbUserData.aluno_id,
-            nome: clerkUserData.firstName,
-            sobrenome: clerkUserData.lastName,
-            email: clerkUserData.primaryEmailAddress!.emailAddress,
-            matricula: clerkUserData.username,
-            pronome: dbUserData.pronome,
-            data_nascimento: dbUserData.data_nascimento,
-            curso: dbUserData.curso,
-            campus: dbUserData.campus,
-            cpf: dbUserData.cpf,
-            data_ingresso: dbUserData.data_ingresso,
-            celular: dbUserData.celular,
-            inscricoes: dbUserData.inscricoes,
+            aluno_id: aluno.aluno_id,
+            email: aluno.email,
+            matricula: aluno.matricula,
+            pronome: aluno.pronome,
+            data_nascimento: aluno.data_nascimento,
+            curso: aluno.curso,
+            campus: aluno.campus,
+            cpf: aluno.cpf,
+            data_ingresso: aluno.data_ingresso,
+            celular: aluno.celular,
+            inscricoes: aluno.inscricoes,
           },
         },
       };
@@ -69,10 +57,10 @@ export class AlunoService {
   /**
    * Check if a student has any documents with "REPROVADO" status
    */
-  async hasReprovadoDocuments(clerkId: string): Promise<boolean> {
+  async hasReprovadoDocuments(userId: string): Promise<boolean> {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: parseInt(userId) },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -97,7 +85,7 @@ export class AlunoService {
   }
 
   async updateStudentData(
-    id: string,
+    userId: number,
     atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     try {
@@ -110,51 +98,47 @@ export class AlunoService {
         throw new BadRequestException('Dados para atualização não fornecidos.');
       }
 
-      const alunoClerk = await this.clerk.users.getUser(id);
-      if (!alunoClerk) {
-        throw new NotFoundException('Aluno não encontrado.');
-      }
-      const aluno = await this.alunoRepository.findOneBy({ id_clerk: id });
+      const aluno = await this.alunoRepository.findOneBy({
+        aluno_id: userId,
+      });
+
       if (!aluno) {
         throw new NotFoundException('Aluno não encontrado.');
       }
-      const emailNovo = atualizaDadosAlunoDTO.email;
-      const emailAtual = alunoClerk.primaryEmailAddress?.emailAddress;
-      const novoEmailDiferente = emailNovo && emailNovo !== emailAtual;
 
-      let primaryEmailId = alunoClerk.primaryEmailAddress?.id;
+      // Verificar se email já existe (se foi fornecido)
+      if (
+        atualizaDadosAlunoDTO.email &&
+        atualizaDadosAlunoDTO.email !== aluno.email
+      ) {
+        const emailExistente = await this.alunoRepository.findOne({
+          where: { email: atualizaDadosAlunoDTO.email },
+        });
 
-      if (novoEmailDiferente) {
-        const emailExistente = alunoClerk.emailAddresses.find(
-          (email) => email.emailAddress === emailNovo,
-        );
-
-        if (!emailExistente) {
-          throw new BadRequestException('Novo email não validado.');
+        if (emailExistente) {
+          throw new BadRequestException('Email já está em uso.');
         }
-
-        primaryEmailId = emailExistente.id;
       }
 
-      await this.clerk.users.updateUser(id, {
-        firstName: atualizaDadosAlunoDTO.nome,
-        lastName: atualizaDadosAlunoDTO.sobrenome,
-        username: `m-${atualizaDadosAlunoDTO.matricula}`,
-        primaryEmailAddressID: primaryEmailId,
-      });
+      // Atualizar dados do aluno
       Object.assign(aluno, {
-        pronome: atualizaDadosAlunoDTO.pronome,
-        data_nascimento: atualizaDadosAlunoDTO.data_nascimento,
-        curso: atualizaDadosAlunoDTO.curso,
-        campus: atualizaDadosAlunoDTO.campus,
-        data_ingresso: atualizaDadosAlunoDTO.data_ingresso,
-        celular: atualizaDadosAlunoDTO.celular,
+        email: atualizaDadosAlunoDTO.email || aluno.email,
+        matricula: atualizaDadosAlunoDTO.matricula || aluno.matricula,
+        pronome: atualizaDadosAlunoDTO.pronome || aluno.pronome,
+        data_nascimento:
+          atualizaDadosAlunoDTO.data_nascimento || aluno.data_nascimento,
+        curso: atualizaDadosAlunoDTO.curso || aluno.curso,
+        campus: atualizaDadosAlunoDTO.campus || aluno.campus,
+        data_ingresso:
+          atualizaDadosAlunoDTO.data_ingresso || aluno.data_ingresso,
+        celular: atualizaDadosAlunoDTO.celular || aluno.celular,
       });
+
       await this.alunoRepository.save(aluno);
 
       return {
         success: true,
-        message: 'Dados do aluno atualizados com sucesso para reenvio!',
+        message: 'Dados do aluno atualizados com sucesso!',
       };
     } catch (e) {
       console.log(e);
@@ -168,9 +152,9 @@ export class AlunoService {
   /**
    * Check if student can update their data
    */
-  async checkUpdatePermission(clerkId: string) {
+  async checkUpdatePermission(userId: number) {
     try {
-      const hasPermission = await this.hasReprovadoDocuments(clerkId);
+      const hasPermission = await this.hasReprovadoDocuments(userId.toString());
 
       return {
         success: true,
@@ -188,10 +172,10 @@ export class AlunoService {
     }
   }
 
-  async getStudentRegistration(clerkId: string) {
+  async getStudentRegistration(userId: number) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { id_clerk: clerkId },
+        where: { aluno_id: userId },
         relations: {
           inscricoes: {
             edital: {
@@ -215,15 +199,14 @@ export class AlunoService {
       return aluno.inscricoes.map((inscricao: Inscricao) => {
         const edital = inscricao.edital;
 
-        
         const possuiPendencias =
           (edital.status_edital === StatusEdital.ABERTO ||
-          edital.status_edital === StatusEdital.EM_ANDAMENTO) &&
+            edital.status_edital === StatusEdital.EM_ANDAMENTO) &&
           inscricao.documentos &&
           inscricao.documentos.some(
             (doc) =>
               doc.status_documento !== StatusDocumento.APROVADO &&
-              doc.status_documento !== StatusDocumento.REPROVADO
+              doc.status_documento !== StatusDocumento.REPROVADO,
           );
 
         // const possuiPendencias =

@@ -1,4 +1,4 @@
-import { verifyToken } from '@clerk/backend';
+import { JwtService } from '@nestjs/jwt';
 import {
   CanActivate,
   ExecutionContext,
@@ -9,8 +9,9 @@ import type { Request } from 'express';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private static userId: number;
 
-  private static clerkId: string;
+  constructor(private jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
@@ -21,15 +22,16 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      const { sub: userId, sid: sessionId } = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET || 'seu_secret_jwt_aqui',
       });
 
       request['user'] = {
-        id: userId,
-        sessionId,
+        userId: payload.sub,
+        email: payload.email,
+        aluno_id: payload.aluno_id,
       };
-      AuthGuard.setClerkId(userId);
+      AuthGuard.setUserId(payload.sub);
       return true;
     } catch (e) {
       console.log(e);
@@ -42,11 +44,11 @@ export class AuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 
-  public static getClerkId(): string {
-    return this.clerkId;
+  public static getUserId(): number {
+    return this.userId;
   }
 
-  private static setClerkId(id: string): void {
-    this.clerkId = id;
+  private static setUserId(id: number): void {
+    this.userId = id;
   }
 }

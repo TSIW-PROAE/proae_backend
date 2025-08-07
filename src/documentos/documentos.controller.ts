@@ -56,8 +56,8 @@ export class DocumentoController {
 
   @Get('reprovados/meus')
   async getMyReprovadoDocuments(@Req() request: AuthenticatedRequest) {
-    const { id } = request.user;
-    return await this.documentoService.getReprovadoDocumentsByStudent(id);
+    const { userId } = request.user;
+    return await this.documentoService.getReprovadoDocumentsByStudent(userId);
   }
 
   @Put('resubmissao/:id')
@@ -66,13 +66,19 @@ export class DocumentoController {
     @Body() resubmitDocumentoDto: ResubmitDocumentoDto,
     @Req() request: AuthenticatedRequest,
   ) {
-    const { id: clerkId } = request.user;
-    return await this.documentoService.resubmitDocument(clerkId, id, resubmitDocumentoDto);
+    const { userId } = request.user;
+    return await this.documentoService.resubmitDocument(
+      userId,
+      id,
+      resubmitDocumentoDto,
+    );
   }
 
   @Get('pendencias/meus')
   async getMyDocumentsWithProblems(@Req() request: AuthenticatedRequest) {
-    const { id } = request.user;
-    return await this.documentoService.getDocumentsWithProblemsByStudent(id);
+    const { userId } = request.user;
+    return await this.documentoService.getDocumentsWithProblemsByStudent(
+      userId,
+    );
   }
 }

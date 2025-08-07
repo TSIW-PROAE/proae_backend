@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
@@ -9,7 +13,9 @@ import { StepResponseDto } from './dto/response-step.dto';
 
 @Injectable()
 export class StepService {
-  constructor(@InjectRepository(Step) private readonly stepRepository: Repository<Step>) {}
+  constructor(
+    @InjectRepository(Step) private readonly stepRepository: Repository<Step>,
+  ) {}
 
   async findStepsByEdital(id: number): Promise<StepResponseDto[]> {
     const steps = await this.stepRepository.find({
@@ -24,18 +30,19 @@ export class StepService {
     }
 
     // Transform steps and their perguntas
-    return steps.map(step => {
+    return steps.map((step) => {
       const transformedStep = plainToInstance(StepResponseDto, step, {
         excludeExtraneousValues: true,
       });
 
       // Transform perguntas separately to ensure placeholder is calculated
-      const transformedPerguntas = step.perguntas.map(pergunta => {
+      const transformedPerguntas = step.perguntas.map((pergunta) => {
         const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
           excludeExtraneousValues: true,
         });
 
-        perguntaDto.placeholder = InputFormatPlaceholders[pergunta.tipo_formatacao];
+        perguntaDto.placeholder =
+          InputFormatPlaceholders[pergunta.tipo_formatacao];
 
         return perguntaDto;
       });
@@ -46,4 +53,4 @@ export class StepService {
       };
     });
   }
-} 
+}

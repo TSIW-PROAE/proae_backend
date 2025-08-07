@@ -21,7 +21,7 @@ export class Pergunta extends AbstractEntity<Pergunta> {
 
   @Column({ type: 'enum', enum: EnumInputFormat, nullable: true })
   tipo_formatacao: EnumInputFormat;
-  
+
   @ManyToOne(() => Step, (step) => step.perguntas)
   step: Step;
 

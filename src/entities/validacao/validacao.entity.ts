@@ -4,19 +4,18 @@ import { Documento } from '../documento/documento.entity';
 
 @Entity()
 export class Validacao extends AbstractEntity<Validacao> {
+  @Column({ type: 'text', nullable: true })
+  parecer: string;
 
-    @Column({ type: 'text', nullable: true })
-    parecer: string;
+  @Column({ type: 'date', nullable: true })
+  data_validacao: Date;
 
-    @Column({ type: 'date', nullable: true })
-    data_validacao: Date;
+  @ManyToOne(() => Documento, (documento) => documento.validacoes)
+  @JoinColumn({ name: 'documento_id' })
+  documento: Documento;
 
-    @ManyToOne(() => Documento, (documento) => documento.validacoes)
-    @JoinColumn({ name: 'documento_id' })
-    documento: Documento;
-
-    constructor(entity: Partial<Validacao>) {
-        super();
-        Object.assign(this, entity);
-    }
-} 
+  constructor(entity: Partial<Validacao>) {
+    super();
+    Object.assign(this, entity);
+  }
+}

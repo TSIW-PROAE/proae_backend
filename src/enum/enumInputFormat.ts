@@ -15,7 +15,7 @@ export enum EnumInputFormat {
   //PERSONALIZADO = 'personalizado',
   SINGLE_SELECT = 'single-select',
   MULTI_SELECT = 'multi-select',
-  NONE = "none"
+  NONE = 'none',
 }
 
 export const InputFormatPlaceholders: Record<EnumInputFormat, string> = {
@@ -29,5 +29,5 @@ export const InputFormatPlaceholders: Record<EnumInputFormat, string> = {
   [EnumInputFormat.MOEDA]: 'R$ 0.000,00',
   [EnumInputFormat.SINGLE_SELECT]: 'Selecione uma opção',
   [EnumInputFormat.MULTI_SELECT]: 'Selecione pelo menos uma opção',
-  [EnumInputFormat.NONE]: 'Sua resposta'
+  [EnumInputFormat.NONE]: 'Sua resposta',
 };

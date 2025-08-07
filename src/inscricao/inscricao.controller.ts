@@ -59,7 +59,9 @@ export class InscricaoController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async createInscricao(@Body() createInscricaoDto: CreateInscricaoDto): Promise<InscricaoResponseDto> {
+  async createInscricao(
+    @Body() createInscricaoDto: CreateInscricaoDto,
+  ): Promise<InscricaoResponseDto> {
     return await this.inscricaoService.createInscricao(createInscricaoDto);
   }
 
@@ -87,7 +89,7 @@ export class InscricaoController {
   @ApiInternalServerErrorResponse({
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
-  })  
+  })
   async updateInscricao(
     @Param('id') id: number,
     @Body() updateInscricaoDto: UpdateInscricaoDto,
@@ -121,6 +123,8 @@ export class InscricaoController {
     schema: { example: errorExamples.internalServerError },
   })
   async getInscricoesAluno(@Req() request: AuthenticatedRequest) {
-    return await this.inscricaoService.getInscricoesByAluno(request.user.id);
+    return await this.inscricaoService.getInscricoesByAluno(
+      request.user.userId,
+    );
   }
 }

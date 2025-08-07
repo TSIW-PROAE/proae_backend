@@ -12,6 +12,9 @@ export class StepResponseDto {
   texto: string;
 
   @Expose()
-  @ApiProperty({ type: [PerguntaResponseDto], description: 'Lista de perguntas do step' })
+  @ApiProperty({
+    type: [PerguntaResponseDto],
+    description: 'Lista de perguntas do step',
+  })
   perguntas: PerguntaResponseDto[];
-} 
+}
