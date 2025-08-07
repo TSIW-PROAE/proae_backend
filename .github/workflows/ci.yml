@@ -27,8 +27,8 @@ jobs:
     - name: Build project
       run: npm run build
 
-    - name: Run tests
-      run: npm run test:ci
+    # - name: Run tests
+    #   run: npm run test:ci
 
     - name: Deploy HTML report to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4

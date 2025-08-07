@@ -1,22 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  Matches,
-} from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
+import { IsStrongPassword } from '../../validators/strong-password.validator';
 
 export class UpdatePasswordDto {
   @ApiProperty({
-    description: 'Nova senha do usuário',
-    example: 'Senha@123',
+    description:
+      'Nova senha do usuário (deve ser forte e não ter sido vazada anteriormente)',
+    example: 'Kj9#mP2$vL8nQ4!',
     required: true,
-    minLength: 8,
-    pattern: '^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$',
   })
   @IsNotEmpty()
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
-    message:
-      'A senha deve conter pelo menos uma letra, um número e um caractere especial',
+  @IsStrongPassword({
+    message: 'Senha deve ser forte e não ter sido vazada anteriormente',
   })
   senha: string;
-
 }

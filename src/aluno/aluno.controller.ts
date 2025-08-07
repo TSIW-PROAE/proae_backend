@@ -1,8 +1,5 @@
 import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
 import { AlunoService } from './aluno.service';
@@ -17,8 +14,8 @@ export class AlunoController {
 
   @Get()
   async findOne(@Req() request: AuthenticatedRequest) {
-    const { id } = request.user;
-    return this.alunoService.findByClerkId(id);
+    const { userId } = request.user;
+    return this.alunoService.findByUserId(userId);
   }
 
   @Patch('/update')
@@ -26,13 +23,13 @@ export class AlunoController {
     @Req() request: AuthenticatedRequest,
     @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
-    const { id } = request.user;
-    return this.alunoService.updateStudentData(id, atualizaDadosAlunoDTO);
+    const { userId } = request.user;
+    return this.alunoService.updateStudentData(userId, atualizaDadosAlunoDTO);
   }
 
   @Get('/inscricoes')
   async getStudentRegistration(@Req() request: AuthenticatedRequest) {
-    const { id } = request.user;
-    return this.alunoService.getStudentRegistration(id);
+    const { userId } = request.user;
+    return this.alunoService.getStudentRegistration(userId);
   }
 }

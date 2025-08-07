@@ -6,7 +6,7 @@ import { MINIO_CONNECTION } from 'nestjs-minio';
 export class MinioClientService {
   constructor(@Inject(MINIO_CONNECTION) private readonly minioClient: Client) {}
 
-  async uploadDocuments(clerkUserId: string, files: Express.Multer.File[]) {
+  async uploadDocuments(userId: number, files: Express.Multer.File[]) {
     try {
       const uploadResults = await Promise.all(
         files.map(async (file) => {
@@ -16,7 +16,7 @@ export class MinioClientService {
 
           await this.minioClient.putObject(
             process.env.MINIO_BUCKET as string,
-            `${clerkUserId}/documentos/${file.originalname}`,
+            `${userId}/documentos/${file.originalname}`,
             file.buffer,
             file.size,
             metaData,
@@ -39,17 +39,17 @@ export class MinioClientService {
     }
   }
 
-  async getDocument(clerkUserId: string, filename: string) {
+  async getDocument(userId: number, filename: string) {
     try {
       await this.minioClient.statObject(
         process.env.MINIO_BUCKET as string,
-        `${clerkUserId}/documentos/${filename}`,
+        `${userId}/documentos/${filename}`,
       );
 
       const presignedUrl = await this.minioClient.presignedUrl(
         'GET',
         process.env.MINIO_BUCKET as string,
-        `${clerkUserId}/documentos/${filename}`,
+        `${userId}/documentos/${filename}`,
         24 * 60 * 60,
       );
 

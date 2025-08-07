@@ -5,7 +5,6 @@ import { Inscricao } from './inscricao.entity';
 
 @Entity()
 export class Resposta extends AbstractEntity<Resposta> {
-
   @ManyToOne(() => Inscricao, (inscricao) => inscricao.respostas)
   inscricao: Inscricao;
 

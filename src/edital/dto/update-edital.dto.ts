@@ -4,7 +4,10 @@ import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { CreateEditalDto } from './create-edital.dto';
 
 export class UpdateEditalDto extends PartialType(CreateEditalDto) {
-  @ApiProperty({ description: 'Status do edital', example: StatusEdital.EM_ANDAMENTO })
+  @ApiProperty({
+    description: 'Status do edital',
+    example: StatusEdital.EM_ANDAMENTO,
+  })
   @IsNotEmpty()
   @IsEnum(StatusEdital)
   status_edital: StatusEdital;

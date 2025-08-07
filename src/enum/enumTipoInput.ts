@@ -10,5 +10,5 @@ export enum EnumTipoInput {
   DATE = 'date',
   TIME = 'time',
   DATETIME = 'datetime-local',
-  RANGE = 'range'
+  RANGE = 'range',
 }

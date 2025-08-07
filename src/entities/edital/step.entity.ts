@@ -18,4 +18,4 @@ export class Step extends AbstractEntity<Step> {
     super();
     Object.assign(this, entity);
   }
-} 
+}

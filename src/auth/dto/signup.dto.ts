@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
-  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsNumberString,
   IsPhoneNumber,
-  Matches,
 } from 'class-validator';
 import { UnidadeEnum } from '../../enum/enumCampus';
 import { CursosEnum } from '../../enum/enumCursos';
 import { PronomesEnum } from '../../enum/enumPronomes';
 import { IsCPF } from '../../validators/isCpf.validator';
+import { IsStrongPassword } from '../../validators/strong-password.validator';
+import { IsUfbaEmail } from '../../validators/is-ufba-email.validator';
 
 export class SignupDto {
   @ApiProperty({
@@ -23,25 +23,24 @@ export class SignupDto {
   matricula: string;
 
   @ApiProperty({
-    description: 'Email institucional do aluno',
-    example: 'aluno@ufersa.edu.br',
+    description: 'Email institucional do aluno (apenas @ufba.br)',
+    example: 'aluno@ufba.br',
   })
   @IsNotEmpty()
-  @IsEmail()
+  @IsUfbaEmail({
+    message: 'Email deve ser do domínio @ufba.br',
+  })
   email: string;
 
   @ApiProperty({
-    description: 'Senha do aluno (mínimo 8 caracteres, incluindo letras, números e caracteres especiais)',
-    example: 'Senha@123',
+    description:
+      'Senha do aluno (deve ser forte e não ter sido vazada anteriormente)',
+    example: 'Kj9#mP2$vL8nQ4!',
   })
   @IsNotEmpty()
-  @Matches(
-    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/,
-    {
-      message:
-        'A senha deve conter pelo menos uma letra, um número e um caractere especial e no minimo 8 caracteres',
-    },
-  )
+  @IsStrongPassword({
+    message: 'Senha deve ser forte e não ter sido vazada anteriormente',
+  })
   senha: string;
 
   @ApiProperty({
@@ -102,11 +101,10 @@ export class SignupDto {
   cpf: string;
 
   @ApiProperty({
-    description: 'Data de ingresso do aluno (formato: YYYY-MM-DD)',
+    description: 'Semestre de ingresso do aluno (formato: YYYY.S)',
     example: '2023.1',
   })
   @IsNotEmpty()
-  @IsDateString()
   data_ingresso: string;
 
   @ApiProperty({
