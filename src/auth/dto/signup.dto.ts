@@ -94,7 +94,7 @@ export class SignupDto {
 
   @ApiProperty({
     description: 'CPF do aluno (formato: XXX.XXX.XXX-XX)',
-    example: '123.456.789-00',
+    example: '123.456.789-09',
   })
   @IsNotEmpty()
   @IsCPF()
