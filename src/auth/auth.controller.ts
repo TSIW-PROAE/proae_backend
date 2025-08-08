@@ -51,9 +51,11 @@ export class AuthController {
       example: {
         access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         user: {
-          id: 1,
-          nome: 'João da Silva',
+          aluno_id: 1,
           email: 'aluno@ufba.br',
+          matricula: '202301234',
+          nome: 'João',
+          sobrenome: 'da Silva',
         },
       },
     },
@@ -151,6 +153,9 @@ export class AuthController {
           aluno_id: 1,
           email: 'aluno@ufba.br',
           matricula: '202301234',
+          nome: 'João',
+          sobrenome: 'da Silva',
+          nomeCompleto: 'João da Silva',
           pronome: 'ele/dele',
           data_nascimento: '2000-01-01',
           curso: 'Ciência da computação',
