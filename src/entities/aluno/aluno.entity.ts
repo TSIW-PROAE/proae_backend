@@ -18,6 +18,12 @@ export class Aluno {
   @Column({ type: 'varchar', length: 255, select: false })
   senha_hash: string;
 
+  @Column({ type: 'varchar', length: 100 })
+  nome: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  sobrenome: string;
+
   @Column({ type: 'enum', enum: PronomesEnum })
   pronome: PronomesEnum;
 
