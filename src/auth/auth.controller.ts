@@ -23,6 +23,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdatePasswordDto } from './dto/updatepassword.dto';
 import { CompleteGoogleSignupDto } from './dto/complete-google-signup.dto';
+import { ValidateTokenDto } from './dto/validate-token.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -135,5 +136,50 @@ export class AuthController {
     @Body() completeSignupDto: CompleteGoogleSignupDto,
   ) {
     return this.authService.completeGoogleSignup(completeSignupDto);
+  }
+
+  @Post('validate-token')
+  @ApiOperation({ summary: 'Validar token JWT' })
+  @ApiBody({ type: ValidateTokenDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Token válido',
+    schema: {
+      example: {
+        valid: true,
+        user: {
+          aluno_id: 1,
+          email: 'aluno@ufba.br',
+          matricula: '202301234',
+          pronome: 'ele/dele',
+          data_nascimento: '2000-01-01',
+          curso: 'Ciência da computação',
+          campus: 'Salvador',
+          cpf: '111.444.777-35',
+          data_ingresso: '2023-01-02',
+          celular: '+5584999999999',
+        },
+        payload: {
+          sub: 1,
+          email: 'aluno@ufba.br',
+          aluno_id: 1,
+          iat: 1640995200,
+          exp: 1641081600,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token inválido',
+    schema: {
+      example: {
+        valid: false,
+        error: 'Token inválido ou expirado',
+      },
+    },
+  })
+  async validateToken(@Body() body: ValidateTokenDto) {
+    return this.authService.validateToken(body.token);
   }
 }
