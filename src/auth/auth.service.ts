@@ -49,7 +49,10 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET,
+      expiresIn: '1h',
+    }),
       user: {
         aluno_id: user.aluno_id,
         email: user.email,
@@ -204,49 +207,45 @@ export class AuthService {
   async completeGoogleSignup(completeSignupDto: any) {
     try {
       // Verificar se email já existe
-      const existingUser = await this.alunoRepository.findOne({
+      const existingEmail = await this.alunoRepository.findOne({
         where: { email: completeSignupDto.email },
       });
 
-      if (existingUser) {
+      if (existingEmail) {
         throw new BadRequestException('Email já cadastrado');
-      }
-
-      // Verificar se matrícula já existe
-      const existingMatricula = await this.alunoRepository.findOne({
-        where: { matricula: completeSignupDto.matricula },
-      });
-
-      if (existingMatricula) {
-        throw new BadRequestException('Matrícula já cadastrada');
       }
 
       // Verificar se CPF já existe
       const existingCpf = await this.alunoRepository.findOne({
-        where: { cpf: completeSignupDto.cpf },
+        where: { cpf: cpf.mask(completeSignupDto.cpf) },
       });
 
       if (existingCpf) {
         throw new BadRequestException('CPF já cadastrado');
       }
 
-      // Criar usuário sem senha (login via Google)
+      // Hash da senha
+      const saltRounds = 12;
+      const senhaHash = await bcrypt.hash('google_auth', saltRounds);
+
+      // Criar aluno
       const novoAluno = this.alunoRepository.create({
         email: completeSignupDto.email,
         matricula: completeSignupDto.matricula,
-        senha_hash: 'GOOGLE_OAUTH', // Placeholder para login via Google
+        senha_hash: senhaHash,
         pronome: completeSignupDto.pronome,
         data_nascimento: new Date(completeSignupDto.data_nascimento),
         curso: completeSignupDto.curso,
         campus: completeSignupDto.campus,
-        cpf: completeSignupDto.cpf,
+        cpf: cpf.mask(completeSignupDto.cpf),
         data_ingresso: completeSignupDto.data_ingresso,
         celular: completeSignupDto.celular,
       });
 
+      // Salvar no banco
       const alunoSalvo = await this.alunoRepository.save(novoAluno);
 
-      // Criar token JWT automaticamente
+      // Gerar token JWT
       const payload = {
         email: alunoSalvo.email,
         sub: alunoSalvo.aluno_id,
@@ -260,25 +259,70 @@ export class AuthService {
           email: alunoSalvo.email,
           matricula: alunoSalvo.matricula,
         },
-        message: 'Cadastro completado com sucesso via Google',
+        message: 'Cadastro finalizado com sucesso',
       };
     } catch (error) {
       if (error instanceof QueryFailedError) {
-        if (error.message.includes('matricula')) {
-          throw new BadRequestException('Matrícula já cadastrada');
-        }
-        if (error.message.includes('email')) {
-          throw new BadRequestException('Email já cadastrado');
-        }
-        if (error.message.includes('cpf')) {
-          throw new BadRequestException('CPF já cadastrado');
-        }
+        throw new BadRequestException('Erro ao salvar dados do usuário');
+      }
+      throw error;
+    }
+  }
+
+  async validateToken(token: string) {
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      // Buscar informações do usuário no banco
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: payload.sub },
+        select: [
+          'aluno_id',
+          'email',
+          'matricula',
+          'pronome',
+          'data_nascimento',
+          'curso',
+          'campus',
+          'cpf',
+          'data_ingresso',
+          'celular',
+        ],
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
       }
 
-      console.error('Erro ao completar cadastro Google:', error);
-      throw error instanceof BadRequestException
-        ? error
-        : new BadRequestException('Erro ao completar cadastro');
+      return {
+        valid: true,
+        user: {
+          aluno_id: user.aluno_id,
+          email: user.email,
+          matricula: user.matricula,
+          pronome: user.pronome,
+          data_nascimento: user.data_nascimento,
+          curso: user.curso,
+          campus: user.campus,
+          cpf: user.cpf,
+          data_ingresso: user.data_ingresso,
+          celular: user.celular,
+        },
+        payload: {
+          sub: payload.sub,
+          email: payload.email,
+          aluno_id: payload.aluno_id,
+          iat: payload.iat,
+          exp: payload.exp,
+        },
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
     }
   }
 }
