@@ -8,6 +8,7 @@ import {
   Res,
   UseGuards,
   Request,
+  Response,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -26,6 +27,7 @@ import { CompleteGoogleSignupDto } from './dto/complete-google-signup.dto';
 import { ValidateTokenDto } from './dto/validate-token.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { max } from 'class-validator';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -34,7 +36,22 @@ export class AuthController {
 
   @Post('signup')
   @ApiOperation({ summary: 'Cadastro com email institucional' })
-  @ApiResponse({ status: 201, description: 'Usuário cadastrado com sucesso' })
+  @ApiResponse({ status: 201, description: 'Usuário cadastrado com sucesso', example: {
+        sucesso: true,
+        mensagem: 'Cadastro realizado com sucesso',
+        aluno: {
+          aluno_id: 1,
+          email: "aluno@ufba.br",
+          matricula: "202301234",
+          nome: "João Pereira da Silva",
+          data_nascimento: "2000-01-01T00:00:00.000Z",
+          curso: "Ciência da Computação",
+          campus: "Vitória da Conquista",
+          cpf: "123.456.789-09",
+          data_ingresso: "2023-01-01",
+          celular: "+5584999999999"
+        }
+   } })
   @ApiResponse({ status: 400, description: 'Erro de validação' })
   async signup(@Body() body: SignupDto) {
     return this.authService.signup(body);
@@ -54,15 +71,25 @@ export class AuthController {
           aluno_id: 1,
           email: 'aluno@ufba.br',
           matricula: '202301234',
-          nome: 'João',
-          sobrenome: 'da Silva',
+          nome: 'João Pereira da Silva',
         },
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Request() req, @Response() res) {
+    const result = await this.authService.login(req.user);
+    
+    res.cookie('token', result.access_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+      maxAge: 3600000, // 1 hora
+    });
+    return res.status(200).json({
+      success: true,
+      user: result.user,
+    });
   }
 
   @ApiBearerAuth()
@@ -153,10 +180,7 @@ export class AuthController {
           aluno_id: 1,
           email: 'aluno@ufba.br',
           matricula: '202301234',
-          nome: 'João',
-          sobrenome: 'da Silva',
-          nomeCompleto: 'João da Silva',
-          pronome: 'ele/dele',
+          nome: 'João Pereira da Silva',
           data_nascimento: '2000-01-01',
           curso: 'Ciência da computação',
           campus: 'Salvador',
