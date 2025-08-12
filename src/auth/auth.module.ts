@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { GoogleStrategy } from './strategies/google.strategy';
+// import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     PassportModule,
     TypeOrmModule.forFeature([Aluno]),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'seu_secret_jwt_aqui',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '24h' },
     }),
   ],
@@ -26,7 +26,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     AuthService,
     LocalStrategy,
     JwtStrategy,
-    GoogleStrategy,
+    // GoogleStrategy,
     AuthGuard,
   ],
   exports: [AuthGuard, JwtModule, AuthService],

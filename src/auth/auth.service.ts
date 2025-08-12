@@ -23,8 +23,6 @@ export class AuthService {
         'email',
         'senha_hash',
         'matricula',
-        'nome',
-        'sobrenome',
         'pronome',
         'data_nascimento',
         'curso',
@@ -59,15 +57,12 @@ export class AuthService {
         aluno_id: user.aluno_id,
         email: user.email,
         matricula: user.matricula,
-        nome: user.nome,
-        sobrenome: user.sobrenome,
       },
     };
   }
 
   async signup(alunoSignup: SignupDto) {
     try {
-      // Verificar se email já existe
       const existingEmail = await this.alunoRepository.findOne({
         where: { email: alunoSignup.email },
       });
@@ -76,7 +71,6 @@ export class AuthService {
         throw new BadRequestException('Email já cadastrado');
       }
 
-      // Verificar se CPF já existe
       const existingCpf = await this.alunoRepository.findOne({
         where: { cpf: cpf.mask(alunoSignup.cpf) },
       });
@@ -85,17 +79,15 @@ export class AuthService {
         throw new BadRequestException('CPF já cadastrado');
       }
 
-      // Hash da senha
       const saltRounds = 12;
       const senhaHash = await bcrypt.hash(alunoSignup.senha, saltRounds);
 
-      // Criar aluno
       const novoAluno = this.alunoRepository.create({
+        nome: alunoSignup.nome,
+        sobrenome: alunoSignup.sobrenome,
         email: alunoSignup.email,
         matricula: alunoSignup.matricula,
         senha_hash: senhaHash,
-        nome: alunoSignup.nome,
-        sobrenome: alunoSignup.sobrenome,
         pronome: alunoSignup.pronome,
         data_nascimento: new Date(alunoSignup.data_nascimento),
         curso: alunoSignup.curso,
@@ -105,10 +97,8 @@ export class AuthService {
         celular: alunoSignup.celular,
       });
 
-      // Salvar no banco
       const alunoSalvo = await this.alunoRepository.save(novoAluno);
 
-      // Retornar sem a senha
       const { senha_hash, ...result } = alunoSalvo;
 
       return {
@@ -170,8 +160,6 @@ export class AuthService {
         'aluno_id',
         'email',
         'matricula',
-        'nome',
-        'sobrenome',
         'pronome',
         'data_nascimento',
         'curso',
@@ -183,106 +171,99 @@ export class AuthService {
     });
   }
 
-  async googleLogin(user: any) {
-    if (user.needsRegistration) {
-      // Retorna dados para completar cadastro
-      return {
-        needsRegistration: true,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        message: 'Complete seu cadastro com as informações adicionais',
-      };
-    }
+  // async googleLogin(user: any) {
+  //   if (user.needsRegistration) {
+  //     // Retorna dados para completar cadastro
+  //     return {
+  //       needsRegistration: true,
+  //       email: user.email,
+  //       firstName: user.firstName,
+  //       lastName: user.lastName,
+  //       message: 'Complete seu cadastro com as informações adicionais',
+  //     };
+  //   }
 
-    // Login normal
-    const payload = {
-      email: user.email,
-      sub: user.aluno_id,
-      aluno_id: user.aluno_id,
-    };
+  //   // Login normal
+  //   const payload = {
+  //     email: user.email,
+  //     sub: user.aluno_id,
+  //     aluno_id: user.aluno_id,
+  //   };
 
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        aluno_id: user.aluno_id,
-        email: user.email,
-        matricula: user.matricula,
-        nome: user.firstName,
-        sobrenome: user.lastName,
-      },
-    };
-  }
+  //   return {
+  //     access_token: this.jwtService.sign(payload),
+  //     user: {
+  //       aluno_id: user.aluno_id,
+  //       email: user.email,
+  //       matricula: user.matricula,
+  //     },
+  //   };
+  // }
 
-  async completeGoogleSignup(completeSignupDto: any) {
-    try {
-      // Verificar se email já existe
-      const existingEmail = await this.alunoRepository.findOne({
-        where: { email: completeSignupDto.email },
-      });
+  // async completeGoogleSignup(completeSignupDto: any) {
+  //   try {
+  //     // Verificar se email já existe
+  //     const existingEmail = await this.alunoRepository.findOne({
+  //       where: { email: completeSignupDto.email },
+  //     });
 
-      if (existingEmail) {
-        throw new BadRequestException('Email já cadastrado');
-      }
+  //     if (existingEmail) {
+  //       throw new BadRequestException('Email já cadastrado');
+  //     }
 
-      // Verificar se CPF já existe
-      const existingCpf = await this.alunoRepository.findOne({
-        where: { cpf: cpf.mask(completeSignupDto.cpf) },
-      });
+  //     // Verificar se CPF já existe
+  //     const existingCpf = await this.alunoRepository.findOne({
+  //       where: { cpf: cpf.mask(completeSignupDto.cpf) },
+  //     });
 
-      if (existingCpf) {
-        throw new BadRequestException('CPF já cadastrado');
-      }
+  //     if (existingCpf) {
+  //       throw new BadRequestException('CPF já cadastrado');
+  //     }
 
-      // Hash da senha
-      const saltRounds = 12;
-      const senhaHash = await bcrypt.hash('google_auth', saltRounds);
+  //     // Hash da senha
+  //     const saltRounds = 12;
+  //     const senhaHash = await bcrypt.hash('google_auth', saltRounds);
 
-      // Criar aluno
-      const novoAluno = this.alunoRepository.create({
-        email: completeSignupDto.email,
-        matricula: completeSignupDto.matricula,
-        senha_hash: senhaHash,
-        nome: completeSignupDto.nome,
-        sobrenome: completeSignupDto.sobrenome,
-        pronome: completeSignupDto.pronome,
-        data_nascimento: new Date(completeSignupDto.data_nascimento),
-        curso: completeSignupDto.curso,
-        campus: completeSignupDto.campus,
-        cpf: cpf.mask(completeSignupDto.cpf),
-        data_ingresso: completeSignupDto.data_ingresso,
-        celular: completeSignupDto.celular,
-      });
+  //     // Criar aluno
+  //     const novoAluno = this.alunoRepository.create({
+  //       email: completeSignupDto.email,
+  //       matricula: completeSignupDto.matricula,
+  //       senha_hash: senhaHash,
+  //       pronome: completeSignupDto.pronome,
+  //       data_nascimento: new Date(completeSignupDto.data_nascimento),
+  //       curso: completeSignupDto.curso,
+  //       campus: completeSignupDto.campus,
+  //       cpf: cpf.mask(completeSignupDto.cpf),
+  //       data_ingresso: completeSignupDto.data_ingresso,
+  //       celular: completeSignupDto.celular,
+  //     });
 
-      // Salvar no banco
-      const alunoSalvo = await this.alunoRepository.save(novoAluno);
+  //     // Salvar no banco
+  //     const alunoSalvo = await this.alunoRepository.save(novoAluno);
 
-      // Gerar token JWT
-      const payload = {
-        email: alunoSalvo.email,
-        sub: alunoSalvo.aluno_id,
-        aluno_id: alunoSalvo.aluno_id,
-      };
+  //     // Gerar token JWT
+  //     const payload = {
+  //       email: alunoSalvo.email,
+  //       sub: alunoSalvo.aluno_id,
+  //       aluno_id: alunoSalvo.aluno_id,
+  //     };
 
-      return {
-        access_token: this.jwtService.sign(payload),
-        user: {
-          aluno_id: alunoSalvo.aluno_id,
-          email: alunoSalvo.email,
-          matricula: alunoSalvo.matricula,
-          nome: alunoSalvo.nome,
-          sobrenome: alunoSalvo.sobrenome,
-          nomeCompleto: `${alunoSalvo.nome} ${alunoSalvo.sobrenome}`,
-        },
-        message: 'Cadastro finalizado com sucesso',
-      };
-    } catch (error) {
-      if (error instanceof QueryFailedError) {
-        throw new BadRequestException('Erro ao salvar dados do usuário');
-      }
-      throw error;
-    }
-  }
+  //     return {
+  //       access_token: this.jwtService.sign(payload),
+  //       user: {
+  //         aluno_id: alunoSalvo.aluno_id,
+  //         email: alunoSalvo.email,
+  //         matricula: alunoSalvo.matricula,
+  //       },
+  //       message: 'Cadastro finalizado com sucesso',
+  //     };
+  //   } catch (error) {
+  //     if (error instanceof QueryFailedError) {
+  //       throw new BadRequestException('Erro ao salvar dados do usuário');
+  //     }
+  //     throw error;
+  //   }
+  // }
 
   async validateToken(token: string) {
     try {
@@ -297,8 +278,6 @@ export class AuthService {
           'aluno_id',
           'email',
           'matricula',
-          'nome',
-          'sobrenome',
           'pronome',
           'data_nascimento',
           'curso',
@@ -319,9 +298,6 @@ export class AuthService {
           aluno_id: user.aluno_id,
           email: user.email,
           matricula: user.matricula,
-          nome: user.nome,
-          sobrenome: user.sobrenome,
-          nomeCompleto: `${user.nome} ${user.sobrenome}`,
           pronome: user.pronome,
           data_nascimento: user.data_nascimento,
           curso: user.curso,
