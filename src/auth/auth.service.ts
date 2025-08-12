@@ -328,4 +328,51 @@ export class AuthService {
       };
     }
   }
+
+  async findValidatedUser(userId: number) {
+    try {
+      // Buscar informações do usuário no banco
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+        select: [
+          'aluno_id',
+          'email',
+          'matricula',
+          'nome',
+          'data_nascimento',
+          'curso',
+          'campus',
+          'cpf',
+          'data_ingresso',
+          'celular',
+        ],
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      return {
+        valid: true,
+        user: {
+          aluno_id: user.aluno_id,
+          email: user.email,
+          matricula: user.matricula,
+          nome: user.nome,
+          data_nascimento: user.data_nascimento,
+          curso: user.curso,
+          campus: user.campus,
+          cpf: user.cpf,
+          data_ingresso: user.data_ingresso,
+          celular: user.celular,
+        },
+        message: 'Token válido',
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
+    }
+  }
 }

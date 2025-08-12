@@ -24,10 +24,8 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdatePasswordDto } from './dto/updatepassword.dto';
 import { CompleteGoogleSignupDto } from './dto/complete-google-signup.dto';
-import { ValidateTokenDto } from './dto/validate-token.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { max } from 'class-validator';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -167,9 +165,10 @@ export class AuthController {
     return this.authService.completeGoogleSignup(completeSignupDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post('validate-token')
-  @ApiOperation({ summary: 'Validar token JWT' })
-  @ApiBody({ type: ValidateTokenDto })
+  @ApiOperation({ summary: 'Validar token JWT do cookie' })
   @ApiResponse({
     status: 200,
     description: 'Token válido',
@@ -199,8 +198,8 @@ export class AuthController {
     },
   })
   @ApiResponse({
-    status: 200,
-    description: 'Token inválido',
+    status: 401,
+    description: 'Token inválido ou ausente',
     schema: {
       example: {
         valid: false,
@@ -208,7 +207,8 @@ export class AuthController {
       },
     },
   })
-  async validateToken(@Body() body: ValidateTokenDto) {
-    return this.authService.validateToken(body.token);
+  async validateToken(@Req() request: AuthenticatedRequest) {
+    const { userId } = request.user;
+    return this.authService.findValidatedUser(userId);
   }
 }
