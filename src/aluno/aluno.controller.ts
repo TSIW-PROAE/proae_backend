@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
 import { AlunoService } from './aluno.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
@@ -8,7 +8,7 @@ import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 @ApiTags('Alunos')
 @ApiBearerAuth()
 @Controller('aluno')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class AlunoController {
   constructor(private readonly alunoService: AlunoService) {}
 

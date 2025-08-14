@@ -19,17 +19,17 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from 'src/auth/auth.guard';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { InscricaoService } from './inscricao.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Inscrições')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('inscricoes')
 export class InscricaoController {
   constructor(private readonly inscricaoService: InscricaoService) {}

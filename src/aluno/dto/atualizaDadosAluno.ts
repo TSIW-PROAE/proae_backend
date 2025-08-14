@@ -8,8 +8,6 @@ import {
   IsString,
 } from 'class-validator';
 import { UnidadeEnum } from '../../enum/enumCampus';
-import { CursosEnum } from '../../enum/enumCursos';
-import { PronomesEnum } from '../../enum/enumPronomes';
 
 export class AtualizaDadosAlunoDTO {
   @ApiProperty({
@@ -20,15 +18,6 @@ export class AtualizaDadosAlunoDTO {
   @IsOptional()
   @IsString()
   nome?: string;
-
-  @ApiProperty({
-    description: 'Sobrenome do aluno',
-    example: 'Silva',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  sobrenome?: string;
 
   @ApiProperty({
     description: 'Email institucional do aluno',
@@ -49,15 +38,6 @@ export class AtualizaDadosAlunoDTO {
   matricula?: string;
 
   @ApiProperty({
-    description: 'Pronome de tratamento do aluno',
-    enum: PronomesEnum,
-    example: PronomesEnum.ELE_DELE,
-  })
-  @IsOptional()
-  @IsEnum(PronomesEnum)
-  pronome?: PronomesEnum;
-
-  @ApiProperty({
     description: 'Data de nascimento do aluno (formato: YYYY-MM-DD)',
     example: '2000-01-01',
   })
@@ -67,12 +47,11 @@ export class AtualizaDadosAlunoDTO {
 
   @ApiProperty({
     description: 'Curso do aluno',
-    enum: CursosEnum,
-    example: CursosEnum.CIENCIA_COMPUTACAO,
+    example: 'Ciência da Computação',
   })
   @IsOptional()
-  @IsEnum(CursosEnum)
-  curso?: CursosEnum;
+  @IsString()
+  curso?: string;
 
   @ApiProperty({
     description: 'Campus do aluno',

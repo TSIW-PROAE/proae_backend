@@ -5,10 +5,9 @@ import {
   IsNotEmpty,
   IsNumberString,
   IsPhoneNumber,
+  IsString,
 } from 'class-validator';
 import { UnidadeEnum } from '../../enum/enumCampus';
-import { CursosEnum } from '../../enum/enumCursos';
-import { PronomesEnum } from '../../enum/enumPronomes';
 import { IsCPF } from '../../validators/isCpf.validator';
 import { IsStrongPassword } from '../../validators/strong-password.validator';
 import { IsUfbaEmail } from '../../validators/is-ufba-email.validator';
@@ -45,26 +44,11 @@ export class SignupDto {
 
   @ApiProperty({
     description: 'Nome do aluno',
-    example: 'João',
+    example: 'João Pereira da Silva',
   })
   @IsNotEmpty()
+  @IsString()
   nome: string;
-
-  @ApiProperty({
-    description: 'Sobrenome do aluno',
-    example: 'Silva',
-  })
-  @IsNotEmpty()
-  sobrenome: string;
-
-  @ApiProperty({
-    description: 'Pronome de tratamento do aluno',
-    enum: PronomesEnum,
-    example: PronomesEnum.ELE_DELE,
-  })
-  @IsNotEmpty()
-  @IsEnum(PronomesEnum)
-  pronome: PronomesEnum;
 
   @ApiProperty({
     description: 'Data de nascimento do aluno (formato: YYYY-MM-DD)',
@@ -76,12 +60,11 @@ export class SignupDto {
 
   @ApiProperty({
     description: 'Curso do aluno',
-    enum: CursosEnum,
-    example: CursosEnum.CIENCIA_COMPUTACAO,
+    example: 'Ciência da Computação',
   })
   @IsNotEmpty()
-  @IsEnum(CursosEnum)
-  curso: CursosEnum;
+  @IsString()
+  curso: string;
 
   @ApiProperty({
     description: 'Campus do aluno',

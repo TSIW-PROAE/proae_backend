@@ -15,15 +15,15 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateValidacaoDto } from './dto/create-validacao.dto';
 import { UpdateValidacaoDto } from './dto/update-validacao.dto';
 import { ValidacaoResponseDto } from './dto/validacao-response.dto';
 import { ValidacaoService } from './validacao.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Validacao')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('validacao')
 export class ValidacaoController {
   constructor(private readonly validacaoService: ValidacaoService) {}

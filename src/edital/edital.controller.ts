@@ -16,12 +16,12 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/auth.guard';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
 import { EditalService } from './edital.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Editais')
 @Controller('editais')
@@ -38,7 +38,7 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async create(@Body() createEditalDto: CreateEditalDto) {
     return this.editalService.create(createEditalDto);
   }
@@ -100,7 +100,7 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
     @Body() updateEditalDto: UpdateEditalDto,
@@ -119,7 +119,7 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string) {
     return this.editalService.remove(+id);
   }
