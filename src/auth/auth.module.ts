@@ -10,6 +10,7 @@ import { AuthGuard } from './auth.guard';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { EmailService } from '../email/email.service';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     JwtStrategy,
     GoogleStrategy,
     AuthGuard,
+    EmailService,
   ],
   exports: [AuthGuard, JwtModule, AuthService],
 })

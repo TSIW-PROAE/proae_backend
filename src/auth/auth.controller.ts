@@ -26,6 +26,7 @@ import { CompleteGoogleSignupDto } from './dto/complete-google-signup.dto';
 import { ValidateTokenDto } from './dto/validate-token.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RecoverPasswordDto } from './dto/recover-password.dto';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -77,6 +78,15 @@ export class AuthController {
   ) {
     const { userId } = request.user;
     return this.authService.updatePassword(userId, body.senha);
+  }
+
+  @Post('recover-password')
+  @ApiOperation({ summary: 'Recuperar senha via email' })
+  @ApiBody({ type: RecoverPasswordDto })
+  @ApiResponse({ status: 200, description: 'Email de recuperação enviado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Email não encontrado' })
+  async recoverPassword(@Body() body: RecoverPasswordDto) {
+    return this.authService.recoverPassword(body);
   }
 
   @Get('google')

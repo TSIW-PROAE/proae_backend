@@ -6,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 import * as cpf from 'validation-br/dist/cpf';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { SignupDto } from './dto/signup.dto';
+import { EmailService } from '../email/email.service';
+import { RecoverPasswordDto } from './dto/recover-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +15,7 @@ export class AuthService {
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -161,6 +164,31 @@ export class AuthService {
       console.error(e);
       throw new BadRequestException('Erro ao atualizar a senha');
     }
+  }
+
+  async recoverPassword(recoverPasswordDto: RecoverPasswordDto) {
+    const user = await this.findUserByEmail(recoverPasswordDto.email);
+    if (!user) {
+      throw new BadRequestException('Email não encontrado');
+    }
+
+    const payload = {
+      email: user.email,
+    };
+
+    const token = this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET,
+      expiresIn: '1h',
+    });
+
+    console.log('gerou token')
+
+    await this.emailService.sendPasswordRecovery(user.email, token);
+
+    return {
+      sucesso: true,
+      mensagem: 'Email de recuperação enviado',
+    };
   }
 
   async findUserByEmail(email: string): Promise<Aluno | null> {
