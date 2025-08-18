@@ -25,7 +25,11 @@ export class EditalService {
   async create(createEditalDto: CreateEditalDto): Promise<EditalResponseDto> {
     try {
       const edital = new Edital({
-        ...createEditalDto,
+        titulo_edital: createEditalDto.titulo_edital,
+        status_edital: StatusEdital.RASCUNHO,
+        descricao: undefined,
+        edital_url: undefined,
+        etapa_edital: undefined,
       });
 
       const savedEdital = await this.editaisRepository.save(edital);

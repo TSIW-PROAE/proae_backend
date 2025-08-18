@@ -6,17 +6,14 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/auth.guard';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { EditalResponseDto } from './dto/edital-response.dto';
@@ -37,8 +34,6 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   async create(@Body() createEditalDto: CreateEditalDto) {
     return this.editalService.create(createEditalDto);
   }
@@ -99,8 +94,6 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   async update(
     @Param('id') id: string,
     @Body() updateEditalDto: UpdateEditalDto,
@@ -118,8 +111,6 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   async remove(@Param('id') id: string) {
     return this.editalService.remove(+id);
   }
