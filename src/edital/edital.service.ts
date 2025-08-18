@@ -88,15 +88,22 @@ export class EditalService {
         throw new NotFoundException();
       }
 
-      const result = await this.entityManager.transaction(
+      await this.entityManager.transaction(
         async (transactionalEntityManager) => {
-          Object.assign(edital, updateEditalDto);
-          const updatedEdital = await transactionalEntityManager.save(edital);
-          return updatedEdital;
+          // Remove status_edital do DTO para garantir que não seja atualizado
+          const { ...updateData } = updateEditalDto;
+          
+          // Aplica as atualizações, exceto status_edital
+          Object.assign(edital, updateData);
+          
+          await transactionalEntityManager.save(edital);
         },
       );
 
-      return plainToInstance(EditalResponseDto, result, {
+      // Busca os dados atualizados do banco para garantir que temos todos os dados
+      const updatedEdital = await this.editaisRepository.findOneBy({ id });
+
+      return plainToInstance(EditalResponseDto, updatedEdital, {
         excludeExtraneousValues: true,
       });
     } catch (error) {
