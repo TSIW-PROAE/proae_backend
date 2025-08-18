@@ -8,6 +8,7 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
@@ -18,6 +19,7 @@ import { errorExamples } from '../common/swagger/error-examples';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
+import { UpdateStatusEditalDto } from './dto/update-status-edital.dto';
 import { EditalService } from './edital.service';
 
 @ApiTags('Editais')
@@ -99,6 +101,36 @@ export class EditalController {
     @Body() updateEditalDto: UpdateEditalDto,
   ) {
     return this.editalService.update(+id, updateEditalDto);
+  }
+
+  @Patch(':id/status/:status')
+  @ApiOkResponse({
+    type: EditalResponseDto,
+    description: 'Status do edital atualizado com sucesso',
+  })
+  @ApiNotFoundResponse({
+    description: 'Edital não encontrado',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiBadRequestResponse({
+    description: 'Transição de status inválida ou dados incompletos',
+    schema: { 
+      example: {
+        statusCode: 400,
+        message: 'Para alterar o status para ABERTO ou EM_ANDAMENTO, todos os dados do edital devem estar preenchidos',
+        timestamp: '2025-08-18T03:00:00.000Z'
+      }
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Erro interno do servidor',
+    schema: { example: errorExamples.internalServerError },
+  })
+  async updateStatus(
+    @Param('id') id: string,
+    @Param('status') status: 'RASCUNHO' | 'ABERTO' | 'ENCERRADO' | 'EM_ANDAMENTO',
+  ) {
+    return this.editalService.updateStatusByParam(+id, status);
   }
 
   @Delete(':id')
