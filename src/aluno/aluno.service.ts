@@ -37,7 +37,6 @@ export class AlunoService {
             aluno_id: aluno.aluno_id,
             email: aluno.email,
             matricula: aluno.matricula,
-            pronome: aluno.pronome,
             data_nascimento: aluno.data_nascimento,
             curso: aluno.curso,
             campus: aluno.campus,
@@ -124,7 +123,6 @@ export class AlunoService {
       Object.assign(aluno, {
         email: atualizaDadosAlunoDTO.email || aluno.email,
         matricula: atualizaDadosAlunoDTO.matricula || aluno.matricula,
-        pronome: atualizaDadosAlunoDTO.pronome || aluno.pronome,
         data_nascimento:
           atualizaDadosAlunoDTO.data_nascimento || aluno.data_nascimento,
         curso: atualizaDadosAlunoDTO.curso || aluno.curso,

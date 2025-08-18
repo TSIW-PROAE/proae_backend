@@ -11,12 +11,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { AuthGuard } from '../auth/auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
 import { MinioClientService } from './minio.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('documents')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class MinioClientController {
   constructor(private readonly minioClientService: MinioClientService) {}
 

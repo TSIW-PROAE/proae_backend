@@ -1,7 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { UnidadeEnum } from '../../enum/enumCampus';
-import { CursosEnum } from '../../enum/enumCursos';
-import { PronomesEnum } from '../../enum/enumPronomes';
 import { Inscricao } from '../inscricao/inscricao.entity';
 
 @Entity()
@@ -21,17 +19,11 @@ export class Aluno {
   @Column({ type: 'varchar', length: 100 })
   nome: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  sobrenome: string;
-
-  @Column({ type: 'enum', enum: PronomesEnum })
-  pronome: PronomesEnum;
-
   @Column({ type: 'date' })
   data_nascimento: Date;
 
-  @Column({ type: 'enum', enum: CursosEnum })
-  curso: CursosEnum;
+  @Column({ type: 'varchar', length: 100 })
+  curso: string;
 
   @Column({ type: 'enum', enum: UnidadeEnum })
   campus: UnidadeEnum;

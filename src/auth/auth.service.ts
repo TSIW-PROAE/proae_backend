@@ -24,8 +24,6 @@ export class AuthService {
         'senha_hash',
         'matricula',
         'nome',
-        'sobrenome',
-        'pronome',
         'data_nascimento',
         'curso',
         'campus',
@@ -60,7 +58,6 @@ export class AuthService {
         email: user.email,
         matricula: user.matricula,
         nome: user.nome,
-        sobrenome: user.sobrenome,
       },
     };
   }
@@ -95,8 +92,6 @@ export class AuthService {
         matricula: alunoSignup.matricula,
         senha_hash: senhaHash,
         nome: alunoSignup.nome,
-        sobrenome: alunoSignup.sobrenome,
-        pronome: alunoSignup.pronome,
         data_nascimento: new Date(alunoSignup.data_nascimento),
         curso: alunoSignup.curso,
         campus: alunoSignup.campus,
@@ -171,8 +166,6 @@ export class AuthService {
         'email',
         'matricula',
         'nome',
-        'sobrenome',
-        'pronome',
         'data_nascimento',
         'curso',
         'campus',
@@ -209,7 +202,6 @@ export class AuthService {
         email: user.email,
         matricula: user.matricula,
         nome: user.firstName,
-        sobrenome: user.lastName,
       },
     };
   }
@@ -244,8 +236,6 @@ export class AuthService {
         matricula: completeSignupDto.matricula,
         senha_hash: senhaHash,
         nome: completeSignupDto.nome,
-        sobrenome: completeSignupDto.sobrenome,
-        pronome: completeSignupDto.pronome,
         data_nascimento: new Date(completeSignupDto.data_nascimento),
         curso: completeSignupDto.curso,
         campus: completeSignupDto.campus,
@@ -271,8 +261,6 @@ export class AuthService {
           email: alunoSalvo.email,
           matricula: alunoSalvo.matricula,
           nome: alunoSalvo.nome,
-          sobrenome: alunoSalvo.sobrenome,
-          nomeCompleto: `${alunoSalvo.nome} ${alunoSalvo.sobrenome}`,
         },
         message: 'Cadastro finalizado com sucesso',
       };
@@ -298,8 +286,6 @@ export class AuthService {
           'email',
           'matricula',
           'nome',
-          'sobrenome',
-          'pronome',
           'data_nascimento',
           'curso',
           'campus',
@@ -320,9 +306,6 @@ export class AuthService {
           email: user.email,
           matricula: user.matricula,
           nome: user.nome,
-          sobrenome: user.sobrenome,
-          nomeCompleto: `${user.nome} ${user.sobrenome}`,
-          pronome: user.pronome,
           data_nascimento: user.data_nascimento,
           curso: user.curso,
           campus: user.campus,
@@ -337,6 +320,53 @@ export class AuthService {
           iat: payload.iat,
           exp: payload.exp,
         },
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
+    }
+  }
+
+  async findValidatedUser(userId: number) {
+    try {
+      // Buscar informações do usuário no banco
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+        select: [
+          'aluno_id',
+          'email',
+          'matricula',
+          'nome',
+          'data_nascimento',
+          'curso',
+          'campus',
+          'cpf',
+          'data_ingresso',
+          'celular',
+        ],
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      return {
+        valid: true,
+        user: {
+          aluno_id: user.aluno_id,
+          email: user.email,
+          matricula: user.matricula,
+          nome: user.nome,
+          data_nascimento: user.data_nascimento,
+          curso: user.curso,
+          campus: user.campus,
+          cpf: user.cpf,
+          data_ingresso: user.data_ingresso,
+          celular: user.celular,
+        },
+        message: 'Token válido',
       };
     } catch (error) {
       return {
