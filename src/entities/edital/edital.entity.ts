@@ -34,10 +34,10 @@ export class Edital extends AbstractEntity<Edital> {
     data_fim: Date;
   }[];
 
-  @OneToMany(() => Vagas, (vagas) => vagas.edital)
+  @OneToMany(() => Vagas, (vagas) => vagas.edital, { cascade: true })
   vagas: Vagas[];
 
-  @OneToMany(() => Step, (step) => step.edital)
+  @OneToMany(() => Step, (step) => step.edital, { cascade: true })
   steps: Step[];
 
   constructor(entity: Partial<Edital>) {

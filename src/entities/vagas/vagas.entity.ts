@@ -17,7 +17,7 @@ export class Vagas extends AbstractEntity<Vagas> {
   @ManyToOne(() => Edital, (edital) => edital.vagas)
   edital: Edital;
 
-  @OneToMany(() => Inscricao, (inscricao) => inscricao.vagas)
+  @OneToMany(() => Inscricao, (inscricao) => inscricao.vagas, { cascade: true })
   inscricoes: Inscricao[];
 
   constructor(entity: Partial<Vagas>) {

@@ -33,6 +33,7 @@ export class Documento {
 
   @OneToMany(() => Validacao, (validacao) => validacao.documento, {
     nullable: true,
+    cascade: true,
   })
   validacoes: Validacao[];
 

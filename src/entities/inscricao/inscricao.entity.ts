@@ -24,6 +24,7 @@ export class Inscricao extends AbstractEntity<Inscricao> {
 
   @OneToMany(() => Documento, (documento) => documento.inscricao, {
     nullable: true,
+    cascade: true,
   })
   documentos: Documento[];
 
@@ -36,7 +37,7 @@ export class Inscricao extends AbstractEntity<Inscricao> {
   @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
   aluno: Aluno;
 
-  @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao)
+  @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao, { cascade: true })
   beneficio: Beneficio;
 
   constructor(entity: Partial<Inscricao>) {
