@@ -107,7 +107,7 @@ export class InscricaoService {
 
       const inscricao = new Inscricao({
         aluno: alunoExists,
-        edital: editalExiste,
+        // TODO: Vincular com vagas ao invés de edital diretamente
         respostas,
       });
 
@@ -117,7 +117,8 @@ export class InscricaoService {
           const inscricaoSalva =
             await transactionalEntityManager.save(inscricao);
 
-          // Cria documentos apenas se houver tipos de documentos definidos
+          // TODO: Recriar lógica de documentos após implementar relacionamento com vagas
+          /*
           if (
             editalExiste.tipo_documentos &&
             editalExiste.tipo_documentos.length > 0
@@ -130,6 +131,7 @@ export class InscricaoService {
               await transactionalEntityManager.save(documento);
             }
           }
+          */
 
           return inscricaoSalva;
         },
@@ -330,13 +332,13 @@ export class InscricaoService {
             status_documento: StatusDocumento.PENDENTE,
           },
         },
-        relations: ['edital', 'documentos', 'documentos.validacoes'],
+        relations: ['documentos', 'documentos.validacoes'],
       });
 
       return inscricoes
         .map((inscricao) => ({
-          titulo_edital: inscricao.edital.titulo_edital,
-          tipo_edital: [inscricao.edital.tipo_edital],
+          titulo_edital: 'TODO: Buscar via vagas',
+          tipo_edital: ['TODO: Buscar via vagas'],
           documentos: inscricao.documentos
             .filter(
               (documento) =>

@@ -8,7 +8,7 @@ import { CreateEditalDto } from './dto/create-edital.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EtapaEdital } from 'src/entities/etapaEdital/etapaEdital.entity';
+
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { plainToInstance } from 'class-transformer';
@@ -24,29 +24,13 @@ export class EditalService {
 
   async create(createEditalDto: CreateEditalDto): Promise<EditalResponseDto> {
     try {
-      const result = await this.entityManager.transaction(
-        async (transactionalEntityManager) => {
-          const edital = new Edital({
-            ...createEditalDto,
-            etapas: [],
-          });
+      const edital = new Edital({
+        ...createEditalDto,
+      });
 
-          const savedEdital = await transactionalEntityManager.save(edital);
+      const savedEdital = await this.editaisRepository.save(edital);
 
-          const etapas = createEditalDto.etapas.map((etapaDto) => {
-            const etapa = new EtapaEdital(etapaDto);
-            etapa.edital = savedEdital;
-            return etapa;
-          });
-
-          const savedEtapas = await transactionalEntityManager.save(etapas);
-
-          savedEdital.etapas = savedEtapas;
-
-          return savedEdital;
-        },
-      );
-      return plainToInstance(EditalResponseDto, result, {
+      return plainToInstance(EditalResponseDto, savedEdital, {
         excludeExtraneousValues: true,
       });
     } catch (error) {
@@ -57,14 +41,7 @@ export class EditalService {
 
   async findAll(): Promise<EditalResponseDto[]> {
     try {
-      const editais = await this.editaisRepository.find({
-        relations: {
-          etapas: true,
-        },
-        order: {
-          etapas: { ordem: 'ASC' },
-        },
-      });
+      const editais = await this.editaisRepository.find();
       return plainToInstance(EditalResponseDto, editais, {
         excludeExtraneousValues: true,
       });
@@ -78,12 +55,6 @@ export class EditalService {
     try {
       const edital = await this.editaisRepository.findOne({
         where: { id },
-        relations: {
-          etapas: true,
-        },
-        order: {
-          etapas: { ordem: 'ASC' },
-        },
       });
 
       if (!edital) {
@@ -135,32 +106,17 @@ export class EditalService {
 
   async remove(id: number): Promise<{ message: string }> {
     try {
-      const result = await this.entityManager.transaction(
-        async (transactionalEntityManager) => {
-          const edital = await transactionalEntityManager.findOne(Edital, {
-            where: { id },
-            relations: {
-              etapas: true,
-            },
-          });
+      const edital = await this.editaisRepository.findOne({
+        where: { id },
+      });
 
-          if (!edital) {
-            throw new NotFoundException();
-          }
+      if (!edital) {
+        throw new NotFoundException();
+      }
 
-          // Exclui as etapas associadas ao edital
-          await transactionalEntityManager.delete(EtapaEdital, {
-            edital: { id },
-          });
+      await this.editaisRepository.delete({ id });
 
-          // Exclui o edital
-          await transactionalEntityManager.delete(Edital, { id });
-
-          return { message: 'Edital removido com sucesso' };
-        },
-      );
-
-      return result;
+      return { message: 'Edital removido com sucesso' };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -174,12 +130,6 @@ export class EditalService {
     try {
       const editais = await this.editaisRepository.find({
         where: { status_edital: StatusEdital.ABERTO },
-        relations: {
-          etapas: true,
-        },
-        order: {
-          etapas: { ordem: 'ASC' },
-        },
       });
       return plainToInstance(EditalResponseDto, editais, {
         excludeExtraneousValues: true,

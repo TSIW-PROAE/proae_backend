@@ -21,11 +21,22 @@ export class CreateEditalDto {
   @IsString()
   descricao: string;
 
-  @ApiProperty({ type: [String], description: 'URL dos documentos do edital' })
-  @IsNotEmpty()
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        titulo_documento: { type: 'string' },
+        url_documento: { type: 'string' },
+      },
+    },
+    description: 'URLs dos documentos do edital',
+  })
   @IsArray()
-  @IsString({ each: true })
-  edital_url: string;
+  edital_url?: {
+    titulo_documento: string;
+    url_documento: string;
+  }[];
 
   @ApiProperty({ description: 'Título do edital' })
   @IsNotEmpty()

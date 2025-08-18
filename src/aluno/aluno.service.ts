@@ -178,9 +178,6 @@ export class AlunoService {
         where: { aluno_id: userId },
         relations: {
           inscricoes: {
-            edital: {
-              etapas: true,
-            },
             documentos: true,
           },
         },
@@ -197,8 +194,12 @@ export class AlunoService {
       }
 
       return aluno.inscricoes.map((inscricao: Inscricao) => {
-        const edital = inscricao.edital;
+        // TODO: Buscar edital via vagas
+        // const edital = inscricao.edital;
 
+        // TODO: Reimplementar após conectar com vagas
+        const possuiPendencias = false;
+        /*
         const possuiPendencias =
           (edital.status_edital === StatusEdital.ABERTO ||
             edital.status_edital === StatusEdital.EM_ANDAMENTO) &&
@@ -208,17 +209,18 @@ export class AlunoService {
               doc.status_documento !== StatusDocumento.APROVADO &&
               doc.status_documento !== StatusDocumento.REPROVADO,
           );
+        */
 
         // const possuiPendencias =
         //   edital.status_edital === StatusEdital.EM_ANDAMENTO &&
         //   (!inscricao.documentos || inscricao.documentos.length === 0);
 
         return {
-          edital_id: edital.id,
+          edital_id: 0, // TODO: Buscar via vagas
           inscricao_id: inscricao.id,
-          titulo_edital: edital.titulo_edital,
-          status_edital: edital.status_edital,
-          etapas_edital: edital.etapas,
+          titulo_edital: 'TODO: Buscar via vagas',
+          status_edital: 'TODO: Buscar via vagas',
+          etapas_edital: [], // TODO: Buscar via vagas
           status_inscricao: inscricao.status_inscricao,
           possui_pendencias: possuiPendencias,
         };

@@ -12,13 +12,16 @@ export class Edital extends AbstractEntity<Edital> {
   @Column({ type: 'text', nullable: true })
   descricao?: string;
 
-  @Column({ type: 'text', nullable: true })
-  edital_url?: string;
+  @Column({ type: 'json', nullable: true })
+  edital_url?: {
+    titulo_documento: string;
+    url_documento: string;
+  }[];
 
   @Column({
     type: 'enum',
     enum: StatusEdital,
-    default: StatusEdital.RASCUNHO,
+    //default: StatusEdital.RASCUNHO,
     nullable: true,
   })
   status_edital: StatusEdital;
