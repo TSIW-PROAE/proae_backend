@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { QueryFailedError, type Repository } from 'typeorm';
@@ -6,6 +10,9 @@ import * as bcrypt from 'bcrypt';
 import * as cpf from 'validation-br/dist/cpf';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { SignupDto } from './dto/signup.dto';
+import { EmailService } from '../email/email.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +20,7 @@ export class AuthService {
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -50,9 +58,9 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: '1h',
-    }),
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1h',
+      }),
       user: {
         aluno_id: user.aluno_id,
         email: user.email,
@@ -155,6 +163,93 @@ export class AuthService {
     } catch (e) {
       console.error(e);
       throw new BadRequestException('Erro ao atualizar a senha');
+    }
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    try {
+      const user = await this.findUserByEmail(forgotPasswordDto.email);
+      if (!user) {
+        throw new BadRequestException('Email não encontrado');
+      }
+
+      const now = new Date();
+
+      if (
+        user.lastPasswordResetRequest &&
+        new Date().getTime() - user.lastPasswordResetRequest.getTime() < 30_000
+      ) {
+        throw new BadRequestException(
+          'Você já solicitou recuperação de senha. Tente novamente em alguns segundos.',
+        );
+      }
+
+      const payload = {
+        email: user.email,
+      };
+
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '5m',
+      });
+
+      user.passwordResetToken = token;
+      user.passwordResetTokenExpires = new Date(Date.now() + 5 * 60 * 1000);
+      user.lastPasswordResetRequest = now;
+
+      await this.alunoRepository.save(user);
+      await this.emailService.sendPasswordRecovery(user.email, token);
+
+      return {
+        sucesso: true,
+        mensagem: 'Email de recuperação enviado',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(
+        'Erro ao enviar o email de recuperação de senha.',
+      );
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword, confirmPassword } = resetPasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('As senhas não coincidem');
+    }
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const user = await this.alunoRepository.findOne({
+        where: { email: payload.email },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      user.senha_hash = hashedPassword;
+      user.passwordResetToken = null;
+      user.passwordResetTokenExpires = null;
+
+      await this.alunoRepository.update(
+        { aluno_id: user.aluno_id },
+        { senha_hash: hashedPassword },
+      );
+
+      return {
+        sucesso: true,
+        mensagem: 'Senha alterada com sucesso',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new UnauthorizedException('Token inválido ou expirado');
     }
   }
 
@@ -375,4 +470,7 @@ export class AuthService {
       };
     }
   }
+}
+function findUserByEmail(email: any, string: any) {
+  throw new Error('Function not implemented.');
 }

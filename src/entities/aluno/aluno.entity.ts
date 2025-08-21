@@ -37,6 +37,15 @@ export class Aluno {
   @Column()
   celular: string;
 
+  @Column({ type: 'timestamp', nullable: true })
+  lastPasswordResetRequest: Date;
+
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetToken: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  passwordResetTokenExpires: Date | null;
+
   @OneToMany(() => Inscricao, (inscricao) => inscricao.aluno)
   inscricoes: Inscricao[];
 }

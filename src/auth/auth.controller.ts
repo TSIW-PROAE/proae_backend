@@ -26,6 +26,8 @@ import { UpdatePasswordDto } from './dto/updatepassword.dto';
 import { CompleteGoogleSignupDto } from './dto/complete-google-signup.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -102,6 +104,26 @@ export class AuthController {
   ) {
     const { userId } = request.user;
     return this.authService.updatePassword(userId, body.senha);
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Solicitar link de recuperação de senha' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email de recuperação enviado com sucesso',
+  })
+  @ApiResponse({ status: 400, description: 'Email não encontrado' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Resetar a senha usando token' })
+  @ApiResponse({ status: 200, description: 'Senha alterada com sucesso' })
+  @ApiResponse({ status: 401, description: 'Token inválido ou expirado' })
+  @ApiResponse({ status: 400, description: 'Usuário não encontrado' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @Get('google')
