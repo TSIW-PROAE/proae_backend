@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { QueryFailedError, type Repository } from 'typeorm';
@@ -6,6 +10,9 @@ import * as bcrypt from 'bcrypt';
 import * as cpf from 'validation-br/dist/cpf';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { SignupDto } from './dto/signup.dto';
+import { EmailService } from '../email/email.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +20,7 @@ export class AuthService {
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -24,8 +32,6 @@ export class AuthService {
         'senha_hash',
         'matricula',
         'nome',
-        'sobrenome',
-        'pronome',
         'data_nascimento',
         'curso',
         'campus',
@@ -52,15 +58,14 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: '1h',
-    }),
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1h',
+      }),
       user: {
         aluno_id: user.aluno_id,
         email: user.email,
         matricula: user.matricula,
         nome: user.nome,
-        sobrenome: user.sobrenome,
       },
     };
   }
@@ -95,8 +100,6 @@ export class AuthService {
         matricula: alunoSignup.matricula,
         senha_hash: senhaHash,
         nome: alunoSignup.nome,
-        sobrenome: alunoSignup.sobrenome,
-        pronome: alunoSignup.pronome,
         data_nascimento: new Date(alunoSignup.data_nascimento),
         curso: alunoSignup.curso,
         campus: alunoSignup.campus,
@@ -163,6 +166,93 @@ export class AuthService {
     }
   }
 
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    try {
+      const user = await this.findUserByEmail(forgotPasswordDto.email);
+      if (!user) {
+        throw new BadRequestException('Email não encontrado');
+      }
+
+      const now = new Date();
+
+      if (
+        user.lastPasswordResetRequest &&
+        new Date().getTime() - user.lastPasswordResetRequest.getTime() < 30_000
+      ) {
+        throw new BadRequestException(
+          'Você já solicitou recuperação de senha. Tente novamente em alguns segundos.',
+        );
+      }
+
+      const payload = {
+        email: user.email,
+      };
+
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '5m',
+      });
+
+      user.passwordResetToken = token;
+      user.passwordResetTokenExpires = new Date(Date.now() + 5 * 60 * 1000);
+      user.lastPasswordResetRequest = now;
+
+      await this.alunoRepository.save(user);
+      await this.emailService.sendPasswordRecovery(user.email, token);
+
+      return {
+        sucesso: true,
+        mensagem: 'Email de recuperação enviado',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(
+        'Erro ao enviar o email de recuperação de senha.',
+      );
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword, confirmPassword } = resetPasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('As senhas não coincidem');
+    }
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const user = await this.alunoRepository.findOne({
+        where: { email: payload.email },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      user.senha_hash = hashedPassword;
+      user.passwordResetToken = null;
+      user.passwordResetTokenExpires = null;
+
+      await this.alunoRepository.update(
+        { aluno_id: user.aluno_id },
+        { senha_hash: hashedPassword },
+      );
+
+      return {
+        sucesso: true,
+        mensagem: 'Senha alterada com sucesso',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
+  }
+
   async findUserByEmail(email: string): Promise<Aluno | null> {
     return await this.alunoRepository.findOne({
       where: { email },
@@ -171,8 +261,6 @@ export class AuthService {
         'email',
         'matricula',
         'nome',
-        'sobrenome',
-        'pronome',
         'data_nascimento',
         'curso',
         'campus',
@@ -209,7 +297,6 @@ export class AuthService {
         email: user.email,
         matricula: user.matricula,
         nome: user.firstName,
-        sobrenome: user.lastName,
       },
     };
   }
@@ -244,8 +331,6 @@ export class AuthService {
         matricula: completeSignupDto.matricula,
         senha_hash: senhaHash,
         nome: completeSignupDto.nome,
-        sobrenome: completeSignupDto.sobrenome,
-        pronome: completeSignupDto.pronome,
         data_nascimento: new Date(completeSignupDto.data_nascimento),
         curso: completeSignupDto.curso,
         campus: completeSignupDto.campus,
@@ -271,8 +356,6 @@ export class AuthService {
           email: alunoSalvo.email,
           matricula: alunoSalvo.matricula,
           nome: alunoSalvo.nome,
-          sobrenome: alunoSalvo.sobrenome,
-          nomeCompleto: `${alunoSalvo.nome} ${alunoSalvo.sobrenome}`,
         },
         message: 'Cadastro finalizado com sucesso',
       };
@@ -298,8 +381,6 @@ export class AuthService {
           'email',
           'matricula',
           'nome',
-          'sobrenome',
-          'pronome',
           'data_nascimento',
           'curso',
           'campus',
@@ -320,9 +401,6 @@ export class AuthService {
           email: user.email,
           matricula: user.matricula,
           nome: user.nome,
-          sobrenome: user.sobrenome,
-          nomeCompleto: `${user.nome} ${user.sobrenome}`,
-          pronome: user.pronome,
           data_nascimento: user.data_nascimento,
           curso: user.curso,
           campus: user.campus,
@@ -345,4 +423,54 @@ export class AuthService {
       };
     }
   }
+
+  async findValidatedUser(userId: number) {
+    try {
+      // Buscar informações do usuário no banco
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+        select: [
+          'aluno_id',
+          'email',
+          'matricula',
+          'nome',
+          'data_nascimento',
+          'curso',
+          'campus',
+          'cpf',
+          'data_ingresso',
+          'celular',
+        ],
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      return {
+        valid: true,
+        user: {
+          aluno_id: user.aluno_id,
+          email: user.email,
+          matricula: user.matricula,
+          nome: user.nome,
+          data_nascimento: user.data_nascimento,
+          curso: user.curso,
+          campus: user.campus,
+          cpf: user.cpf,
+          data_ingresso: user.data_ingresso,
+          celular: user.celular,
+        },
+        message: 'Token válido',
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
+    }
+  }
+}
+function findUserByEmail(email: any, string: any) {
+  throw new Error('Function not implemented.');
 }

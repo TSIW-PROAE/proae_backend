@@ -15,12 +15,12 @@ import {
 } from '@nestjs/swagger';
 import { StepResponseDto } from './dto/response-step.dto';
 import { StepService } from './step.service';
-import { AuthGuard } from '@/src/auth/auth.guard';
 import { errorExamples } from '@/src/common/swagger/error-examples';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Steps')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('steps')
 export class StepController {
   constructor(private readonly stepService: StepService) {}

@@ -1,11 +1,15 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Configuração do cookie parser
+  app.use(cookieParser());
 
   // Configuração do CORS
   app.enableCors({
@@ -27,6 +31,7 @@ async function bootstrap() {
       .setTitle('API de Inscrição')
       .setDescription('A Documentação da API do sistema proae.')
       .setVersion('1.0')
+      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
