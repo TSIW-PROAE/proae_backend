@@ -149,9 +149,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Redireciona para login via Google' })
-  async googleAuth(@Req() req) {
-    // Redireciona automaticamente para Google OAuth
-  }
+  async googleAuth(@Req() req) {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
