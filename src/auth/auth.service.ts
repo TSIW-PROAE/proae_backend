@@ -70,7 +70,7 @@ export class AuthService {
     };
   }
 
-  logout() {
+  async logout() {
     return {
       sucesso: true,
       mensagem: 'Logout realizado com sucesso',

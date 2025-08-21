@@ -80,6 +80,21 @@ export class AuthController {
       },
     },
   })
+  @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
+  async login(@Request() req, @Response() res) {
+    const result = await this.authService.login(req.user);
+    res.cookie('token', result.access_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+      maxAge: 3600000, // 1 hora
+    });
+    return res.status(200).json({
+      success: true,
+      user: result.user,
+    });
+  }
+
   @Post('logout')
   @ApiOperation({ summary: 'Logout do usuário' })
   @ApiResponse({
@@ -94,22 +109,6 @@ export class AuthController {
     });
 
     return this.authService.logout();
-  }
-
-  @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
-  async login(@Request() req, @Response() res) {
-    const result = await this.authService.login(req.user);
-
-    res.cookie('token', result.access_token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'Strict',
-      maxAge: 3600000, // 1 hora
-    });
-    return res.status(200).json({
-      success: true,
-      user: result.user,
-    });
   }
 
   @ApiBearerAuth()
