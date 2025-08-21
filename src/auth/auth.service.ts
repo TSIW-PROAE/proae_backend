@@ -70,6 +70,13 @@ export class AuthService {
     };
   }
 
+  logout() {
+    return {
+      sucesso: true,
+      mensagem: 'Logout realizado com sucesso',
+    };
+  }
+
   async signup(alunoSignup: SignupDto) {
     try {
       // Verificar se email já existe

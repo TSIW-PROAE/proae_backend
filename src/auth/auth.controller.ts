@@ -36,22 +36,26 @@ export class AuthController {
 
   @Post('signup')
   @ApiOperation({ summary: 'Cadastro com email institucional' })
-  @ApiResponse({ status: 201, description: 'Usuário cadastrado com sucesso', example: {
-        sucesso: true,
-        mensagem: 'Cadastro realizado com sucesso',
-        aluno: {
-          aluno_id: 1,
-          email: "aluno@ufba.br",
-          matricula: "202301234",
-          nome: "João Pereira da Silva",
-          data_nascimento: "2000-01-01T00:00:00.000Z",
-          curso: "Ciência da Computação",
-          campus: "Vitória da Conquista",
-          cpf: "123.456.789-09",
-          data_ingresso: "2023-01-01",
-          celular: "+5584999999999"
-        }
-   } })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuário cadastrado com sucesso',
+    example: {
+      sucesso: true,
+      mensagem: 'Cadastro realizado com sucesso',
+      aluno: {
+        aluno_id: 1,
+        email: 'aluno@ufba.br',
+        matricula: '202301234',
+        nome: 'João Pereira da Silva',
+        data_nascimento: '2000-01-01T00:00:00.000Z',
+        curso: 'Ciência da Computação',
+        campus: 'Vitória da Conquista',
+        cpf: '123.456.789-09',
+        data_ingresso: '2023-01-01',
+        celular: '+5584999999999',
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Erro de validação' })
   async signup(@Body() body: SignupDto) {
     return this.authService.signup(body);
@@ -76,10 +80,26 @@ export class AuthController {
       },
     },
   })
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout realizado com sucesso. Cookie foi limpo no servidor.',
+  })
+  async logout(@Res({ passthrough: true }) res) {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+    });
+
+    return this.authService.logout();
+  }
+
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
   async login(@Request() req, @Response() res) {
     const result = await this.authService.login(req.user);
-    
+
     res.cookie('token', result.access_token, {
       httpOnly: true,
       secure: true,
