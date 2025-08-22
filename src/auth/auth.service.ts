@@ -79,7 +79,6 @@ export class AuthService {
 
   async signup(alunoSignup: SignupDto) {
     try {
-      // Verificar se email já existe
       const existingEmail = await this.alunoRepository.findOne({
         where: { email: alunoSignup.email },
       });
