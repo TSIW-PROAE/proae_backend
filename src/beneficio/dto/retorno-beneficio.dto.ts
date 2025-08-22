@@ -6,7 +6,7 @@ import { StatusBeneficio } from 'src/enum/enumStatusBeneficio';
 export class ReturnBeneficioDto {
   @ApiProperty()
   @IsNotEmpty()
-  titulo_beneficio: EditalEnum;
+  titulo_beneficio: string; // Temporariamente mudado de EditalEnum para string
 
   @ApiProperty()
   @IsNotEmpty()

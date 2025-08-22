@@ -41,7 +41,6 @@ export class BeneficioService {
         relations: {
           inscricoes: {
             beneficio: true,
-            edital: true,
           },
         },
       });
@@ -53,8 +52,9 @@ export class BeneficioService {
       const beneficios: ReturnBeneficioDto[] = [];
 
       for (const inscricao of aluno.inscricoes) {
-        const editalEncerrado =
-          inscricao.edital?.status_edital === StatusEdital.ENCERRADO;
+        // TODO: Buscar status via vagas
+        const editalEncerrado = false;
+        // inscricao.edital?.status_edital === StatusEdital.ENCERRADO;
         const inscricaoAprovada =
           inscricao.status_inscricao === StatusInscricao.APROVADA;
 
@@ -72,7 +72,7 @@ export class BeneficioService {
           }
 
           beneficios.push({
-            titulo_beneficio: inscricao.edital.tipo_edital,
+            titulo_beneficio: 'TODO: Buscar via vagas', // inscricao.edital.tipo_edital,
             data_inicio: inscricao.beneficio.data_inicio,
             beneficio: inscricao.beneficio.status_beneficio,
           });

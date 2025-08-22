@@ -11,7 +11,7 @@ export class Step extends AbstractEntity<Step> {
   @Column({ type: 'varchar', length: 255 })
   texto: string;
 
-  @OneToMany(() => Pergunta, (pergunta) => pergunta.step)
+  @OneToMany(() => Pergunta, (pergunta) => pergunta.step, { cascade: true })
   perguntas: Pergunta[];
 
   constructor(entity: Partial<Step>) {

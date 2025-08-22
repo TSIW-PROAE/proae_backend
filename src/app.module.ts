@@ -9,7 +9,9 @@ import { DocumentoModule } from './documentos/documentos.module';
 import { EditalModule } from './edital/edital.module';
 import { InscricaoModule } from './inscricao/inscricao.module';
 import { MinioClientModule } from './minio/minio-client.module';
+import { PerguntaModule } from './pergunta/pergunta.module';
 import { StepModule } from './step/step.module';
+import { VagasModule } from './vagas/vagas.module';
 import { ValidacaoModule } from './validacao/validacao.module';
 
 @Module({
@@ -25,6 +27,8 @@ import { ValidacaoModule } from './validacao/validacao.module';
     ValidacaoModule,
     BeneficioModule,
     StepModule,
+    PerguntaModule,
+    VagasModule,
   ],
 })
 export class AppModule {}
