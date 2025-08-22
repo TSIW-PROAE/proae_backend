@@ -79,7 +79,6 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
   async login(@Request() req, @Response() res) {
     const result = await this.authService.login(req.user);
-    
     res.cookie('token', result.access_token, {
       httpOnly: true,
       secure: true,
@@ -90,6 +89,22 @@ export class AuthController {
       success: true,
       user: result.user,
     });
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout realizado com sucesso. Cookie foi limpo no servidor.',
+  })
+  async logout(@Res({ passthrough: true }) res) {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+    });
+
+    return this.authService.logout();
   }
 
   @ApiBearerAuth()
@@ -129,9 +144,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Redireciona para login via Google' })
-  async googleAuth(@Req() req) {
-    // Redireciona automaticamente para Google OAuth
-  }
+  async googleAuth(@Req() req) {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
