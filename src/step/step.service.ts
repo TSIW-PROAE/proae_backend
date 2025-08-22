@@ -33,9 +33,9 @@ export class StepService {
         },
       });
 
-      if (!steps || steps.length === 0) {
-        throw new NotFoundException('Nenhum step encontrado para este edital');
-      }
+      // if (!steps || steps.length === 0) {
+      //   throw new NotFoundException('Nenhum step encontrado para este edital');
+      // }
 
       // Transform steps and their perguntas
       return steps.map((step) => {
@@ -76,9 +76,9 @@ export class StepService {
         where: { edital: { id } },
       });
 
-      if (!steps || steps.length === 0) {
-        throw new NotFoundException('Nenhum step encontrado para este edital');
-      }
+      // if (!steps || steps.length === 0) {
+      //   throw new NotFoundException('Nenhum step encontrado para este edital');
+      // }
 
       return plainToInstance(StepSimpleResponseDto, steps, {
         excludeExtraneousValues: true,

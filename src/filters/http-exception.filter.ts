@@ -40,7 +40,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
           : [responseObj.message];
         details = responseObj;
       } else {
-        message = this.errorMessages[status] || exception.message;
+        // Prioriza a mensagem customizada da exceção, se disponível
+        if (typeof exceptionResponse === 'string') {
+          message = exceptionResponse;
+        } else if (
+          typeof exceptionResponse === 'object' &&
+          'message' in exceptionResponse
+        ) {
+          message = (exceptionResponse as any).message;
+        } else {
+          // Usa mensagem padrão apenas se não houver mensagem customizada
+          message = this.errorMessages[status] || exception.message;
+        }
       }
     }
 

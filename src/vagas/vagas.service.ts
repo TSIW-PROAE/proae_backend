@@ -57,10 +57,12 @@ export class VagasService {
       const vagas = await this.vagasRepository.find({
         where: { edital: { id: editalId } },
       });
-
-      if (!vagas || vagas.length === 0) {
-        throw new NotFoundException(`Nenhuma vaga encontrada para o edital com ID ${editalId}. Verifique se o edital existe e possui vagas cadastradas.`);
-      }
+      //console.log(vagas)
+      
+      // if (!vagas || vagas.length === 0) {
+      //   console.log("foi")
+      //   throw new NotFoundException(`Nenhuma vaga encontrada para o edital com ID ${editalId}. Verifique se o edital existe e possui vagas cadastradas.`);
+      // }
 
       return plainToInstance(VagaResponseDto, vagas, {
         excludeExtraneousValues: true,

@@ -94,10 +94,10 @@ export class EditalService {
         async (transactionalEntityManager) => {
           // Remove status_edital do DTO para garantir que não seja atualizado
           const { ...updateData } = updateEditalDto;
-          
+
           // Aplica as atualizações, exceto status_edital
           Object.assign(edital, updateData);
-          
+
           await transactionalEntityManager.save(edital);
         },
       );
@@ -118,24 +118,68 @@ export class EditalService {
   }
 
   async remove(id: number): Promise<{ message: string }> {
+    console.log('🔥 MÉTODO REMOVE ATUALIZADO - ID:', id);
     try {
       const edital = await this.editaisRepository.findOne({
         where: { id },
+        relations: ['vagas', 'vagas.inscricoes', 'steps'],
       });
 
       if (!edital) {
-        throw new NotFoundException();
+        throw new NotFoundException('Edital não encontrado');
       }
 
-      await this.editaisRepository.delete({ id });
+      console.log('📊 Edital encontrado:', {
+        id: edital.id,
+        titulo: edital.titulo_edital,
+        quantidadeVagas: edital.vagas?.length || 0,
+      });
+
+      // Verifica se há vagas com inscrições associadas
+      if (edital.vagas && edital.vagas.length > 0) {
+        const hasInscricoes = edital.vagas.some(
+          (vaga) => vaga.inscricoes && vaga.inscricoes.length > 0,
+        );
+
+        if (hasInscricoes) {
+          throw new BadRequestException(
+            'Não é possível excluir o edital pois existem inscrições vinculadas às vagas',
+          );
+        }
+
+        console.log('🗑️ Removendo vagas primeiro...');
+      }
+
+      // Remove em transação para garantir consistência
+      await this.entityManager.transaction(
+        async (transactionalEntityManager) => {
+          // Remove as vagas manualmente primeiro (se existirem)
+          if (edital.vagas && edital.vagas.length > 0) {
+            await transactionalEntityManager.remove(edital.vagas);
+          }
+
+          // Remove os steps manualmente (se existirem)
+          if (edital.steps && edital.steps.length > 0) {
+            await transactionalEntityManager.remove(edital.steps);
+          }
+
+          // Agora remove o edital
+          await transactionalEntityManager.remove(edital);
+        },
+      );
 
       return { message: 'Edital removido com sucesso' };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       console.error('Falha ao excluir edital:', error);
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException(
+        'Erro interno ao excluir o edital',
+      );
     }
   }
 
@@ -166,16 +210,18 @@ export class EditalService {
 
       // Mapeamento do parâmetro para o enum
       const statusMapping: Record<string, StatusEdital> = {
-        'RASCUNHO': StatusEdital.RASCUNHO,
-        'ABERTO': StatusEdital.ABERTO,
-        'ENCERRADO': StatusEdital.ENCERRADO,
-        'EM_ANDAMENTO': StatusEdital.EM_ANDAMENTO,
+        RASCUNHO: StatusEdital.RASCUNHO,
+        ABERTO: StatusEdital.ABERTO,
+        ENCERRADO: StatusEdital.ENCERRADO,
+        EM_ANDAMENTO: StatusEdital.EM_ANDAMENTO,
       };
 
       const novoStatus = statusMapping[statusParam];
-      
+
       if (!novoStatus) {
-        throw new BadRequestException('Status inválido. Use: RASCUNHO, ABERTO, ENCERRADO ou EM_ANDAMENTO');
+        throw new BadRequestException(
+          'Status inválido. Use: RASCUNHO, ABERTO, ENCERRADO ou EM_ANDAMENTO',
+        );
       }
 
       const statusAtual = edital.status_edital;
@@ -198,7 +244,10 @@ export class EditalService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       console.error('Erro ao atualizar status do edital:', error);
@@ -238,7 +287,10 @@ export class EditalService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       console.error('Erro ao atualizar status do edital:', error);
@@ -252,19 +304,25 @@ export class EditalService {
     novoStatus: StatusEdital,
   ): Promise<void> {
     // Validação para ABERTO ou EM_ANDAMENTO: todos os dados devem estar preenchidos
-    if (novoStatus === StatusEdital.ABERTO || novoStatus === StatusEdital.EM_ANDAMENTO) {
+    if (
+      novoStatus === StatusEdital.ABERTO ||
+      novoStatus === StatusEdital.EM_ANDAMENTO
+    ) {
       if (!this.isEditalComplete(edital)) {
         throw new BadRequestException(
-          'Para alterar o status para ABERTO ou EM_ANDAMENTO, todos os dados do edital devem estar preenchidos'
+          'Para alterar o status para ABERTO ou EM_ANDAMENTO, todos os dados do edital devem estar preenchidos',
         );
       }
     }
 
     // Validação para ENCERRADO: deve estar ABERTO ou EM_ANDAMENTO
     if (novoStatus === StatusEdital.ENCERRADO) {
-      if (statusAtual !== StatusEdital.ABERTO && statusAtual !== StatusEdital.EM_ANDAMENTO) {
+      if (
+        statusAtual !== StatusEdital.ABERTO &&
+        statusAtual !== StatusEdital.EM_ANDAMENTO
+      ) {
         throw new BadRequestException(
-          'Só é possível alterar para ENCERRADO se o edital estiver ABERTO ou EM_ANDAMENTO'
+          'Só é possível alterar para ENCERRADO se o edital estiver ABERTO ou EM_ANDAMENTO',
         );
       }
     }
@@ -275,8 +333,10 @@ export class EditalService {
     return !!(
       edital.titulo_edital &&
       edital.descricao &&
-      edital.edital_url && edital.edital_url.length > 0 &&
-      edital.etapa_edital && edital.etapa_edital.length > 0
+      edital.edital_url &&
+      edital.edital_url.length > 0 &&
+      edital.etapa_edital &&
+      edital.etapa_edital.length > 0
     );
   }
 }
