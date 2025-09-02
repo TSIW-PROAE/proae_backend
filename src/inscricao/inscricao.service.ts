@@ -9,7 +9,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { Documento } from '../entities/documento/documento.entity';
 import { Edital } from '../entities/edital/edital.entity';
-import { Pergunta } from '../entities/edital/pergunta.entity';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Resposta } from '../entities/inscricao/resposta.entity';
 import { StatusEdital } from '../enum/enumStatusEdital';

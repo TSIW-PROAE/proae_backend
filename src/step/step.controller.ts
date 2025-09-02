@@ -47,7 +47,9 @@ export class StepController {
   }
 
   @Get('edital/:id/with-perguntas')
-  @ApiOperation({ summary: 'Buscar steps com perguntas de um edital específico' })
+  @ApiOperation({
+    summary: 'Buscar steps com perguntas de um edital específico',
+  })
   @ApiOkResponse({
     type: [StepResponseDto],
     description: 'Steps com perguntas encontrados com sucesso',
@@ -67,7 +69,9 @@ export class StepController {
   }
 
   @Get('edital/:id')
-  @ApiOperation({ summary: 'Buscar apenas steps (sem perguntas) de um edital específico' })
+  @ApiOperation({
+    summary: 'Buscar apenas steps (sem perguntas) de um edital específico',
+  })
   @ApiOkResponse({
     type: [StepSimpleResponseDto],
     description: 'Steps encontrados com sucesso',

@@ -2,8 +2,10 @@ import { AbstractEntity } from 'src/db/abstract.entity';
 import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { EnumInputFormat } from '../../enum/enumInputFormat';
 import { EnumTipoInput } from '../../enum/enumTipoInput';
-import { Resposta } from '../inscricao/resposta.entity';
-import { Step } from './step.entity';
+import { Step } from '../step/step.entity';
+import { Formulario } from '../formulario/formulario.entity';
+import { Dado } from '../tipoDado/tipoDado.entity';
+import { Resposta } from '../resposta/resposta.entity';
 
 @Entity()
 export class Pergunta extends AbstractEntity<Pergunta> {
@@ -25,11 +27,14 @@ export class Pergunta extends AbstractEntity<Pergunta> {
   @ManyToOne(() => Step, (step) => step.perguntas)
   step: Step;
 
+  @ManyToOne(() => Formulario, (formulario) => formulario.perguntas, {
+    onDelete: 'CASCADE',
+  })
+  formulario: Formulario;
+
   @OneToMany(() => Resposta, (resposta) => resposta.pergunta)
   respostas: Resposta[];
 
-  constructor(entity: Partial<Pergunta>) {
-    super();
-    Object.assign(this, entity);
-  }
+  @ManyToOne(() => Dado, { nullable: true })
+  dado: Dado;
 }

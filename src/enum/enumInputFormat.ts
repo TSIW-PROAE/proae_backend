@@ -12,7 +12,6 @@ export enum EnumInputFormat {
   CNPJ = 'cnpj', // 00.000.000/0000-00
   RG = 'rg', // 00.000.000-0
   MOEDA = 'moeda', // R$ 0.000,00
-  //PERSONALIZADO = 'personalizado',
   SINGLE_SELECT = 'single-select',
   MULTI_SELECT = 'multi-select',
   NONE = 'none',

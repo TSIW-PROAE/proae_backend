@@ -15,8 +15,10 @@ import { VagaResponseDto } from './dto/vaga-response.dto';
 @Injectable()
 export class VagasService {
   constructor(
-    @InjectRepository(Vagas) private readonly vagasRepository: Repository<Vagas>,
-    @InjectRepository(Edital) private readonly editalRepository: Repository<Edital>,
+    @InjectRepository(Vagas)
+    private readonly vagasRepository: Repository<Vagas>,
+    @InjectRepository(Edital)
+    private readonly editalRepository: Repository<Edital>,
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
 
@@ -24,10 +26,14 @@ export class VagasService {
   async create(createVagaDto: CreateVagaDto): Promise<VagaResponseDto> {
     try {
       // Verificar se o edital existe
-      const edital = await this.editalRepository.findOneBy({ id: createVagaDto.edital_id });
-      
+      const edital = await this.editalRepository.findOneBy({
+        id: createVagaDto.edital_id,
+      });
+
       if (!edital) {
-        throw new NotFoundException(`Edital com ID ${createVagaDto.edital_id} não encontrado. Verifique se o edital existe e tente novamente.`);
+        throw new NotFoundException(
+          `Edital com ID ${createVagaDto.edital_id} não encontrado. Verifique se o edital existe e tente novamente.`,
+        );
       }
 
       const vaga = new Vagas({
@@ -58,7 +64,7 @@ export class VagasService {
         where: { edital: { id: editalId } },
       });
       //console.log(vagas)
-      
+
       // if (!vagas || vagas.length === 0) {
       //   console.log("foi")
       //   throw new NotFoundException(`Nenhuma vaga encontrada para o edital com ID ${editalId}. Verifique se o edital existe e possui vagas cadastradas.`);
@@ -77,7 +83,10 @@ export class VagasService {
   }
 
   // Atualizar uma vaga
-  async update(id: number, updateVagaDto: UpdateVagaDto): Promise<VagaResponseDto> {
+  async update(
+    id: number,
+    updateVagaDto: UpdateVagaDto,
+  ): Promise<VagaResponseDto> {
     try {
       const vaga = await this.vagasRepository.findOneBy({ id });
 
@@ -96,7 +105,9 @@ export class VagasService {
       const updatedVaga = await this.vagasRepository.findOneBy({ id });
 
       if (!updatedVaga) {
-        throw new InternalServerErrorException('Erro ao buscar vaga atualizada');
+        throw new InternalServerErrorException(
+          'Erro ao buscar vaga atualizada',
+        );
       }
 
       return plainToInstance(VagaResponseDto, updatedVaga, {

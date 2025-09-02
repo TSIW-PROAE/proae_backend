@@ -6,17 +6,18 @@ import {
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { EntityManager, Repository } from 'typeorm';
-import { Pergunta } from '../entities/edital/pergunta.entity';
-import { Step } from '../entities/edital/step.entity';
+import { Step } from '../entities/step/step.entity';
 import { InputFormatPlaceholders } from '../enum/enumInputFormat';
 import { CreatePerguntaDto } from './dto/create-pergunta.dto';
 import { UpdatePerguntaDto } from './dto/update-pergunta.dto';
 import { PerguntaResponseDto } from '../step/dto/response-pergunta.dto';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
 
 @Injectable()
 export class PerguntaService {
   constructor(
-    @InjectRepository(Pergunta) private readonly perguntaRepository: Repository<Pergunta>,
+    @InjectRepository(Pergunta)
+    private readonly perguntaRepository: Repository<Pergunta>,
     @InjectRepository(Step) private readonly stepRepository: Repository<Step>,
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
@@ -38,7 +39,8 @@ export class PerguntaService {
           excludeExtraneousValues: true,
         });
 
-        perguntaDto.placeholder = InputFormatPlaceholders[pergunta.tipo_formatacao];
+        perguntaDto.placeholder =
+          InputFormatPlaceholders[pergunta.tipo_formatacao];
 
         return perguntaDto;
       });
@@ -52,13 +54,19 @@ export class PerguntaService {
   }
 
   // Criar uma nova pergunta
-  async create(createPerguntaDto: CreatePerguntaDto): Promise<PerguntaResponseDto> {
+  async create(
+    createPerguntaDto: CreatePerguntaDto,
+  ): Promise<PerguntaResponseDto> {
     try {
       // Verificar se o step existe
-      const step = await this.stepRepository.findOneBy({ id: createPerguntaDto.step_id });
-      
+      const step = await this.stepRepository.findOneBy({
+        id: createPerguntaDto.step_id,
+      });
+
       if (!step) {
-        throw new NotFoundException(`Step com ID ${createPerguntaDto.step_id} não encontrado. Verifique se o step existe e tente novamente.`);
+        throw new NotFoundException(
+          `Step com ID ${createPerguntaDto.step_id} não encontrado. Verifique se o step existe e tente novamente.`,
+        );
       }
 
       const pergunta = new Pergunta({
@@ -76,7 +84,8 @@ export class PerguntaService {
         excludeExtraneousValues: true,
       });
 
-      perguntaDto.placeholder = InputFormatPlaceholders[savedPergunta.tipo_formatacao];
+      perguntaDto.placeholder =
+        InputFormatPlaceholders[savedPergunta.tipo_formatacao];
 
       return perguntaDto;
     } catch (error) {
@@ -89,7 +98,10 @@ export class PerguntaService {
   }
 
   // Atualizar uma pergunta
-  async update(id: number, updatePerguntaDto: UpdatePerguntaDto): Promise<PerguntaResponseDto> {
+  async update(
+    id: number,
+    updatePerguntaDto: UpdatePerguntaDto,
+  ): Promise<PerguntaResponseDto> {
     try {
       const pergunta = await this.perguntaRepository.findOneBy({ id });
 
@@ -108,14 +120,21 @@ export class PerguntaService {
       const updatedPergunta = await this.perguntaRepository.findOneBy({ id });
 
       if (!updatedPergunta) {
-        throw new InternalServerErrorException('Erro ao buscar pergunta atualizada');
+        throw new InternalServerErrorException(
+          'Erro ao buscar pergunta atualizada',
+        );
       }
 
-      const perguntaDto = plainToInstance(PerguntaResponseDto, updatedPergunta, {
-        excludeExtraneousValues: true,
-      });
+      const perguntaDto = plainToInstance(
+        PerguntaResponseDto,
+        updatedPergunta,
+        {
+          excludeExtraneousValues: true,
+        },
+      );
 
-      perguntaDto.placeholder = InputFormatPlaceholders[updatedPergunta.tipo_formatacao];
+      perguntaDto.placeholder =
+        InputFormatPlaceholders[updatedPergunta.tipo_formatacao];
 
       return perguntaDto;
     } catch (error) {
