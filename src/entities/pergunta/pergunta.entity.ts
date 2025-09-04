@@ -36,5 +36,5 @@ export class Pergunta extends AbstractEntity<Pergunta> {
   respostas: Resposta[];
 
   @ManyToOne(() => Dado, { nullable: true })
-  dado: Dado;
+  dado?: Dado;
 }

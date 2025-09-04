@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
 import type { Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
