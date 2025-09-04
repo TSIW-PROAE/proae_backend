@@ -16,13 +16,16 @@ export class Resposta extends AbstractEntity<Resposta> {
   inscricao: Inscricao;
 
   @Column({ type: 'text', nullable: true })
-  valorTexto: string;
+  valorTexto?: string;
 
   @Column({ type: 'simple-array', nullable: true })
-  valorOpcoes: string[];
+  valorOpcoes?: string[];
 
   @Column({ type: 'varchar', length: 500, nullable: true })
-  urlArquivo: string;
+  urlArquivo?: string;
+
+  @Column({ type: 'text', nullable: true })
+  texto?: string;
 
   @CreateDateColumn()
   dataResposta: Date;

@@ -7,6 +7,7 @@ import {
   Post,
   Req,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -15,9 +16,11 @@ import {
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
 import { errorExamples } from '../common/swagger/error-examples';
@@ -35,12 +38,14 @@ export class InscricaoController {
   constructor(private readonly inscricaoService: InscricaoService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Criar uma nova inscrição' })
+  @ApiBody({ type: CreateInscricaoDto })
   @ApiCreatedResponse({
     type: InscricaoResponseDto,
     description: 'Inscrição criada com sucesso',
   })
   @ApiNotFoundResponse({
-    description: 'Aluno ou Edital não encontrado',
+    description: 'Aluno ou Vaga não encontrada',
     schema: { example: errorExamples.notFound },
   })
   @ApiBadRequestResponse({
@@ -61,11 +66,17 @@ export class InscricaoController {
   })
   async createInscricao(
     @Body() createInscricaoDto: CreateInscricaoDto,
+    @Req() request: AuthenticatedRequest,
   ): Promise<InscricaoResponseDto> {
-    return await this.inscricaoService.createInscricao(createInscricaoDto);
+    return await this.inscricaoService.createInscricao(
+      createInscricaoDto,
+      request.user.userId,
+    );
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar uma inscrição existente' })
+  @ApiBody({ type: UpdateInscricaoDto })
   @ApiOkResponse({
     type: InscricaoResponseDto,
     description: 'Inscrição atualizada com sucesso',
@@ -91,28 +102,46 @@ export class InscricaoController {
     schema: { example: errorExamples.internalServerError },
   })
   async updateInscricao(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateInscricaoDto: UpdateInscricaoDto,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return await this.inscricaoService.updateInscricao(id, updateInscricaoDto);
+    return await this.inscricaoService.updateInscricao(
+      id,
+      updateInscricaoDto,
+      request.user.userId,
+    );
   }
 
   @Get()
+  @ApiOperation({ summary: 'Buscar inscrições do aluno com pendências' })
   @ApiOkResponse({
-    type: InscricaoResponseDto,
-    description: 'Inscrição encontrada com sucesso',
+    description: 'Inscrições encontradas com sucesso',
+    schema: {
+      example: [
+        {
+          titulo_edital: 'Edital de Auxílio Alimentação 2024',
+          tipo_edital: ['Auxílio Alimentação'],
+          documentos: [
+            {
+              tipo_documento: 'Comprovante de Renda',
+              status_documento: 'Pendente',
+              documento_url: 'https://example.com/documento.pdf',
+              parecer: null,
+              data_validacao: null,
+            },
+          ],
+        },
+      ],
+    },
   })
   @ApiNotFoundResponse({
-    description: 'Inscrição não encontrada',
+    description: 'Aluno não encontrado',
     schema: { example: errorExamples.notFound },
   })
   @ApiBadRequestResponse({
     description: 'Dados inválidos fornecidos',
     schema: { example: errorExamples.badRequest },
-  })
-  @ApiUnprocessableEntityResponse({
-    description: 'Erro de validação nos dados fornecidos',
-    schema: { example: errorExamples.unprocessableEntity },
   })
   @ApiUnauthorizedResponse({
     description: 'Não autorizado',

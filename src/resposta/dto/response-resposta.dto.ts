@@ -7,8 +7,15 @@ export class RespostaResponseDto {
   id: number;
 
   @ApiPropertyOptional({
-    description: 'Valor em texto',
-    example: 'Minha resposta',
+    description: 'Texto da resposta (para perguntas de texto)',
+    example: 'Minha resposta em texto',
+  })
+  @Expose()
+  texto?: string;
+
+  @ApiPropertyOptional({
+    description: 'Valor em texto (para perguntas de input)',
+    example: 'João Silva',
   })
   @Expose()
   valorTexto?: string;

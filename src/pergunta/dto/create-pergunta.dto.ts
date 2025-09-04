@@ -24,7 +24,7 @@ export class CreatePerguntaDto {
   @ApiProperty({
     enum: EnumTipoInput,
     description: 'Tipo da pergunta',
-    example: EnumTipoInput.INPUT,
+    example: EnumTipoInput.TEXT,
   })
   @IsNotEmpty()
   @IsEnum(EnumTipoInput)

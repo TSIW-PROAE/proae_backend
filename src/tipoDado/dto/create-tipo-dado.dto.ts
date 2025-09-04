@@ -18,7 +18,7 @@ export class CreateDadoDto {
   @ApiProperty({
     description: 'Tipo de input',
     enum: EnumTipoInput,
-    example: EnumTipoInput.INPUT,
+    example: EnumTipoInput.TEXT,
   })
   @IsEnum(EnumTipoInput)
   tipo: EnumTipoInput;

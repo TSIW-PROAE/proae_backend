@@ -7,23 +7,24 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { CreateRespostaDto } from './create-resposta-dto';
+import { CreateRespostaDto } from '../../resposta/dto/create-resposta.dto';
 
 export class CreateInscricaoDto {
   @ApiProperty({
-    description: 'ID do edital',
+    description: 'ID da vaga',
     example: 1,
     required: true,
   })
   @IsNotEmpty()
   @IsNumber()
-  edital: number;
+  vaga_id: number;
 
   @ApiProperty({
     type: [CreateRespostaDto],
     description: 'Lista de respostas da inscrição',
+    required: true,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateRespostaDto)
