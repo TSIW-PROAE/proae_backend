@@ -8,7 +8,7 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CreateValorDadoDto } from '../valorDado/dto/create-valor-dado.dto';
 import { ValorDadoService } from './valorDado.service';
 
@@ -19,6 +19,8 @@ export class ValorDadoController {
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo ValorDado para um Aluno' })
+  @ApiBody({ type: CreateValorDadoDto })
+  @ApiResponse({ status: 201, description: 'ValorDado criado com sucesso.' })
   createValor(@Body() dto: CreateValorDadoDto) {
     return this.valorDadoService.createValor(dto);
   }
@@ -31,6 +33,8 @@ export class ValorDadoController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um ValorDado pelo ID' })
+  @ApiBody({ type: CreateValorDadoDto })
+  @ApiResponse({ status: 200, description: 'ValorDado atualizado com sucesso.' })
   updateValor(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateValorDadoDto,

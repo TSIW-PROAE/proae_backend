@@ -11,7 +11,7 @@ import { Documento } from '../entities/documento/documento.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
-import { Resposta } from '../entities/resposta/resposta.entity'; 
+import { Resposta } from '../entities/inscricao/resposta.entity'; 
 import { StatusEdital } from '../enum/enumStatusEdital';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
@@ -29,8 +29,6 @@ export class InscricaoService {
     private readonly editalRepository: Repository<Edital>,
     @InjectRepository(Pergunta)
     private readonly perguntaRepository: Repository<Pergunta>,
-    @InjectRepository(Resposta)
-    private readonly respostaRepository: Repository<Resposta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {}
@@ -100,12 +98,9 @@ export class InscricaoService {
             );
           }
 
-          return this.respostaRepository.create({
+          return new Resposta({
             pergunta,
-            inscricao,
-            valorTexto: respostaDto.valorTexto,
-            valorOpcoes: respostaDto.valorOpcoes,
-            urlArquivo: respostaDto.urlArquivo,
+            texto: respostaDto.texto,
           });
         }),
       );

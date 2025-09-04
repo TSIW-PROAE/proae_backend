@@ -8,7 +8,7 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { DadoService } from './tipoDado.service';
 import { CreateDadoDto } from './dto/create-tipo-dado.dto';
 import { UpdateDadoDto } from './dto/update-tipo-dado.dto';
@@ -20,6 +20,7 @@ export class DadoController {
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo Dado' })
+  @ApiBody({ type: CreateDadoDto })
   @ApiResponse({ status: 201, description: 'Dado criado com sucesso.' })
   create(@Body() dto: CreateDadoDto) {
     return this.dadoService.create(dto);
@@ -39,6 +40,8 @@ export class DadoController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um Dado pelo ID' })
+  @ApiBody({ type: UpdateDadoDto })
+  @ApiResponse({ status: 200, description: 'Dado atualizado com sucesso.' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateDadoDto) {
     return this.dadoService.update(id, dto);
   }

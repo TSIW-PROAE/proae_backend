@@ -31,6 +31,8 @@ export class CreateDadoDto {
   @ApiPropertyOptional({
     description: 'Opções para select/multi-select',
     type: [String],
+    example: ['Opção 1', 'Opção 2', 'Opção 3'],
+    required: false
   })
   @IsOptional()
   @IsArray()
