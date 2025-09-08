@@ -15,6 +15,7 @@ import { VagasModule } from './vagas/vagas.module';
 import { ValidacaoModule } from './validacao/validacao.module';
 import { DadoModule } from './tipoDado/tipoDado.module';
 import { ValorDadoModule } from './valorDado/valorDado.module';
+import { FormularioModule } from './formulario/formulario.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ValorDadoModule } from './valorDado/valorDado.module';
     VagasModule,
     DadoModule,
     ValorDadoModule,
+    FormularioModule,
   ],
 })
 export class AppModule {}

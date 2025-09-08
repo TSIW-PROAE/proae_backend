@@ -28,7 +28,7 @@ async function bootstrap() {
 
   try {
     const config = new DocumentBuilder()
-      .setTitle('API de Inscrição')
+      .setTitle('API Sistema Proae')
       .setDescription('A Documentação da API do sistema proae.')
       .setVersion('1.0')
       .addBearerAuth()
