@@ -7,7 +7,6 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { EntityManager, Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
-import { Documento } from '../entities/documento/documento.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
@@ -18,7 +17,6 @@ import { StatusDocumento } from '../enum/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 export class InscricaoService {
   constructor(
@@ -165,7 +163,9 @@ export class InscricaoService {
 
       // Verifica se o aluno é o dono da inscrição
       if (inscricaoExistente.aluno.aluno_id !== userId) {
-        throw new BadRequestException('Você não tem permissão para editar esta inscrição');
+        throw new BadRequestException(
+          'Você não tem permissão para editar esta inscrição',
+        );
       }
 
       // Validação da vaga se fornecida
@@ -190,7 +190,10 @@ export class InscricaoService {
       }
 
       // Atualização das respostas se fornecidas
-      if (updateInscricaoDto.respostas && updateInscricaoDto.respostas.length > 0) {
+      if (
+        updateInscricaoDto.respostas &&
+        updateInscricaoDto.respostas.length > 0
+      ) {
         const perguntas = await this.perguntaRepository.find({
           where: {
             step: {
@@ -225,17 +228,22 @@ export class InscricaoService {
         );
 
         // Remove respostas antigas e adiciona novas
-        await this.respostaRepository.delete({ inscricao: { id: inscricaoId } });
+        await this.respostaRepository.delete({
+          inscricao: { id: inscricaoId },
+        });
         inscricaoExistente.respostas = novasRespostas;
       }
 
       // Atualização das respostas editadas se fornecidas
-      if (updateInscricaoDto.respostas_editadas && updateInscricaoDto.respostas_editadas.length > 0) {
+      if (
+        updateInscricaoDto.respostas_editadas &&
+        updateInscricaoDto.respostas_editadas.length > 0
+      ) {
         for (const respostaDto of updateInscricaoDto.respostas_editadas) {
           const respostaExistente = await this.respostaRepository.findOne({
-            where: { 
-              pergunta: { id: respostaDto.perguntaId }, 
-              inscricao: { id: inscricaoId } 
+            where: {
+              pergunta: { id: respostaDto.perguntaId },
+              inscricao: { id: inscricaoId },
             },
           });
 
@@ -266,7 +274,8 @@ export class InscricaoService {
         inscricaoExistente.data_inscricao = updateInscricaoDto.data_inscricao;
       }
       if (updateInscricaoDto.status_inscricao !== undefined) {
-        inscricaoExistente.status_inscricao = updateInscricaoDto.status_inscricao;
+        inscricaoExistente.status_inscricao =
+          updateInscricaoDto.status_inscricao;
       }
 
       const result = await this.entityManager.transaction(
@@ -314,7 +323,12 @@ export class InscricaoService {
             status_documento: StatusDocumento.PENDENTE,
           },
         },
-        relations: ['documentos', 'documentos.validacoes', 'vagas', 'vagas.edital'],
+        relations: [
+          'documentos',
+          'documentos.validacoes',
+          'vagas',
+          'vagas.edital',
+        ],
       });
 
       return inscricoes

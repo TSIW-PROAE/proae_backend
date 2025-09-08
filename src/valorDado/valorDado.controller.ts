@@ -34,7 +34,10 @@ export class ValorDadoController {
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um ValorDado pelo ID' })
   @ApiBody({ type: CreateValorDadoDto })
-  @ApiResponse({ status: 200, description: 'ValorDado atualizado com sucesso.' })
+  @ApiResponse({
+    status: 200,
+    description: 'ValorDado atualizado com sucesso.',
+  })
   updateValor(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateValorDadoDto,

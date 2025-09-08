@@ -32,7 +32,7 @@ export class CreateDadoDto {
     description: 'Opções para select/multi-select',
     type: [String],
     example: ['Opção 1', 'Opção 2', 'Opção 3'],
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsArray()
