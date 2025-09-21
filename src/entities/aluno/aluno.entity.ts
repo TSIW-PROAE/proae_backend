@@ -1,7 +1,14 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { UnidadeEnum } from '../../enum/enumCampus';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { ValorDado } from '../valorDado/valorDado.entity';
+import { Usuario } from '../usuarios/role.entity';
 
 @Entity()
 export class Aluno {
@@ -52,4 +59,7 @@ export class Aluno {
 
   @OneToMany(() => ValorDado, (valor) => valor.aluno)
   valoresDado: ValorDado[];
+
+  @ManyToOne(() => Usuario, { eager: true })
+  role: Usuario;
 }
