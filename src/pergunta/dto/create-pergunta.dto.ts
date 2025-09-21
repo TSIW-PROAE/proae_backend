@@ -59,13 +59,6 @@ export class CreatePerguntaDto {
   @IsEnum(EnumInputFormat)
   tipo_formatacao?: EnumInputFormat;
 
-  @ApiProperty({
-    description: 'ID do formulário ao qual a pergunta pertence',
-    example: 3,
-  })
-  @IsNumber()
-  formularioId: number;
-
   @ApiPropertyOptional({
     description: 'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento)',
     example: 10,
