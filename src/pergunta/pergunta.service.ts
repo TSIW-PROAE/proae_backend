@@ -13,7 +13,6 @@ import { UpdatePerguntaDto } from './dto/update-pergunta.dto';
 import { PerguntaResponseDto } from '../step/dto/response-pergunta.dto';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
-import { Formulario } from '../entities/formulario/formulario.entity';
 
 @Injectable()
 export class PerguntaService {
@@ -22,8 +21,6 @@ export class PerguntaService {
     private readonly perguntaRepository: Repository<Pergunta>,
     @InjectRepository(Step) private readonly stepRepository: Repository<Step>,
     @InjectRepository(Dado) private readonly dadoRepository: Repository<Dado>,
-    @InjectRepository(Formulario)
-    private readonly formularioRepository: Repository<Formulario>,
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
 
@@ -63,12 +60,6 @@ export class PerguntaService {
     createPerguntaDto: CreatePerguntaDto,
   ): Promise<PerguntaResponseDto> {
     try {
-      const formulario = await this.formularioRepository.findOneBy({
-        id: createPerguntaDto.formularioId,
-      });
-      if (!formulario) {
-        throw new NotFoundException('Formulário não encontrado');
-      }
       // Verificar se o step existe
       const step = await this.stepRepository.findOneBy({
         id: createPerguntaDto.step_id,
@@ -94,7 +85,6 @@ export class PerguntaService {
         opcoes: createPerguntaDto.opcoes,
         tipo_formatacao: createPerguntaDto.tipo_formatacao,
         step: step,
-        formulario,
         dado,
       });
 
