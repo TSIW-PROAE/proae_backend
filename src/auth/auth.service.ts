@@ -159,23 +159,19 @@ export class AuthService {
     if (dto.newPassword !== dto.confirmPassword)
       throw new BadRequestException('Senhas não coincidem');
 
-    let user: Usuario;
-    try {
-      const payload: any = this.jwtService.verify(dto.token, {
-        secret: process.env.JWT_SECRET,
-      });
-      user = await this.usuarioRepository.findOne({
-        where: { email: payload.email },
-      });
-    } catch {
-      throw new UnauthorizedException('Token inválido ou expirado');
-    }
+    let user = await this.usuarioRepository.findOne({
+      where: {
+        email: this.jwtService.verify(dto.token, {
+          secret: process.env.JWT_SECRET,
+        })['email'],
+      },
+    });
 
-    if (!user) throw new NotFoundException('Usuário não encontrado');
+    if (!user) throw new UnauthorizedException('Token inválido ou expirado');
 
     user.senha_hash = await bcrypt.hash(dto.newPassword, 12);
-    user.passwordResetToken = null;
-    user.passwordResetTokenExpires = null;
+    user.passwordResetToken = undefined;
+    user.passwordResetTokenExpires = undefined;
 
     await this.usuarioRepository.save(user);
     return { sucesso: true, mensagem: 'Senha alterada com sucesso' };
@@ -244,5 +240,47 @@ export class AuthService {
       sucesso: true,
       mensagem: 'Admin cadastrado, aguardando aprovação',
     };
+  }
+  async approveAdmin(token: string) {
+    const admin = await this.adminRepository.findOne({
+      where: { approvalToken: token },
+      relations: ['usuario'],
+    });
+
+    if (!admin) throw new BadRequestException('Token inválido');
+    if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
+      throw new BadRequestException('Token expirado');
+
+    admin.aprovado = true;
+    admin.approvalToken = undefined;
+    admin.approvalTokenExpires = undefined;
+
+    await this.adminRepository.save(admin);
+
+    return { sucesso: true, mensagem: 'Admin aprovado com sucesso' };
+  }
+
+  async rejectAdmin(token: string) {
+    const admin = await this.adminRepository.findOne({
+      where: { approvalToken: token },
+      relations: ['usuario'],
+    });
+
+    if (!admin) throw new BadRequestException('Token inválido');
+    if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
+      throw new BadRequestException('Token expirado');
+
+    await this.usuarioRepository.remove(admin.usuario);
+
+    return { sucesso: true, mensagem: 'Admin rejeitado e removido' };
+  }
+  private generateRandomToken(length = 32): string {
+    const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < length; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
   }
 }

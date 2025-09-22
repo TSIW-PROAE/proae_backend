@@ -5,10 +5,11 @@ import { Aluno } from '../entities/aluno/aluno.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { AlunoController } from './aluno.controller';
 import { AlunoService } from './aluno.service';
+import { Usuario } from '../entities/usuarios/usuario.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Aluno, Inscricao]),
+    TypeOrmModule.forFeature([Aluno, Inscricao, Usuario]),
     forwardRef(() => AuthModule),
   ],
   controllers: [AlunoController],

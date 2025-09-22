@@ -37,10 +37,10 @@ export class AlunoService {
           aluno_id: aluno.aluno_id,
           email: usuario.email,
           matricula: aluno.matricula,
-          data_nascimento: aluno.data_nascimento,
+          data_nascimento: usuario.data_nascimento,
           curso: aluno.curso,
           campus: aluno.campus,
-          cpf: aluno.cpf,
+          cpf: usuario.cpf,
           data_ingresso: aluno.data_ingresso,
           celular: usuario.celular,
           inscricoes: aluno.inscricoes,
@@ -111,8 +111,6 @@ export class AlunoService {
     // Atualizar dados do Aluno
     Object.assign(usuario.aluno, {
       matricula: atualizaDadosAlunoDTO.matricula || usuario.aluno.matricula,
-      data_nascimento:
-        atualizaDadosAlunoDTO.data_nascimento || usuario.aluno.data_nascimento,
       curso: atualizaDadosAlunoDTO.curso || usuario.aluno.curso,
       campus: atualizaDadosAlunoDTO.campus || usuario.aluno.campus,
       data_ingresso:
