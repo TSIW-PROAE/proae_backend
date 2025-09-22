@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Response,
+  Param,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -249,5 +250,38 @@ export class AuthController {
   async validateToken(@Req() request: AuthenticatedRequest) {
     const { userId } = request.user;
     return this.authService.findValidatedUser(userId);
+  }
+  @Get('approve-admin/:token')
+  async approveAdmin(@Param('token') token: string) {
+    const admin = await this.adminRepository.findOne({
+      where: { approvalToken: token },
+      relations: ['usuario'],
+    });
+    if (!admin) throw new BadRequestException('Token inválido');
+    if (admin.approvalTokenExpires < new Date())
+      throw new BadRequestException('Token expirado');
+
+    admin.aprovado = true;
+    admin.approvalToken = null;
+    admin.approvalTokenExpires = null;
+
+    await this.adminRepository.save(admin);
+
+    return { sucesso: true, mensagem: 'Admin aprovado com sucesso' };
+  }
+
+  @Get('reject-admin/:token')
+  async rejectAdmin(@Param('token') token: string) {
+    const admin = await this.adminRepository.findOne({
+      where: { approvalToken: token },
+      relations: ['usuario'],
+    });
+    if (!admin) throw new BadRequestException('Token inválido');
+    if (admin.approvalTokenExpires < new Date())
+      throw new BadRequestException('Token expirado');
+
+    await this.usuarioRepository.remove(admin.usuario);
+
+    return { sucesso: true, mensagem: 'Admin rejeitado e removido' };
   }
 }
