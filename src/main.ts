@@ -28,7 +28,7 @@ async function bootstrap() {
 
   try {
     const config = new DocumentBuilder()
-      .setTitle('API Sistema Proae')
+      .setTitle('API de Inscrição')
       .setDescription('A Documentação da API do sistema proae.')
       .setVersion('1.0')
       .addBearerAuth()
@@ -36,20 +36,7 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
 
-    SwaggerModule.setup('api', app, document, {
-      swaggerOptions: {
-        persistAuthorization: true,
-      },
-      customSiteTitle: 'API PROAE',
-      customfavIcon: '/favicon.ico',
-      customJs: [
-        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js',
-        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js',
-      ],
-      customCssUrl: [
-        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.css',
-      ],
-    });
+    SwaggerModule.setup('api', app, document);
   } catch (error) {
     console.error('Erro ao configurar Swagger:', error);
   }

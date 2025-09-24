@@ -6,7 +6,7 @@ import {
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { EntityManager, Repository } from 'typeorm';
-import { Step } from '../entities/step/step.entity';
+import { Step } from '../entities/edital/step.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { InputFormatPlaceholders } from '../enum/enumInputFormat';
 import { CreateStepDto } from './dto/create-step.dto';
@@ -19,8 +19,7 @@ import { StepSimpleResponseDto } from './dto/step-simple-response.dto';
 export class StepService {
   constructor(
     @InjectRepository(Step) private readonly stepRepository: Repository<Step>,
-    @InjectRepository(Edital)
-    private readonly editalRepository: Repository<Edital>,
+    @InjectRepository(Edital) private readonly editalRepository: Repository<Edital>,
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
 
@@ -97,10 +96,8 @@ export class StepService {
   async create(createStepDto: CreateStepDto): Promise<StepSimpleResponseDto> {
     try {
       // Verificar se o edital existe
-      const edital = await this.editalRepository.findOneBy({
-        id: createStepDto.edital_id,
-      });
-
+      const edital = await this.editalRepository.findOneBy({ id: createStepDto.edital_id });
+      
       if (!edital) {
         throw new NotFoundException('Edital não encontrado');
       }
@@ -125,10 +122,7 @@ export class StepService {
   }
 
   // Atualizar um step
-  async update(
-    id: number,
-    updateStepDto: UpdateStepDto,
-  ): Promise<StepSimpleResponseDto> {
+  async update(id: number, updateStepDto: UpdateStepDto): Promise<StepSimpleResponseDto> {
     try {
       const step = await this.stepRepository.findOneBy({ id });
 

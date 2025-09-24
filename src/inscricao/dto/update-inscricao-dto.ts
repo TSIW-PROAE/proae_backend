@@ -9,24 +9,23 @@ import {
 } from 'class-validator';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { CreateInscricaoDto } from './create-inscricao-dto';
-import { UpdateRespostaDto } from '../../resposta/dto/update-resposta.dto';
+import { UpdateRespostaDto } from './update-resposta-dto';
 
 export class UpdateInscricaoDto extends PartialType(CreateInscricaoDto) {
   @ApiProperty({
     description: 'Data da inscrição',
     example: '2024-03-21',
-    required: false,
+    required: true,
   })
-  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  data_inscricao?: Date;
+  data_inscricao: Date;
 
   @ApiProperty({
     description: 'Status da inscrição',
     enum: StatusInscricao,
     example: StatusInscricao.PENDENTE,
-    required: false,
+    required: true,
   })
   @IsOptional()
   @IsEnum(StatusInscricao)
@@ -34,12 +33,11 @@ export class UpdateInscricaoDto extends PartialType(CreateInscricaoDto) {
 
   @ApiProperty({
     type: [UpdateRespostaDto],
-    description: 'Lista de respostas editadas da inscrição',
-    required: false,
+    description: 'Lista de respostas da inscrição',
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateRespostaDto)
-  respostas_editadas?: UpdateRespostaDto[];
+  respostas_editadas: UpdateRespostaDto[];
 }

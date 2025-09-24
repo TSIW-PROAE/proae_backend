@@ -1,7 +1,7 @@
 import { AbstractEntity } from 'src/db/abstract.entity';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { Column, Entity, OneToMany } from 'typeorm';
-import { Step } from '../step/step.entity';
+import { Step } from './step.entity';
 import { Vagas } from '../vagas/vagas.entity';
 
 @Entity()

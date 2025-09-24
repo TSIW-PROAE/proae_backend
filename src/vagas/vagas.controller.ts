@@ -35,13 +35,12 @@ export class VagasController {
   })
   @ApiNotFoundResponse({
     description: 'Edital não encontrado',
-    schema: {
+    schema: { 
       example: {
         statusCode: 404,
-        message:
-          'Edital com ID 999 não encontrado. Verifique se o edital existe e tente novamente.',
-        timestamp: '2025-08-18T10:00:00.000Z',
-      },
+        message: 'Edital com ID 999 não encontrado. Verifique se o edital existe e tente novamente.',
+        timestamp: '2025-08-18T10:00:00.000Z'
+      }
     },
   })
   @ApiInternalServerErrorResponse({
@@ -60,13 +59,12 @@ export class VagasController {
   })
   @ApiNotFoundResponse({
     description: 'Nenhuma vaga encontrada para este edital',
-    schema: {
+    schema: { 
       example: {
         statusCode: 404,
-        message:
-          'Nenhuma vaga encontrada para o edital com ID 999. Verifique se o edital existe e possui vagas cadastradas.',
-        timestamp: '2025-08-18T10:00:00.000Z',
-      },
+        message: 'Nenhuma vaga encontrada para o edital com ID 999. Verifique se o edital existe e possui vagas cadastradas.',
+        timestamp: '2025-08-18T10:00:00.000Z'
+      }
     },
   })
   @ApiInternalServerErrorResponse({
@@ -87,12 +85,12 @@ export class VagasController {
   })
   @ApiNotFoundResponse({
     description: 'Vaga não encontrada',
-    schema: {
+    schema: { 
       example: {
         statusCode: 404,
         message: 'Vaga com ID 999 não encontrada.',
-        timestamp: '2025-08-18T10:00:00.000Z',
-      },
+        timestamp: '2025-08-18T10:00:00.000Z'
+      }
     },
   })
   @ApiInternalServerErrorResponse({
@@ -111,12 +109,12 @@ export class VagasController {
   @ApiOkResponse({ description: 'Vaga removida com sucesso' })
   @ApiNotFoundResponse({
     description: 'Vaga não encontrada',
-    schema: {
+    schema: { 
       example: {
         statusCode: 404,
         message: 'Vaga com ID 999 não encontrada.',
-        timestamp: '2025-08-18T10:00:00.000Z',
-      },
+        timestamp: '2025-08-18T10:00:00.000Z'
+      }
     },
   })
   @ApiInternalServerErrorResponse({

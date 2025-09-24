@@ -6,7 +6,9 @@ import { VagasController } from './vagas.controller';
 import { VagasService } from './vagas.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Vagas, Edital])],
+  imports: [
+    TypeOrmModule.forFeature([Vagas, Edital]),
+  ],
   controllers: [VagasController],
   providers: [VagasService],
   exports: [VagasService],

@@ -7,7 +7,8 @@ import {
   Req,
   Res,
   UseGuards,
-  Param,
+  Request,
+  Response,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,16 +17,17 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
-import { SignupDtoAdmin } from './dto/siginupAdmin.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdatePasswordDto } from './dto/updatepassword.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { CompleteGoogleSignupDto } from './dto/complete-google-signup.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -33,15 +35,26 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  @ApiOperation({ summary: 'Cadastro de aluno com email institucional' })
-  @ApiBody({ type: SignupDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Aluno cadastrado com sucesso',
-  })
-  @ApiResponse({ status: 400, description: 'Email ou CPF já cadastrado' })
-  async signupAluno(@Body() body: SignupDto) {
-    return this.authService.signupAluno(body);
+  @ApiOperation({ summary: 'Cadastro com email institucional' })
+  @ApiResponse({ status: 201, description: 'Usuário cadastrado com sucesso', example: {
+        sucesso: true,
+        mensagem: 'Cadastro realizado com sucesso',
+        aluno: {
+          aluno_id: 1,
+          email: "aluno@ufba.br",
+          matricula: "202301234",
+          nome: "João Pereira da Silva",
+          data_nascimento: "2000-01-01T00:00:00.000Z",
+          curso: "Ciência da Computação",
+          campus: "Vitória da Conquista",
+          cpf: "123.456.789-09",
+          data_ingresso: "2023-01-01",
+          celular: "+5584999999999"
+        }
+   } })
+  @ApiResponse({ status: 400, description: 'Erro de validação' })
+  async signup(@Body() body: SignupDto) {
+    return this.authService.signup(body);
   }
 
   @UseGuards(LocalAuthGuard)
@@ -51,9 +64,20 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Login bem-sucedido',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          aluno_id: 1,
+          email: 'aluno@ufba.br',
+          matricula: '202301234',
+          nome: 'João Pereira da Silva',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
-  async login(@Req() req, @Res() res) {
+  async login(@Request() req, @Response() res) {
     const result = await this.authService.login(req.user);
     res.cookie('token', result.access_token, {
       httpOnly: true,
@@ -61,17 +85,25 @@ export class AuthController {
       sameSite: 'Strict',
       maxAge: 3600000, // 1 hora
     });
-    return res.status(200).json({ success: true, user: result.user });
+    return res.status(200).json({
+      success: true,
+      user: result.user,
+    });
   }
 
   @Post('logout')
   @ApiOperation({ summary: 'Logout do usuário' })
   @ApiResponse({
     status: 200,
-    description: 'Logout realizado com sucesso',
+    description: 'Logout realizado com sucesso. Cookie foi limpo no servidor.',
   })
   async logout(@Res({ passthrough: true }) res) {
-    res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'Strict' });
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+    });
+
     return this.authService.logout();
   }
 
@@ -79,36 +111,93 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Patch('update-password')
   @ApiOperation({ summary: 'Atualizar senha do usuário autenticado' })
-  @ApiBody({ type: UpdatePasswordDto })
   @ApiResponse({ status: 200, description: 'Senha atualizada com sucesso' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   async updatePassword(
     @Req() request: AuthenticatedRequest,
     @Body() body: UpdatePasswordDto,
   ) {
-    return this.authService.updatePassword(request.user.userId, body.senha);
+    const { userId } = request.user;
+    return this.authService.updatePassword(userId, body.senha);
   }
 
   @Post('forgot-password')
   @ApiOperation({ summary: 'Solicitar link de recuperação de senha' })
-  @ApiBody({ type: ForgotPasswordDto })
   @ApiResponse({
     status: 200,
     description: 'Email de recuperação enviado com sucesso',
   })
-  @ApiResponse({ status: 404, description: 'Email não encontrado' })
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(dto);
+  @ApiResponse({ status: 400, description: 'Email não encontrado' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')
-  @ApiOperation({ summary: 'Resetar senha usando token' })
-  @ApiBody({ type: ResetPasswordDto })
+  @ApiOperation({ summary: 'Resetar a senha usando token' })
   @ApiResponse({ status: 200, description: 'Senha alterada com sucesso' })
   @ApiResponse({ status: 401, description: 'Token inválido ou expirado' })
-  @ApiResponse({ status: 400, description: 'Senhas não coincidem' })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto);
+  @ApiResponse({ status: 400, description: 'Usuário não encontrado' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Redireciona para login via Google' })
+  async googleAuth(@Req() req) {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Callback do login via Google' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resposta da autenticação Google',
+    schema: {
+      example: {
+        success: true,
+        access_token: 'eyJhbGciOi...',
+        user: {
+          id: 1,
+          nome: 'João Google',
+          email: 'joao@ufba.br',
+        },
+        message: 'Login realizado com sucesso via Google',
+      },
+    },
+  })
+  async googleAuthRedirect(@Req() req, @Res() res) {
+    const result = await this.authService.googleLogin(req.user);
+
+    if (result.needsRegistration) {
+      return res.status(200).json({
+        needsRegistration: true,
+        email: result.email,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        message: 'Complete seu cadastro com as informações adicionais',
+        nextStep: 'POST /auth/complete-google-signup',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      access_token: result.access_token,
+      user: result.user,
+      message: 'Login realizado com sucesso via Google',
+    });
+  }
+
+  @Post('complete-google-signup')
+  @ApiOperation({ summary: 'Finalizar cadastro após login via Google' })
+  @ApiBody({ type: CompleteGoogleSignupDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Cadastro finalizado com sucesso após login via Google',
+  })
+  async completeGoogleSignup(
+    @Body() completeSignupDto: CompleteGoogleSignupDto,
+  ) {
+    return this.authService.completeGoogleSignup(completeSignupDto);
   }
 
   @ApiBearerAuth()
@@ -118,37 +207,43 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Token válido',
+    schema: {
+      example: {
+        valid: true,
+        user: {
+          aluno_id: 1,
+          email: 'aluno@ufba.br',
+          matricula: '202301234',
+          nome: 'João Pereira da Silva',
+          data_nascimento: '2000-01-01',
+          curso: 'Ciência da computação',
+          campus: 'Salvador',
+          cpf: '111.444.777-35',
+          data_ingresso: '2023-01-02',
+          celular: '+5584999999999',
+        },
+        payload: {
+          sub: 1,
+          email: 'aluno@ufba.br',
+          aluno_id: 1,
+          iat: 1640995200,
+          exp: 1641081600,
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Token inválido ou expirado' })
-  async validateToken(@Req() request: AuthenticatedRequest) {
-    return this.authService.validateToken(request.cookies.token || '');
-  }
-
-  @Post('signup-admin')
-  @ApiOperation({ summary: 'Cadastro de novo admin (aguardando aprovação)' })
-  @ApiBody({ type: SignupDtoAdmin })
   @ApiResponse({
-    status: 201,
-    description: 'Admin cadastrado com sucesso, aguardando aprovação',
+    status: 401,
+    description: 'Token inválido ou ausente',
+    schema: {
+      example: {
+        valid: false,
+        error: 'Token inválido ou expirado',
+      },
+    },
   })
-  @ApiResponse({ status: 400, description: 'Email já cadastrado' })
-  async signupAdmin(@Body() dto: SignupDtoAdmin) {
-    return this.authService.signupAdmin(dto);
-  }
-
-  @Get('approve-admin/:token')
-  @ApiOperation({ summary: 'Aprovar cadastro de admin via token' })
-  @ApiResponse({ status: 200, description: 'Admin aprovado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
-  async approveAdmin(@Param('token') token: string) {
-    return await this.authService.approveAdmin(token);
-  }
-
-  @Get('reject-admin/:token')
-  @ApiOperation({ summary: 'Rejeitar cadastro de admin via token' })
-  @ApiResponse({ status: 200, description: 'Admin rejeitado e removido' })
-  @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
-  async rejectAdmin(@Param('token') token: string) {
-    return await this.authService.rejectAdmin(token);
+  async validateToken(@Req() request: AuthenticatedRequest) {
+    const { userId } = request.user;
+    return this.authService.findValidatedUser(userId);
   }
 }
