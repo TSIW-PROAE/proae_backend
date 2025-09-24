@@ -1,20 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
-import { RespostaResponseDto } from './response-resposta.dto';
+import { RespostaResponseDto } from '../../resposta/dto/response-resposta.dto';
 
 export class InscricaoResponseDto {
-  @ApiProperty({ type: Number, description: 'ID da inscrição' })
-  @Expose()
-  inscricao_id: number;
-
   @ApiProperty({ type: Number, description: 'ID do aluno' })
   @Expose()
   aluno_id: number;
 
-  @ApiProperty({ type: Number, description: 'ID do edital' })
+  @ApiProperty({ type: Number, description: 'ID da vaga' })
   @Expose()
-  edital_id: number;
+  vaga_id: number;
 
   @ApiProperty({ type: Date, description: 'Data da inscrição' })
   @Expose()

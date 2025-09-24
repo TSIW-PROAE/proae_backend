@@ -9,28 +9,22 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { GoogleStrategy } from './strategies/google.strategy';
 import { EmailService } from '../email/email.service';
+import { Admin } from '../entities/admin/admin.entity';
+import { Usuario } from '../entities/usuarios/usuario.entity';
 
 @Module({
   imports: [
     forwardRef(() => AlunoModule),
     PassportModule,
-    TypeOrmModule.forFeature([Aluno]),
+    TypeOrmModule.forFeature([Aluno, Admin, Usuario]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'seu_secret_jwt_aqui',
       signOptions: { expiresIn: '24h' },
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    LocalStrategy,
-    JwtStrategy,
-    GoogleStrategy,
-    AuthGuard,
-    EmailService,
-  ],
+  providers: [AuthService, LocalStrategy, JwtStrategy, AuthGuard, EmailService],
   exports: [AuthGuard, JwtModule, AuthService],
 })
 export class AuthModule {}
