@@ -1,66 +1,59 @@
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { QueryFailedError, type Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as cpf from 'validation-br/dist/cpf';
-import { Usuario } from '../entities/usuarios/usuario.entity';
 import { Aluno } from '../entities/aluno/aluno.entity';
-import { Admin } from '../entities/admin/admin.entity';
 import { SignupDto } from './dto/signup.dto';
+import { EmailService } from '../email/email.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { EmailService } from '../email/email.service';
-import { RolesEnum } from '../enum/enumRoles';
-import { SignupDtoAdmin } from './dto/siginupAdmin.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(Usuario)
-    private usuarioRepository: Repository<Usuario>,
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
-    @InjectRepository(Admin)
-    private adminRepository: Repository<Admin>,
     private jwtService: JwtService,
     private emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usuarioRepository.findOne({
+    const user = await this.alunoRepository.findOne({
       where: { email },
-      relations: ['aluno', 'admin'],
       select: [
-        'usuario_id',
+        'aluno_id',
         'email',
         'senha_hash',
+        'matricula',
         'nome',
+        'data_nascimento',
+        'curso',
+        'campus',
         'cpf',
+        'data_ingresso',
         'celular',
-        'roles',
       ],
     });
 
-    if (!user) return null;
+    if (user && (await bcrypt.compare(password, user.senha_hash))) {
+      const { senha_hash, ...result } = user;
+      return result;
+    }
 
-    const isPasswordValid = await bcrypt.compare(password, user.senha_hash);
-    if (!isPasswordValid) return null;
-
-    const { senha_hash, ...result } = user;
-    return result;
+    return null;
   }
 
-  async login(user: Usuario) {
+  async login(user: any) {
     const payload = {
-      sub: user.usuario_id,
       email: user.email,
-      roles: user.roles,
+      sub: user.aluno_id,
+      aluno_id: user.aluno_id,
     };
 
     return {
@@ -69,218 +62,421 @@ export class AuthService {
         expiresIn: '1h',
       }),
       user: {
-        usuario_id: user.usuario_id,
+        aluno_id: user.aluno_id,
         email: user.email,
+        matricula: user.matricula,
         nome: user.nome,
-        roles: user.roles,
       },
     };
   }
 
   async logout() {
-    return { sucesso: true, mensagem: 'Logout realizado com sucesso' };
-  }
-
-  async signupAluno(dto: SignupDto) {
-    const existingEmail = await this.usuarioRepository.findOne({
-      where: { email: dto.email },
-    });
-    if (existingEmail) throw new BadRequestException('Email já cadastrado');
-
-    const existingCpf = await this.usuarioRepository.findOne({
-      where: { cpf: cpf.mask(dto.cpf) },
-    });
-    if (existingCpf) throw new BadRequestException('CPF já cadastrado');
-
-    const senhaHash = await bcrypt.hash(dto.senha, 12);
-
-    const usuario = this.usuarioRepository.create({
-      email: dto.email,
-      nome: dto.nome,
-      cpf: cpf.mask(dto.cpf),
-      celular: dto.celular,
-      senha_hash: senhaHash,
-      data_nascimento: new Date(dto.data_nascimento),
-      roles: [RolesEnum.ALUNO],
-    });
-
-    const aluno = this.alunoRepository.create({
-      matricula: dto.matricula,
-      curso: dto.curso,
-      campus: dto.campus,
-      data_ingresso: dto.data_ingresso,
-      usuario,
-    });
-
-    usuario.aluno = aluno;
-
-    const savedUser = await this.usuarioRepository.save(usuario);
-    const { senha_hash, ...result } = savedUser;
-
     return {
       sucesso: true,
-      mensagem: 'Aluno cadastrado',
-      dados: { aluno: result },
+      mensagem: 'Logout realizado com sucesso',
     };
   }
 
-  async updatePassword(userId: number, newPassword: string) {
-    const user = await this.usuarioRepository.findOne({
-      where: { usuario_id: userId },
-    });
-    if (!user) throw new NotFoundException('Usuário não encontrado');
+  async signup(alunoSignup: SignupDto) {
+    try {
+      const existingEmail = await this.alunoRepository.findOne({
+        where: { email: alunoSignup.email },
+      });
 
-    user.senha_hash = await bcrypt.hash(newPassword, 12);
-    await this.usuarioRepository.save(user);
+      if (existingEmail) {
+        throw new BadRequestException('Email já cadastrado');
+      }
 
-    return { sucesso: true, mensagem: 'Senha atualizada com sucesso' };
+      // Verificar se CPF já existe
+      const existingCpf = await this.alunoRepository.findOne({
+        where: { cpf: cpf.mask(alunoSignup.cpf) },
+      });
+
+      if (existingCpf) {
+        throw new BadRequestException('CPF já cadastrado');
+      }
+
+      // Hash da senha
+      const saltRounds = 12;
+      const senhaHash = await bcrypt.hash(alunoSignup.senha, saltRounds);
+
+      // Criar aluno
+      const novoAluno = this.alunoRepository.create({
+        email: alunoSignup.email,
+        matricula: alunoSignup.matricula,
+        senha_hash: senhaHash,
+        nome: alunoSignup.nome,
+        data_nascimento: new Date(alunoSignup.data_nascimento),
+        curso: alunoSignup.curso,
+        campus: alunoSignup.campus,
+        cpf: cpf.mask(alunoSignup.cpf),
+        data_ingresso: alunoSignup.data_ingresso,
+        celular: alunoSignup.celular,
+      });
+
+      // Salvar no banco
+      const alunoSalvo = await this.alunoRepository.save(novoAluno);
+
+      // Retornar sem a senha
+      const { senha_hash, ...result } = alunoSalvo;
+
+      return {
+        sucesso: true,
+        mensagem: 'Cadastro realizado com sucesso',
+        dados: {
+          aluno: result,
+        },
+      };
+    } catch (e) {
+      if (e instanceof QueryFailedError) {
+        const err = e as QueryFailedError & { code: string };
+        if (err.code === '23505') {
+          console.error('Erro de duplicação:', e);
+          throw new BadRequestException('Dados já cadastrados');
+        }
+      }
+
+      console.error('Erro ao realizar o cadastro:', e);
+      throw new BadRequestException('Erro ao realizar o cadastro');
+    }
   }
 
-  async forgotPassword(dto: ForgotPasswordDto) {
-    const user = await this.usuarioRepository.findOne({
-      where: { email: dto.email },
-    });
-    if (!user) throw new NotFoundException('Email não encontrado');
+  async updatePassword(userId: number, password: string) {
+    try {
+      console.log('userId', userId);
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+      });
 
-    const token = this.jwtService.sign(
-      { email: user.email },
-      { secret: process.env.JWT_SECRET, expiresIn: '5m' },
-    );
-    user.passwordResetToken = token;
-    user.passwordResetTokenExpires = new Date(Date.now() + 5 * 60 * 1000);
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
 
-    await this.usuarioRepository.save(user);
-    await this.emailService.sendPasswordRecovery(user.email, token);
+      // Hash da nova senha
+      const saltRounds = 12;
+      const senhaHash = await bcrypt.hash(password, saltRounds);
 
-    return { sucesso: true, mensagem: 'Email de recuperação enviado' };
+      // Atualizar senha
+      await this.alunoRepository.update(
+        { aluno_id: userId },
+        { senha_hash: senhaHash },
+      );
+
+      return {
+        sucesso: true,
+        mensagem: 'Senha atualizada com sucesso',
+      };
+    } catch (e) {
+      console.error(e);
+      throw new BadRequestException('Erro ao atualizar a senha');
+    }
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
-    if (dto.newPassword !== dto.confirmPassword)
-      throw new BadRequestException('Senhas não coincidem');
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    try {
+      const user = await this.findUserByEmail(forgotPasswordDto.email);
+      if (!user) {
+        throw new BadRequestException('Email não encontrado');
+      }
 
-    let user = await this.usuarioRepository.findOne({
-      where: {
-        email: this.jwtService.verify(dto.token, {
-          secret: process.env.JWT_SECRET,
-        })['email'],
+      const now = new Date();
+
+      if (
+        user.lastPasswordResetRequest &&
+        new Date().getTime() - user.lastPasswordResetRequest.getTime() < 30_000
+      ) {
+        throw new BadRequestException(
+          'Você já solicitou recuperação de senha. Tente novamente em alguns segundos.',
+        );
+      }
+
+      const payload = {
+        email: user.email,
+      };
+
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '5m',
+      });
+
+      user.passwordResetToken = token;
+      user.passwordResetTokenExpires = new Date(Date.now() + 5 * 60 * 1000);
+      user.lastPasswordResetRequest = now;
+
+      await this.alunoRepository.save(user);
+      await this.emailService.sendPasswordRecovery(user.email, token);
+
+      return {
+        sucesso: true,
+        mensagem: 'Email de recuperação enviado',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(
+        'Erro ao enviar o email de recuperação de senha.',
+      );
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword, confirmPassword } = resetPasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('As senhas não coincidem');
+    }
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const user = await this.alunoRepository.findOne({
+        where: { email: payload.email },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      user.senha_hash = hashedPassword;
+      user.passwordResetToken = null;
+      user.passwordResetTokenExpires = null;
+
+      await this.alunoRepository.update(
+        { aluno_id: user.aluno_id },
+        { senha_hash: hashedPassword },
+      );
+
+      return {
+        sucesso: true,
+        mensagem: 'Senha alterada com sucesso',
+      };
+    } catch (e) {
+      console.log(e);
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
+  }
+
+  async findUserByEmail(email: string): Promise<Aluno | null> {
+    return await this.alunoRepository.findOne({
+      where: { email },
+      select: [
+        'aluno_id',
+        'email',
+        'matricula',
+        'nome',
+        'data_nascimento',
+        'curso',
+        'campus',
+        'cpf',
+        'data_ingresso',
+        'celular',
+      ],
+    });
+  }
+
+  async googleLogin(user: any) {
+    if (user.needsRegistration) {
+      // Retorna dados para completar cadastro
+      return {
+        needsRegistration: true,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        message: 'Complete seu cadastro com as informações adicionais',
+      };
+    }
+
+    // Login normal
+    const payload = {
+      email: user.email,
+      sub: user.aluno_id,
+      aluno_id: user.aluno_id,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        aluno_id: user.aluno_id,
+        email: user.email,
+        matricula: user.matricula,
+        nome: user.firstName,
       },
-    });
+    };
+  }
 
-    if (!user) throw new UnauthorizedException('Token inválido ou expirado');
+  async completeGoogleSignup(completeSignupDto: any) {
+    try {
+      // Verificar se email já existe
+      const existingEmail = await this.alunoRepository.findOne({
+        where: { email: completeSignupDto.email },
+      });
 
-    user.senha_hash = await bcrypt.hash(dto.newPassword, 12);
-    user.passwordResetToken = undefined;
-    user.passwordResetTokenExpires = undefined;
+      if (existingEmail) {
+        throw new BadRequestException('Email já cadastrado');
+      }
 
-    await this.usuarioRepository.save(user);
-    return { sucesso: true, mensagem: 'Senha alterada com sucesso' };
+      // Verificar se CPF já existe
+      const existingCpf = await this.alunoRepository.findOne({
+        where: { cpf: cpf.mask(completeSignupDto.cpf) },
+      });
+
+      if (existingCpf) {
+        throw new BadRequestException('CPF já cadastrado');
+      }
+
+      // Hash da senha
+      const saltRounds = 12;
+      const senhaHash = await bcrypt.hash('google_auth', saltRounds);
+
+      // Criar aluno
+      const novoAluno = this.alunoRepository.create({
+        email: completeSignupDto.email,
+        matricula: completeSignupDto.matricula,
+        senha_hash: senhaHash,
+        nome: completeSignupDto.nome,
+        data_nascimento: new Date(completeSignupDto.data_nascimento),
+        curso: completeSignupDto.curso,
+        campus: completeSignupDto.campus,
+        cpf: cpf.mask(completeSignupDto.cpf),
+        data_ingresso: completeSignupDto.data_ingresso,
+        celular: completeSignupDto.celular,
+      });
+
+      // Salvar no banco
+      const alunoSalvo = await this.alunoRepository.save(novoAluno);
+
+      // Gerar token JWT
+      const payload = {
+        email: alunoSalvo.email,
+        sub: alunoSalvo.aluno_id,
+        aluno_id: alunoSalvo.aluno_id,
+      };
+
+      return {
+        access_token: this.jwtService.sign(payload),
+        user: {
+          aluno_id: alunoSalvo.aluno_id,
+          email: alunoSalvo.email,
+          matricula: alunoSalvo.matricula,
+          nome: alunoSalvo.nome,
+        },
+        message: 'Cadastro finalizado com sucesso',
+      };
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        throw new BadRequestException('Erro ao salvar dados do usuário');
+      }
+      throw error;
+    }
   }
 
   async validateToken(token: string) {
     try {
-      const payload: any = this.jwtService.verify(token, {
+      const payload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
       });
-      const user = await this.usuarioRepository.findOne({
-        where: { usuario_id: payload.sub },
-        relations: ['aluno', 'admin'],
+
+      // Buscar informações do usuário no banco
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: payload.sub },
+        select: [
+          'aluno_id',
+          'email',
+          'matricula',
+          'nome',
+          'data_nascimento',
+          'curso',
+          'campus',
+          'cpf',
+          'data_ingresso',
+          'celular',
+        ],
       });
 
-      if (!user) throw new NotFoundException('Usuário não encontrado');
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
 
-      return { valid: true, user, roles: user.roles, payload };
-    } catch (e) {
-      return { valid: false, error: e.message };
+      return {
+        valid: true,
+        user: {
+          aluno_id: user.aluno_id,
+          email: user.email,
+          matricula: user.matricula,
+          nome: user.nome,
+          data_nascimento: user.data_nascimento,
+          curso: user.curso,
+          campus: user.campus,
+          cpf: user.cpf,
+          data_ingresso: user.data_ingresso,
+          celular: user.celular,
+        },
+        payload: {
+          sub: payload.sub,
+          email: payload.email,
+          aluno_id: payload.aluno_id,
+          iat: payload.iat,
+          exp: payload.exp,
+        },
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
     }
   }
 
-  async signupAdmin(dto: SignupDtoAdmin) {
-    const emailExistente = await this.usuarioRepository.findOne({
-      where: { email: dto.email },
-    });
-    if (emailExistente) throw new BadRequestException('Email já cadastrado');
+  async findValidatedUser(userId: number) {
+    try {
+      // Buscar informações do usuário no banco
+      const user = await this.alunoRepository.findOne({
+        where: { aluno_id: userId },
+        select: [
+          'aluno_id',
+          'email',
+          'matricula',
+          'nome',
+          'data_nascimento',
+          'curso',
+          'campus',
+          'cpf',
+          'data_ingresso',
+          'celular',
+        ],
+      });
 
-    const senhaHash = await bcrypt.hash(dto.senha, 12);
-    const usuario = this.usuarioRepository.create({
-      email: dto.email,
-      nome: dto.nome,
-      cpf: dto.cpf,
-      celular: dto.celular,
-      senha_hash: senhaHash,
-      roles: [RolesEnum.ADMIN],
-    });
+      if (!user) {
+        throw new BadRequestException('Usuário não encontrado');
+      }
 
-    const admin = this.adminRepository.create({
-      usuario,
-      aprovado: false,
-      approvalToken: this.generateRandomToken(),
-      approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
-    });
-
-    usuario.admin = admin;
-
-    await this.usuarioRepository.save(usuario);
-
-    const token = this.jwtService.sign(
-      { email: usuario.email },
-      {
-        secret: process.env.JWT_SECRET,
-        expiresIn: '2d',
-      },
-    );
-
-    admin.approvalToken = token;
-    admin.approvalTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    await this.adminRepository.save(admin);
-
-    await this.emailService.sendAdminApprovalRequest(usuario.email, token);
-    return {
-      sucesso: true,
-      mensagem: 'Admin cadastrado, aguardando aprovação',
-    };
-  }
-  async approveAdmin(token: string) {
-    const admin = await this.adminRepository.findOne({
-      where: { approvalToken: token },
-      relations: ['usuario'],
-    });
-
-    if (!admin) throw new BadRequestException('Token inválido');
-    if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
-      throw new BadRequestException('Token expirado');
-
-    admin.aprovado = true;
-    admin.approvalToken = undefined;
-    admin.approvalTokenExpires = undefined;
-
-    await this.adminRepository.save(admin);
-
-    return { sucesso: true, mensagem: 'Admin aprovado com sucesso' };
-  }
-
-  async rejectAdmin(token: string) {
-    const admin = await this.adminRepository.findOne({
-      where: { approvalToken: token },
-      relations: ['usuario'],
-    });
-
-    if (!admin) throw new BadRequestException('Token inválido');
-    if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
-      throw new BadRequestException('Token expirado');
-
-    await this.usuarioRepository.remove(admin.usuario);
-
-    return { sucesso: true, mensagem: 'Admin rejeitado e removido' };
-  }
-  private generateRandomToken(length = 32): string {
-    const chars =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < length; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
+      return {
+        valid: true,
+        user: {
+          aluno_id: user.aluno_id,
+          email: user.email,
+          matricula: user.matricula,
+          nome: user.nome,
+          data_nascimento: user.data_nascimento,
+          curso: user.curso,
+          campus: user.campus,
+          cpf: user.cpf,
+          data_ingresso: user.data_ingresso,
+          celular: user.celular,
+        },
+        message: 'Token válido',
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
     }
-    return token;
   }
+}
+function findUserByEmail(email: any, string: any) {
+  throw new Error('Function not implemented.');
 }

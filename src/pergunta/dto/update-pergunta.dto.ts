@@ -1,20 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { EnumInputFormat } from '../../enum/enumInputFormat';
 
 export class UpdatePerguntaDto {
-  @ApiProperty({
-    description: 'Texto da pergunta',
-    maxLength: 255,
-    required: false,
-  })
+  @ApiProperty({ description: 'Texto da pergunta', maxLength: 255, required: false })
   @IsOptional()
   @IsString()
   @MaxLength(255)
@@ -25,20 +14,20 @@ export class UpdatePerguntaDto {
   @IsBoolean()
   obrigatoriedade?: boolean;
 
-  @ApiProperty({
+  @ApiProperty({ 
     type: [String],
     description: 'Opções para perguntas do tipo select',
-    required: false,
+    required: false
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   opcoes?: string[];
 
-  @ApiProperty({
+  @ApiProperty({ 
     enum: EnumInputFormat,
     description: 'Formato de entrada da pergunta',
-    required: false,
+    required: false
   })
   @IsOptional()
   @IsEnum(EnumInputFormat)

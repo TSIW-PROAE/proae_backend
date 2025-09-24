@@ -1,6 +1,6 @@
 export const recuperacaoSenhaTemplate = (token: string): string => {
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${token}`;
-
+  
   return `
 <!DOCTYPE html>
 <html lang="pt-BR">

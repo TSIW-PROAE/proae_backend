@@ -35,13 +35,12 @@ export class PerguntaController {
   })
   @ApiNotFoundResponse({
     description: 'Step não encontrado',
-    schema: {
+    schema: { 
       example: {
         statusCode: 404,
-        message:
-          'Step com ID 999 não encontrado. Verifique se o step existe e tente novamente.',
-        timestamp: '2025-08-18T10:00:00.000Z',
-      },
+        message: 'Step com ID 999 não encontrado. Verifique se o step existe e tente novamente.',
+        timestamp: '2025-08-18T10:00:00.000Z'
+      }
     },
   })
   @ApiInternalServerErrorResponse({
@@ -60,13 +59,12 @@ export class PerguntaController {
   })
   @ApiNotFoundResponse({
     description: 'Nenhuma pergunta encontrada para este step',
-    schema: {
+    schema: { 
       example: {
         statusCode: 404,
-        message:
-          'Nenhuma pergunta encontrada para o step com ID 999. Verifique se o step existe e possui perguntas cadastradas.',
-        timestamp: '2025-08-18T10:00:00.000Z',
-      },
+        message: 'Nenhuma pergunta encontrada para o step com ID 999. Verifique se o step existe e possui perguntas cadastradas.',
+        timestamp: '2025-08-18T10:00:00.000Z'
+      }
     },
   })
   @ApiInternalServerErrorResponse({
@@ -80,9 +78,7 @@ export class PerguntaController {
   }
 
   @Patch(':id')
-  @ApiOperation({
-    summary: 'Atualizar uma pergunta (não pode alterar tipo_Pergunta nem step)',
-  })
+  @ApiOperation({ summary: 'Atualizar uma pergunta (não pode alterar tipo_Pergunta nem step)' })
   @ApiOkResponse({
     type: PerguntaResponseDto,
     description: 'Pergunta atualizada com sucesso',

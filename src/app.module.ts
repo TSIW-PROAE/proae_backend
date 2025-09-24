@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AlunoModule } from './aluno/aluno.module';
 import { AuthModule } from './auth/auth.module';
+import { BeneficioModule } from './beneficio/beneficio.module';
 import { typeOrmConfig } from './db/db.config';
 import { DocumentoModule } from './documentos/documentos.module';
 import { EditalModule } from './edital/edital.module';
@@ -12,8 +13,6 @@ import { PerguntaModule } from './pergunta/pergunta.module';
 import { StepModule } from './step/step.module';
 import { VagasModule } from './vagas/vagas.module';
 import { ValidacaoModule } from './validacao/validacao.module';
-import { DadoModule } from './tipoDado/tipoDado.module';
-import { ValorDadoModule } from './valorDado/valorDado.module';
 
 @Module({
   imports: [
@@ -26,11 +25,10 @@ import { ValorDadoModule } from './valorDado/valorDado.module';
     InscricaoModule,
     DocumentoModule,
     ValidacaoModule,
+    BeneficioModule,
     StepModule,
     PerguntaModule,
     VagasModule,
-    DadoModule,
-    ValorDadoModule,
   ],
 })
 export class AppModule {}

@@ -17,7 +17,7 @@ export class PerguntaResponseDto {
 
   @Expose()
   @ApiProperty({
-    example: EnumTipoInput.TEXT,
+    example: EnumTipoInput.INPUT,
     description: 'Tipo da pergunta',
   })
   tipo_Pergunta: EnumTipoInput;

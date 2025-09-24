@@ -1,30 +1,18 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsBoolean,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 import { EnumInputFormat } from '../../enum/enumInputFormat';
 import { EnumTipoInput } from '../../enum/enumTipoInput';
 
 export class CreatePerguntaDto {
-  @ApiProperty({
-    description: 'ID do step ao qual a pergunta pertence',
-    example: 9,
-  })
+  @ApiProperty({ description: 'ID do step ao qual a pergunta pertence' })
   @IsNotEmpty()
   @IsNumber()
   step_id: number;
 
-  @ApiProperty({
+  @ApiProperty({ 
     enum: EnumTipoInput,
     description: 'Tipo da pergunta',
-    example: EnumTipoInput.TEXT,
+    example: EnumTipoInput.INPUT
   })
   @IsNotEmpty()
   @IsEnum(EnumTipoInput)
@@ -40,30 +28,22 @@ export class CreatePerguntaDto {
   @IsBoolean()
   obrigatoriedade: boolean;
 
-  @ApiProperty({
+  @ApiProperty({ 
     type: [String],
     description: 'Opções para perguntas do tipo select',
-    required: false,
+    required: false
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   opcoes?: string[];
 
-  @ApiProperty({
+  @ApiProperty({ 
     enum: EnumInputFormat,
     description: 'Formato de entrada da pergunta',
-    required: false,
+    required: false
   })
   @IsOptional()
   @IsEnum(EnumInputFormat)
   tipo_formatacao?: EnumInputFormat;
-
-  @ApiPropertyOptional({
-    description: 'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento)',
-    example: 10,
-  })
-  @IsNumber()
-  @IsOptional()
-  dadoId?: number;
 }
