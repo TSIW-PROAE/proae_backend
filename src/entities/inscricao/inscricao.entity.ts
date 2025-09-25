@@ -1,16 +1,15 @@
-import { Column, Entity, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { AbstractEntity } from '../../db/abstract.entity';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { Aluno } from '../aluno/aluno.entity';
-import { Beneficio } from '../beneficio/beneficio.entity';
 import { Documento } from '../documento/documento.entity';
-import { Edital } from '../edital/edital.entity';
-import { Resposta } from './resposta.entity';
+import { Vagas } from '../vagas/vagas.entity';
+import { Resposta } from '../resposta/resposta.entity';
 
 @Entity()
 export class Inscricao extends AbstractEntity<Inscricao> {
-  @ManyToOne(() => Edital, (edital) => edital.inscricoes)
-  edital: Edital;
+  @ManyToOne(() => Vagas, (vagas) => vagas.inscricoes)
+  vagas: Vagas;
 
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })
   data_inscricao: Date;
@@ -24,6 +23,7 @@ export class Inscricao extends AbstractEntity<Inscricao> {
 
   @OneToMany(() => Documento, (documento) => documento.inscricao, {
     nullable: true,
+    cascade: true,
   })
   documentos: Documento[];
 
@@ -35,9 +35,6 @@ export class Inscricao extends AbstractEntity<Inscricao> {
 
   @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
   aluno: Aluno;
-
-  @OneToOne(() => Beneficio, (beneficio) => beneficio.inscricao)
-  beneficio: Beneficio;
 
   constructor(entity: Partial<Inscricao>) {
     super();

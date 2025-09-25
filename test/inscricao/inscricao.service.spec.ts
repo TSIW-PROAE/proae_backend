@@ -8,7 +8,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Aluno } from 'src/entities/aluno/aluno.entity';
 import { Documento } from 'src/entities/documento/documento.entity';
 import { Edital } from 'src/entities/edital/edital.entity';
-import { Pergunta } from 'src/entities/edital/pergunta.entity';
+import { Pergunta } from '@/src/entities/pergunta/pergunta.entity';
 import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { Validacao } from 'src/entities/validacao/validacao.entity';
 import { EntityManager, Repository } from 'typeorm';

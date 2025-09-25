@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class CreateRespostaDto {
-  @ApiProperty({ type: Number, description: 'ID da pergunta' })
+export class CreateStepDto {
+  @ApiProperty({ description: 'ID do edital ao qual o step pertence' })
   @IsNotEmpty()
   @IsNumber()
-  pergunta_id: number;
+  edital_id: number;
 
-  @ApiProperty({ type: String, description: 'Texto da resposta' })
+  @ApiProperty({ description: 'Texto descritivo do step' })
   @IsNotEmpty()
   @IsString()
   texto: string;

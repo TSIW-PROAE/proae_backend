@@ -1,7 +1,7 @@
 import { AbstractEntity } from 'src/db/abstract.entity';
 import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { Edital } from '../edital/edital.entity';
-import { Pergunta } from './pergunta.entity';
+import { Pergunta } from '../pergunta/pergunta.entity';
 
 @Entity()
 export class Step extends AbstractEntity<Step> {
@@ -11,7 +11,7 @@ export class Step extends AbstractEntity<Step> {
   @Column({ type: 'varchar', length: 255 })
   texto: string;
 
-  @OneToMany(() => Pergunta, (pergunta) => pergunta.step)
+  @OneToMany(() => Pergunta, (pergunta) => pergunta.step, { cascade: true })
   perguntas: Pergunta[];
 
   constructor(entity: Partial<Step>) {

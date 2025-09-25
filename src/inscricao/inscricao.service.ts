@@ -7,17 +7,16 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { EntityManager, Repository } from 'typeorm';
 import { Aluno } from '../entities/aluno/aluno.entity';
-import { Documento } from '../entities/documento/documento.entity';
 import { Edital } from '../entities/edital/edital.entity';
-import { Pergunta } from '../entities/edital/pergunta.entity';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
-import { Resposta } from '../entities/inscricao/resposta.entity';
+import { Resposta } from '../entities/resposta/resposta.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
 import { StatusEdital } from '../enum/enumStatusEdital';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
-import { AuthGuard } from '../auth/auth.guard';
 
 export class InscricaoService {
   constructor(
@@ -25,45 +24,52 @@ export class InscricaoService {
     private readonly inscricaoRepository: Repository<Inscricao>,
     @InjectRepository(Aluno)
     private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(Vagas)
+    private readonly vagasRepository: Repository<Vagas>,
     @InjectRepository(Edital)
     private readonly editalRepository: Repository<Edital>,
     @InjectRepository(Pergunta)
     private readonly perguntaRepository: Repository<Pergunta>,
+    @InjectRepository(Resposta)
+    private readonly respostaRepository: Repository<Resposta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {}
 
   async createInscricao(
     createInscricaoDto: CreateInscricaoDto,
+    userId: number,
   ): Promise<InscricaoResponseDto> {
     try {
+      // Validação do aluno
       const alunoExists = await this.alunoRepository.findOneBy({
-        aluno_id: AuthGuard.getUserId(),
+        aluno_id: userId,
       });
 
       if (!alunoExists) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
-      // Validação do edital
-      const editalExiste = await this.editalRepository.findOne({
-        where: { id: createInscricaoDto.edital },
+      // Validação da vaga
+      const vagaExists = await this.vagasRepository.findOne({
+        where: { id: createInscricaoDto.vaga_id },
+        relations: ['edital'],
       });
 
-      if (!editalExiste) {
-        throw new NotFoundException('Edital não encontrado');
+      if (!vagaExists) {
+        throw new NotFoundException('Vaga não encontrada');
       }
 
       // Validação do status do edital
-      if (editalExiste.status_edital !== StatusEdital.ABERTO) {
+      if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
         throw new BadRequestException('Edital não está aberto para inscrições');
       }
 
-      // Busca todas as perguntas do edital
+      // Busca todas as perguntas do edital através das vagas
       const perguntas = await this.perguntaRepository.find({
         where: {
           step: {
-            edital: { id: editalExiste.id },
+            edital: { id: vagaExists.edital.id },
           },
         },
       });
@@ -84,30 +90,30 @@ export class InscricaoService {
       // Valida e associa as perguntas às respostas
       const respostas = await Promise.all(
         createInscricaoDto.respostas.map(async (respostaDto) => {
-          const pergunta = perguntasMap.get(respostaDto.pergunta_id);
+          const pergunta = perguntasMap.get(respostaDto.perguntaId);
 
           if (!pergunta) {
             throw new NotFoundException(
-              `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`,
+              `Pergunta com ID ${respostaDto.perguntaId} não encontrada no edital`,
             );
           }
 
-          if (!respostaDto.texto || respostaDto.texto.trim() === '') {
-            throw new BadRequestException(
-              `Resposta para a pergunta ${pergunta.pergunta} não pode estar vazia`,
-            );
-          }
+          // Validação baseada no tipo de pergunta
+          this.validateRespostaByTipoPergunta(respostaDto, pergunta);
 
-          return new Resposta({
-            pergunta,
-            texto: respostaDto.texto,
-          });
+          const resposta = new Resposta();
+          resposta.pergunta = pergunta;
+          resposta.valorTexto = respostaDto.valorTexto;
+          resposta.valorOpcoes = respostaDto.valorOpcoes;
+          resposta.urlArquivo = respostaDto.urlArquivo;
+          resposta.texto = respostaDto.valorTexto; // Para compatibilidade
+          return resposta;
         }),
       );
 
       const inscricao = new Inscricao({
         aluno: alunoExists,
-        edital: editalExiste,
+        vagas: vagaExists,
         respostas,
       });
 
@@ -116,20 +122,6 @@ export class InscricaoService {
           // Salva a inscrição com as respostas em cascade
           const inscricaoSalva =
             await transactionalEntityManager.save(inscricao);
-
-          // Cria documentos apenas se houver tipos de documentos definidos
-          if (
-            editalExiste.tipo_documentos &&
-            editalExiste.tipo_documentos.length > 0
-          ) {
-            for (const tipo_documento of editalExiste.tipo_documentos) {
-              const documento = new Documento({
-                tipo_documento: tipo_documento,
-                inscricao: inscricaoSalva,
-              });
-              await transactionalEntityManager.save(documento);
-            }
-          }
 
           return inscricaoSalva;
         },
@@ -156,134 +148,135 @@ export class InscricaoService {
   async updateInscricao(
     inscricaoId: number,
     updateInscricaoDto: UpdateInscricaoDto,
+    userId: number,
   ): Promise<InscricaoResponseDto> {
     try {
       // Validação da inscrição
       const inscricaoExistente = await this.inscricaoRepository.findOne({
         where: { id: inscricaoId },
-        relations: ['aluno', 'edital', 'respostas'],
+        relations: ['aluno', 'vagas', 'vagas.edital', 'respostas'],
       });
 
       if (!inscricaoExistente) {
         throw new NotFoundException('Inscrição não encontrada');
       }
 
-      const alunoExists = await this.alunoRepository.findOneBy({
-        aluno_id: AuthGuard.getUserId(),
-      });
-
-      if (!alunoExists) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      // Validação do edital
-      const editalExiste = await this.editalRepository.findOne({
-        where: { id: updateInscricaoDto.edital },
-      });
-
-      if (!editalExiste) {
-        throw new NotFoundException('Edital não encontrado');
-      }
-
-      // Validação do status do edital
-      if (editalExiste.status_edital !== StatusEdital.ABERTO) {
+      // Verifica se o aluno é o dono da inscrição
+      if (inscricaoExistente.aluno.aluno_id !== userId) {
         throw new BadRequestException(
-          'Edital não está aberto para atualizações',
+          'Você não tem permissão para editar esta inscrição',
         );
       }
 
-      // Validação das respostas
+      // Validação da vaga se fornecida
+      if (updateInscricaoDto.vaga_id) {
+        const vagaExists = await this.vagasRepository.findOne({
+          where: { id: updateInscricaoDto.vaga_id },
+          relations: ['edital'],
+        });
+
+        if (!vagaExists) {
+          throw new NotFoundException('Vaga não encontrada');
+        }
+
+        // Validação do status do edital
+        if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
+          throw new BadRequestException(
+            'Edital não está aberto para atualizações',
+          );
+        }
+
+        inscricaoExistente.vagas = vagaExists;
+      }
+
+      // Atualização das respostas se fornecidas
       if (
         updateInscricaoDto.respostas &&
-        updateInscricaoDto.respostas.length &&
-        updateInscricaoDto.respostas_editadas &&
-        updateInscricaoDto.respostas_editadas.length
+        updateInscricaoDto.respostas.length > 0
       ) {
-        // Busca todas as perguntas do edital
         const perguntas = await this.perguntaRepository.find({
           where: {
             step: {
-              edital: { id: editalExiste.id },
+              edital: { id: inscricaoExistente.vagas.edital.id },
             },
           },
         });
 
-        // Cria um mapa de perguntas por ID para fácil acesso
         const perguntasMap = new Map(perguntas.map((p) => [p.id, p]));
 
-        // Valida e associa as respostas
-        const respostas = await Promise.all(
-          // cria as novas respostas
+        // Cria novas respostas
+        const novasRespostas = await Promise.all(
           updateInscricaoDto.respostas.map(async (respostaDto) => {
-            const pergunta = perguntasMap.get(respostaDto.pergunta_id);
+            const pergunta = perguntasMap.get(respostaDto.perguntaId);
 
             if (!pergunta) {
               throw new NotFoundException(
-                `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`,
+                `Pergunta com ID ${respostaDto.perguntaId} não encontrada no edital`,
               );
             }
 
-            if (!respostaDto.texto || respostaDto.texto.trim() === '') {
-              throw new BadRequestException(
-                `Resposta para a pergunta ${pergunta.pergunta} não pode estar vazia`,
-              );
-            }
+            this.validateRespostaByTipoPergunta(respostaDto, pergunta);
 
-            return new Resposta({
-              pergunta,
-              texto: respostaDto.texto,
-            });
+            const resposta = new Resposta();
+            resposta.pergunta = pergunta;
+            resposta.valorTexto = respostaDto.valorTexto;
+            resposta.valorOpcoes = respostaDto.valorOpcoes;
+            resposta.urlArquivo = respostaDto.urlArquivo;
+            resposta.texto = respostaDto.valorTexto;
+            return resposta;
           }),
         );
 
-        // atualiza as respostas existentes
-        const respostasAtualizadas = await Promise.all(
-          updateInscricaoDto.respostas_editadas.map(async (respostaDto) => {
-            if (typeof respostaDto.pergunta_id !== 'number') {
-              throw new BadRequestException('ID da pergunta inválido');
-            }
+        // Remove respostas antigas e adiciona novas
+        await this.respostaRepository.delete({
+          inscricao: { id: inscricaoId },
+        });
+        inscricaoExistente.respostas = novasRespostas;
+      }
 
-            const pergunta = perguntasMap.get(respostaDto.pergunta_id);
-            if (!pergunta) {
-              throw new NotFoundException(
-                `Pergunta com ID ${respostaDto.pergunta_id} não encontrada no edital`,
-              );
-            }
+      // Atualização das respostas editadas se fornecidas
+      if (
+        updateInscricaoDto.respostas_editadas &&
+        updateInscricaoDto.respostas_editadas.length > 0
+      ) {
+        for (const respostaDto of updateInscricaoDto.respostas_editadas) {
+          const respostaExistente = await this.respostaRepository.findOne({
+            where: {
+              pergunta: { id: respostaDto.perguntaId },
+              inscricao: { id: inscricaoId },
+            },
+          });
 
-            if (!respostaDto.texto || respostaDto.texto.trim() === '') {
-              throw new BadRequestException(
-                `Resposta para a pergunta ${pergunta.pergunta} não pode estar vazia`,
-              );
-            }
-
-            const respostaExistente = inscricaoExistente.respostas.find(
-              (r) => r.id === respostaDto.id,
+          if (!respostaExistente) {
+            throw new NotFoundException(
+              `Resposta para a pergunta ${respostaDto.perguntaId} não encontrada na inscrição`,
             );
-            if (!respostaExistente) {
-              throw new NotFoundException(
-                `Resposta com ID ${respostaDto.id} não encontrada na inscrição`,
-              );
-            }
+          }
 
-            Object.assign(respostaExistente, {
-              texto: respostaDto.texto,
-            });
+          // Atualiza os campos fornecidos
+          if (respostaDto.valorTexto !== undefined) {
+            respostaExistente.valorTexto = respostaDto.valorTexto;
+            respostaExistente.texto = respostaDto.valorTexto;
+          }
+          if (respostaDto.valorOpcoes !== undefined) {
+            respostaExistente.valorOpcoes = respostaDto.valorOpcoes;
+          }
+          if (respostaDto.urlArquivo !== undefined) {
+            respostaExistente.urlArquivo = respostaDto.urlArquivo;
+          }
 
-            return respostaExistente;
-          }),
-        );
-
-        // Atualiza as respostas existentes
-        inscricaoExistente.respostas = [...respostas, ...respostasAtualizadas];
+          await this.respostaRepository.save(respostaExistente);
+        }
       }
 
       // Atualiza os dados básicos da inscrição
-      Object.assign(inscricaoExistente, {
-        aluno: alunoExists,
-        edital: editalExiste,
-        data_inscricao: updateInscricaoDto.data_inscricao,
-        status_inscricao: updateInscricaoDto.status_inscricao,
-      });
+      if (updateInscricaoDto.data_inscricao !== undefined) {
+        inscricaoExistente.data_inscricao = updateInscricaoDto.data_inscricao;
+      }
+      if (updateInscricaoDto.status_inscricao !== undefined) {
+        inscricaoExistente.status_inscricao =
+          updateInscricaoDto.status_inscricao;
+      }
 
       const result = await this.entityManager.transaction(
         async (transactionalEntityManager) => {
@@ -330,13 +323,18 @@ export class InscricaoService {
             status_documento: StatusDocumento.PENDENTE,
           },
         },
-        relations: ['edital', 'documentos', 'documentos.validacoes'],
+        relations: [
+          'documentos',
+          'documentos.validacoes',
+          'vagas',
+          'vagas.edital',
+        ],
       });
 
       return inscricoes
         .map((inscricao) => ({
-          titulo_edital: inscricao.edital.titulo_edital,
-          tipo_edital: [inscricao.edital.tipo_edital],
+          titulo_edital: inscricao.vagas.edital.titulo_edital,
+          tipo_edital: [inscricao.vagas.beneficio],
           documentos: inscricao.documentos
             .filter(
               (documento) =>
@@ -378,6 +376,39 @@ export class InscricaoService {
       throw new BadRequestException(
         `Falha ao buscar inscrições com pendências do aluno: ${e.message}`,
       );
+    }
+  }
+
+  private validateRespostaByTipoPergunta(respostaDto: any, pergunta: any) {
+    // Validação baseada no tipo de pergunta
+    switch (pergunta.tipo_Pergunta) {
+      case 'text':
+        if (!respostaDto.valorTexto || respostaDto.valorTexto.trim() === '') {
+          throw new BadRequestException(
+            `Resposta para a pergunta "${pergunta.pergunta}" não pode estar vazia`,
+          );
+        }
+        break;
+      case 'select':
+        if (!respostaDto.valorOpcoes || respostaDto.valorOpcoes.length === 0) {
+          throw new BadRequestException(
+            `Resposta para a pergunta "${pergunta.pergunta}" deve ter pelo menos uma opção selecionada`,
+          );
+        }
+        break;
+      case 'file':
+        if (!respostaDto.urlArquivo || respostaDto.urlArquivo.trim() === '') {
+          throw new BadRequestException(
+            `Resposta para a pergunta "${pergunta.pergunta}" deve incluir um arquivo`,
+          );
+        }
+        break;
+      default:
+        if (!respostaDto.valorTexto || respostaDto.valorTexto.trim() === '') {
+          throw new BadRequestException(
+            `Resposta para a pergunta "${pergunta.pergunta}" não pode estar vazia`,
+          );
+        }
     }
   }
 }

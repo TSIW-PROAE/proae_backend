@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { UnidadeEnum } from '../../enum/enumCampus';
 import { Inscricao } from '../inscricao/inscricao.entity';
+import { ValorDado } from '../valorDado/valorDado.entity';
 
 @Entity()
 export class Aluno {
@@ -48,4 +49,7 @@ export class Aluno {
 
   @OneToMany(() => Inscricao, (inscricao) => inscricao.aluno)
   inscricoes: Inscricao[];
+
+  @OneToMany(() => ValorDado, (valor) => valor.aluno)
+  valoresDado: ValorDado[];
 }
