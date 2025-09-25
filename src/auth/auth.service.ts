@@ -196,51 +196,69 @@ export class AuthService {
   }
 
   async signupAdmin(dto: SignupDtoAdmin) {
-    const emailExistente = await this.usuarioRepository.findOne({
-      where: { email: dto.email },
-    });
-    if (emailExistente) throw new BadRequestException('Email já cadastrado');
+    try {
+      const emailExistente = await this.usuarioRepository.findOne({
+        where: { email: dto.email },
+      });
+      if (emailExistente) throw new BadRequestException('Email já cadastrado');
 
-    const senhaHash = await bcrypt.hash(dto.senha, 12);
-    const usuario = this.usuarioRepository.create({
-      email: dto.email,
-      nome: dto.nome,
-      cpf: dto.cpf,
-      celular: dto.celular,
-      senha_hash: senhaHash,
-      roles: [RolesEnum.ADMIN],
-    });
+      const senhaHash = await bcrypt.hash(dto.senha, 12);
 
-    const admin = this.adminRepository.create({
-      usuario,
-      aprovado: false,
-      approvalToken: this.generateRandomToken(),
-      approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
-    });
+      const usuario = this.usuarioRepository.create({
+        email: dto.email,
+        nome: dto.nome,
+        cpf: dto.cpf,
+        celular: dto.celular,
+        senha_hash: senhaHash,
+        roles: [RolesEnum.ADMIN],
+        data_nascimento: new Date(dto.data_nascimento),
+      });
 
-    usuario.admin = admin;
+      const savedUsuario = await this.usuarioRepository.save(usuario);
 
-    await this.usuarioRepository.save(usuario);
+      const admin = this.adminRepository.create({
+        usuario: savedUsuario,
+        cargo: dto.cargo,
+        aprovado: false,
+        approvalToken: this.generateRandomToken(),
+        approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
 
-    const token = this.jwtService.sign(
-      { email: usuario.email },
-      {
-        secret: process.env.JWT_SECRET,
-        expiresIn: '2d',
-      },
-    );
+      const savedAdmin = await this.adminRepository.save(admin);
 
-    admin.approvalToken = token;
-    admin.approvalTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const token = this.jwtService.sign(
+        { email: savedUsuario.email },
+        { secret: process.env.JWT_SECRET, expiresIn: '2d' },
+      );
 
-    await this.adminRepository.save(admin);
+      await this.adminRepository.update(savedAdmin.id_admin, {
+        approvalToken: token,
+        approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
 
-    await this.emailService.sendAdminApprovalRequest(usuario.email, token);
-    return {
-      sucesso: true,
-      mensagem: 'Admin cadastrado, aguardando aprovação',
-    };
+      await this.emailService.sendAdminApprovalRequest(
+        savedUsuario.email,
+        token,
+      );
+
+      return {
+        sucesso: true,
+        mensagem: 'Admin cadastrado, aguardando aprovação',
+        dados: {
+          usuario_id: savedUsuario.usuario_id,
+          id_admin: savedAdmin.id_admin,
+          cargo: savedAdmin.cargo,
+          email: savedUsuario.email,
+        },
+      };
+    } catch (error) {
+      console.error('Erro ao cadastrar admin:', error);
+      throw new BadRequestException(
+        'Não foi possível cadastrar o admin. Verifique os dados e tente novamente.',
+      );
+    }
   }
+
   async approveAdmin(token: string) {
     const admin = await this.adminRepository.findOne({
       where: { approvalToken: token },

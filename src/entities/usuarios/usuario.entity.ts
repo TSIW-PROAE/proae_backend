@@ -38,9 +38,9 @@ export class Usuario {
   @Column('simple-array', { default: '' })
   roles: RolesEnum[];
 
-  @OneToOne(() => Aluno, (aluno) => aluno.usuario)
+  @OneToOne(() => Aluno, (aluno) => aluno.usuario, { cascade: true })
   aluno?: Aluno;
 
-  @OneToOne(() => Admin, (admin) => admin.usuario)
+  @OneToOne(() => Admin, (admin) => admin.usuario, { cascade: true })
   admin?: Admin;
 }

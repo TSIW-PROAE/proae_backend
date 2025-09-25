@@ -1,9 +1,9 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
 
 @Entity()
 export class Admin {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   id_admin: number;
 
   @Column({ length: 100 })
