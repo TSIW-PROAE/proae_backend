@@ -52,6 +52,7 @@ export class AuthController {
     status: 200,
     description: 'Login bem-sucedido',
   })
+
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
   async login(@Req() req, @Res() res) {
     const result = await this.authService.login(req.user);
