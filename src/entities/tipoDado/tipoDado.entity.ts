@@ -17,6 +17,7 @@ export class Dado extends AbstractEntity<Dado> {
   @Column({ type: 'simple-array', nullable: true })
   opcoes: string[];
 
+
   @OneToMany(() => ValorDado, (valor) => valor.dado)
   valores: ValorDado[];
 }
