@@ -71,12 +71,18 @@ export class PerguntaService {
         );
       }
 
-      const dado = await this.dadoRepository.findOneBy({
-        id: createPerguntaDto.dadoId,
-      });
-      if (!dado) {
-        throw new NotFoundException('Dado não encontrado');
+
+      let dado: Dado | null = null;
+      if (createPerguntaDto.dadoId) {
+        dado = await this.dadoRepository.findOneBy({
+          id: createPerguntaDto.dadoId,
+        });
+
+        if (!dado) {
+          throw new NotFoundException('Dado não encontrado');
+        }
       }
+
 
       const pergunta = this.perguntaRepository.create({
         tipo_Pergunta: createPerguntaDto.tipo_Pergunta,
@@ -85,7 +91,7 @@ export class PerguntaService {
         opcoes: createPerguntaDto.opcoes,
         tipo_formatacao: createPerguntaDto.tipo_formatacao,
         step: step,
-        dado,
+        dado: dado ?? undefined,
       });
 
       const savedPergunta = await this.perguntaRepository.save(pergunta);

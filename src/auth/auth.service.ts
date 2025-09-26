@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -82,46 +83,50 @@ export class AuthService {
   }
 
   async signupAluno(dto: SignupDto) {
-    const existingEmail = await this.usuarioRepository.findOne({
-      where: { email: dto.email },
-    });
-    if (existingEmail) throw new BadRequestException('Email já cadastrado');
+    try {
+      const existingEmail = await this.usuarioRepository.findOne({
+        where: { email: dto.email },
+      });
+      if (existingEmail) throw new BadRequestException('Email já cadastrado');
 
-    const existingCpf = await this.usuarioRepository.findOne({
-      where: { cpf: cpf.mask(dto.cpf) },
-    });
-    if (existingCpf) throw new BadRequestException('CPF já cadastrado');
+      const existingCpf = await this.usuarioRepository.findOne({
+        where: { cpf: cpf.mask(dto.cpf) },
+      });
+      if (existingCpf) throw new BadRequestException('CPF já cadastrado');
 
-    const senhaHash = await bcrypt.hash(dto.senha, 12);
+      const senhaHash = await bcrypt.hash(dto.senha, 12);
 
-    const usuario = this.usuarioRepository.create({
-      email: dto.email,
-      nome: dto.nome,
-      cpf: cpf.mask(dto.cpf),
-      celular: dto.celular,
-      senha_hash: senhaHash,
-      data_nascimento: new Date(dto.data_nascimento),
-      roles: [RolesEnum.ALUNO],
-    });
+      const aluno = this.alunoRepository.create({
+        matricula: dto.matricula,
+        curso: dto.curso,
+        campus: dto.campus,
+        data_ingresso: dto.data_ingresso,
+      });
 
-    const aluno = this.alunoRepository.create({
-      matricula: dto.matricula,
-      curso: dto.curso,
-      campus: dto.campus,
-      data_ingresso: dto.data_ingresso,
-      usuario,
-    });
+      const usuario = this.usuarioRepository.create({
+        email: dto.email,
+        nome: dto.nome,
+        cpf: cpf.mask(dto.cpf),
+        celular: dto.celular,
+        senha_hash: senhaHash,
+        data_nascimento: new Date(dto.data_nascimento),
+        roles: [RolesEnum.ALUNO],
+        aluno, // aqui já associa
+      });
 
-    usuario.aluno = aluno;
+      const savedUser = await this.usuarioRepository.save(usuario);
 
-    const savedUser = await this.usuarioRepository.save(usuario);
-    const { senha_hash, ...result } = savedUser;
+      const { senha_hash, ...result } = savedUser;
 
-    return {
-      sucesso: true,
-      mensagem: 'Aluno cadastrado',
-      dados: { aluno: result },
-    };
+      return {
+        sucesso: true,
+        mensagem: 'Aluno cadastrado',
+        dados: { aluno: result },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException('Erro ao cadastrar aluno');
+    }
   }
 
   async updatePassword(userId: number, newPassword: string) {
