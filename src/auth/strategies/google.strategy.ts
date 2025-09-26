@@ -1,50 +1,50 @@
-import { Injectable } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { AuthService } from '../auth.service';
+// import { Injectable } from '@nestjs/common';
+// import { PassportStrategy } from '@nestjs/passport';
+// import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+// import { AuthService } from '../auth.service';
 
-@Injectable()
-export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-  constructor(private authService: AuthService) {
-    super({
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: 'http://localhost:3000/auth/google/callback',
-      scope: ['email', 'profile'],
-    });
-  }
+// @Injectable()
+// export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+//   constructor(private authService: AuthService) {
+//     super({
+//       clientID: process.env.GOOGLE_CLIENT_ID!,
+//       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+//       callbackURL: 'http://localhost:3000/auth/google/callback',
+//       scope: ['email', 'profile'],
+//     });
+//   }
 
-  async validate(
-    accessToken: string,
-    refreshToken: string,
-    profile: any,
-    done: VerifyCallback,
-  ): Promise<any> {
-    const { emails, name } = profile;
-    const email = emails[0].value;
+//   async validate(
+//     accessToken: string,
+//     refreshToken: string,
+//     profile: any,
+//     done: VerifyCallback,
+//   ): Promise<any> {
+//     const { emails, name } = profile;
+//     const email = emails[0].value;
 
-    // Verificar se é email @ufba.br
-    if (!email.endsWith('@ufba.br')) {
-      return done(new Error('Apenas emails @ufba.br são permitidos'), false);
-    }
+//     // Verificar se é email @ufba.br
+//     if (!email.endsWith('@ufba.br')) {
+//       return done(new Error('Apenas emails @ufba.br são permitidos'), false);
+//     }
 
-    try {
-      // Verificar se usuário já existe
-      const user = await this.authService.findUserByEmail(email);
+//     try {
+//       // Verificar se usuário já existe
+//       const user = await this.authService.findUserByEmail(email);
 
-      if (user) {
-        return done(null, user);
-      } else {
-        // Redirecionar para completar cadastro
-        return done(null, {
-          email,
-          firstName: name.givenName,
-          lastName: name.familyName,
-          needsRegistration: true,
-        });
-      }
-    } catch (error) {
-      return done(error, false);
-    }
-  }
-}
+//       if (user) {
+//         return done(null, user);
+//       } else {
+//         // Redirecionar para completar cadastro
+//         return done(null, {
+//           email,
+//           firstName: name.givenName,
+//           lastName: name.familyName,
+//           needsRegistration: true,
+//         });
+//       }
+//     } catch (error) {
+//       return done(error, false);
+//     }
+//   }
+// }

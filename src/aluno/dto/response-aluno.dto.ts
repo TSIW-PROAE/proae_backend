@@ -7,39 +7,39 @@ export class AlunoResponseDto {
   @Expose()
   aluno_id: number;
 
-  @ApiProperty({ type: String, description: 'Nome do aluno' })
+  @ApiProperty({ type: String, description: 'Nome do usuário' })
   @Expose()
-  nome: string;
+  nome: string; // vem do Usuario
 
-  @ApiProperty({ type: String, description: 'Email do aluno' })
+  @ApiProperty({ type: String, description: 'Email do usuário' })
   @Expose()
-  email: string;
+  email: string; // vem do Usuario
 
   @ApiProperty({ type: String, description: 'Matrícula do aluno' })
   @Expose()
-  matricula: string;
+  matricula: string; // vem do Aluno
 
   @ApiProperty({ type: Date, description: 'Data de nascimento do aluno' })
   @Expose()
-  data_nascimento: Date;
+  data_nascimento: Date; // pode vir do Aluno ou Usuario, dependendo do seu model
 
   @ApiProperty({ type: String, description: 'Curso do aluno' })
   @Expose()
-  curso: string;
+  curso: string; // Aluno
 
   @ApiProperty({ enum: UnidadeEnum, description: 'Campus do aluno' })
   @Expose()
-  campus: UnidadeEnum;
+  campus: UnidadeEnum; // Aluno
 
-  @ApiProperty({ type: String, description: 'CPF do aluno' })
+  @ApiProperty({ type: String, description: 'CPF do usuário' })
   @Expose()
-  cpf: string;
+  cpf: string; // Usuario
 
   @ApiProperty({ type: String, description: 'Data de ingresso do aluno' })
   @Expose()
-  data_ingresso: string;
+  data_ingresso: string; // Aluno
 
-  @ApiProperty({ type: String, description: 'Número de celular do aluno' })
+  @ApiProperty({ type: String, description: 'Número de celular do usuário' })
   @Expose()
-  celular: string;
+  celular: string; // Usuario
 }
