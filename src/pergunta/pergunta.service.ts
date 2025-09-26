@@ -82,8 +82,6 @@ export class PerguntaService {
           throw new NotFoundException('Dado não encontrado');
         }
       }
-
-
       const pergunta = this.perguntaRepository.create({
         tipo_Pergunta: createPerguntaDto.tipo_Pergunta,
         pergunta: createPerguntaDto.pergunta,

@@ -1,6 +1,7 @@
 export function adminApprovalTemplate(emailNovoAdmin: string, token: string) {
-  const approveUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/auth/approve-admin/${token}`;
-  const rejectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/auth/reject-admin/${token}`;
+  const baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+  const approveUrl = `${baseUrl}/auth/approve-admin/${token}`;
+  const rejectUrl = `${baseUrl}/auth/reject-admin/${token}`;
 
   return `
     <h2>Pedido de Cadastro de Novo Admin</h2>
