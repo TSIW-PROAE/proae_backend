@@ -72,7 +72,6 @@ export class PerguntaService {
         );
       }
 
-
       let dado: Dado | null = null;
       if (createPerguntaDto.dadoId) {
         dado = await this.dadoRepository.findOneBy({
@@ -118,21 +117,58 @@ export class PerguntaService {
     updatePerguntaDto: UpdatePerguntaDto,
   ): Promise<PerguntaResponseDto> {
     try {
-      const pergunta = await this.perguntaRepository.findOneBy({ id });
+      const pergunta = await this.perguntaRepository.findOne({
+        where: { id },
+        relations: ['dado'], // Carregar o relacionamento atual
+      });
 
       if (!pergunta) {
         throw new NotFoundException('Pergunta não encontrada');
       }
 
+      // Se dadoId foi fornecido no DTO, validar e atualizar o relacionamento
+      let dado: Dado | null = null;
+      if (updatePerguntaDto.dadoId !== undefined) {
+        if (
+          updatePerguntaDto.dadoId !== null &&
+          updatePerguntaDto.dadoId !== 0
+        ) {
+          dado = await this.dadoRepository.findOneBy({
+            id: updatePerguntaDto.dadoId,
+          });
+
+          if (!dado) {
+            throw new NotFoundException(
+              `Dado com ID ${updatePerguntaDto.dadoId} não encontrado`,
+            );
+          }
+        }
+        // Se dadoId for null, 0 ou undefined, o relacionamento será removido (dado = null)
+      } else {
+        // Se dadoId não foi fornecido, manter o relacionamento atual
+        dado = pergunta.dado || null;
+      }
+
       await this.entityManager.transaction(
         async (transactionalEntityManager) => {
-          Object.assign(pergunta, updatePerguntaDto);
+          // Atualizar os campos básicos
+          Object.assign(pergunta, {
+            ...updatePerguntaDto,
+            dado: updatePerguntaDto.dadoId !== undefined ? dado : pergunta.dado,
+          });
+
+          // Remover dadoId do objeto antes de salvar (não é uma propriedade da entidade)
+          delete (pergunta as any).dadoId;
+
           await transactionalEntityManager.save(pergunta);
         },
       );
 
       // Busca os dados atualizados
-      const updatedPergunta = await this.perguntaRepository.findOneBy({ id });
+      const updatedPergunta = await this.perguntaRepository.findOne({
+        where: { id },
+        relations: ['dado'], // Carregar o relacionamento atualizado
+      });
 
       if (!updatedPergunta) {
         throw new InternalServerErrorException(
