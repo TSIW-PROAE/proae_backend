@@ -29,6 +29,7 @@ export class PerguntaService {
     try {
       const perguntas = await this.perguntaRepository.find({
         where: { step: { id: stepId } },
+        relations: ['dado'], // Adiciona o relacionamento para carregar o dado
       });
 
       // if (!perguntas || perguntas.length === 0) {
