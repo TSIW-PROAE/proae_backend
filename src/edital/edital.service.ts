@@ -14,6 +14,7 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { Aluno } from '../entities/aluno/aluno.entity';
 
 @Injectable()
 export class EditalService {
@@ -194,6 +195,36 @@ export class EditalService {
     } catch (error) {
       console.error('Erro ao buscar editais abertos:', error);
       throw new InternalServerErrorException();
+    }
+  }
+
+  async getAlunosInscritos(id: number): Promise<Aluno[]> {
+    try {
+      const editalExists = await this.editaisRepository.existsBy({ id });
+      
+      if (!editalExists) {
+        throw new NotFoundException('Edital não encontrado');
+      }
+
+      // Query otimizada: busca diretamente os alunos usando query builder
+      // Evita carregar o edital completo e faz JOIN apenas do necessário
+      const alunos = await this.entityManager
+        .createQueryBuilder(Aluno, 'aluno')
+        .innerJoin('aluno.inscricoes', 'inscricao')
+        .innerJoin('inscricao.vagas', 'vaga')
+        .innerJoin('vaga.edital', 'edital')
+        .innerJoinAndSelect('aluno.usuario', 'usuario')
+        .where('edital.id = :editalId', { editalId: id })
+        .distinct(true)
+        .getMany();
+
+      return alunos;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erro ao buscar alunos do edital:', error);
+      throw new InternalServerErrorException('Erro ao buscar alunos inscritos no edital');
     }
   }
 
