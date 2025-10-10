@@ -6,9 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
@@ -102,6 +104,13 @@ export class EditalController {
     @Body() updateEditalDto: UpdateEditalDto,
   ) {
     return this.editalService.update(+id, updateEditalDto);
+  }
+
+  @Get(':id/inscritos')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async getAlunosInscritos(@Param('id') id: string) {
+    return this.editalService.getAlunosInscritos(+id);
   }
 
   @Patch(':id/status/:status')
