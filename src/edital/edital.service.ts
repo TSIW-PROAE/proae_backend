@@ -206,8 +206,6 @@ export class EditalService {
         throw new NotFoundException('Edital não encontrado');
       }
 
-      // Query otimizada: busca diretamente os alunos usando query builder
-      // Evita carregar o edital completo e faz JOIN apenas do necessário
       const alunos = await this.entityManager
         .createQueryBuilder(Aluno, 'aluno')
         .innerJoin('aluno.inscricoes', 'inscricao')

@@ -24,6 +24,9 @@ import { UpdateEditalDto } from './dto/update-edital.dto';
 import { UpdateStatusEditalDto } from './dto/update-status-edital.dto';
 import { EditalService } from './edital.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../common/decorators/roles';
+import { RolesEnum } from '../enum/enumRoles';
 
 @ApiTags('Editais')
 @Controller('editais')
@@ -108,7 +111,8 @@ export class EditalController {
 
   @Get(':id/inscritos')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   async getAlunosInscritos(@Param('id') id: string) {
     return this.editalService.getAlunosInscritos(+id);
   }
