@@ -9,6 +9,7 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { RolesGuard } from './guards/roles.guard';
 import { EmailService } from '../email/email.service';
 import { Admin } from '../entities/admin/admin.entity';
 import { Usuario } from '../entities/usuarios/usuario.entity';
@@ -24,7 +25,7 @@ import { Usuario } from '../entities/usuarios/usuario.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, AuthGuard, EmailService],
-  exports: [AuthGuard, JwtModule, AuthService],
+  providers: [AuthService, LocalStrategy, JwtStrategy, AuthGuard, RolesGuard, EmailService],
+  exports: [AuthGuard, RolesGuard, JwtModule, AuthService],
 })
 export class AuthModule {}
