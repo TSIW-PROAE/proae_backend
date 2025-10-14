@@ -198,13 +198,15 @@ export class EditalService {
     }
   }
 
-  async getAlunosInscritos(id: number): Promise<Aluno[]> {
+  async getAlunosInscritos(id: number, limit=20, offset=0): Promise<Aluno[]> {
     try {
       const editalExists = await this.editaisRepository.existsBy({ id });
       
       if (!editalExists) {
         throw new NotFoundException('Edital não encontrado');
       }
+
+      const skip = offset * limit;
 
       const alunos = await this.entityManager
         .createQueryBuilder(Aluno, 'aluno')
@@ -214,6 +216,8 @@ export class EditalService {
         .innerJoinAndSelect('aluno.usuario', 'usuario')
         .where('edital.id = :editalId', { editalId: id })
         .distinct(true)
+        .skip(skip)
+        .take(limit)
         .getMany();
 
       return alunos;
