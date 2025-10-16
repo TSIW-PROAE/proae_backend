@@ -9,9 +9,10 @@ import { Aluno } from 'src/entities/aluno/aluno.entity';
 import { Documento } from 'src/entities/documento/documento.entity';
 import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { StatusDocumento } from 'src/enum/statusDocumento';
-import { Repository } from 'typeorm';
+import { NotBrackets, Repository } from 'typeorm';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
+import { PendentDocumentoDto } from './dto/pendent-documento.dto';
 
 @Injectable()
 export class DocumentoService {
@@ -208,28 +209,41 @@ export class DocumentoService {
   /**
    * Get all pendent documents for a student
    */
-  async getDocumentsWithProblemsByStudent(userId: number) {
+  async getDocumentsWithProblemsByStudent(aluno_id: number) {
     try {
-      const aluno = await this.alunoRepository.findOne({
-        where: { aluno_id: userId },
-        relations: ['inscricoes', 'inscricoes.documentos'],
-      });
+      const aluno = await this.alunoRepository.createQueryBuilder('aluno')
+        .select('aluno.aluno_id')
+        .where("aluno.aluno_id = :alunoId", { alunoId: aluno_id })
+        .leftJoin('aluno.inscricoes', 'inscricao')
+        .addSelect('inscricao.id')
+        .leftJoinAndSelect('inscricao.documentos', 'documento')
+        .where(new NotBrackets((qb) => {
+          qb.where("documento.status_documento = :status", { status: StatusDocumento.APROVADO })
+        }))
+        .leftJoin('documento.validacoes', 'validacao')
+        .addSelect(['validacao.parecer', 'validacao.data_validacao'])
+        .innerJoin('inscricao.vagas', 'vagas')
+        .addSelect('vagas.id')
+        .innerJoin('vagas.edital', 'edital')
+        .addSelect('edital.titulo_edital')
+        .getOne();
 
       if (!aluno) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
-      const pendentDocuments: Documento[] = [];
+      const pendencias: PendentDocumentoDto[] = [];
       for (const inscricao of aluno.inscricoes) {
-        const documentosPendentes = inscricao.documentos.filter(
-          (doc) => doc.status_documento !== StatusDocumento.APROVADO,
-        );
-        pendentDocuments.push(...documentosPendentes);
+        const pendencia = new PendentDocumentoDto();
+        pendencia.inscricao_id = inscricao.id;
+        pendencia.titulo_edital = inscricao.vagas.edital.titulo_edital;
+        pendencia.documentos = inscricao.documentos
+        pendencias.push(pendencia);
       }
 
       return {
         success: true,
-        documentos: pendentDocuments,
+        pendencias: pendencias,
       };
     } catch (error) {
       const e = error as Error;
