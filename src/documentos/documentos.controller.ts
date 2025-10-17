@@ -179,7 +179,7 @@ export class DocumentoController {
                     tipo_documento: 'Comprovante de matrícula',
                     documento_url:
                       'documentos/aluno_1/inscricao_5/comprovante_matricula_maria.pdf',
-                    status_documento: 'Enviado',
+                    status_documento: 'Em Análise',
                     validacoes: [
                       {
                         parecer: 'Documento aguardando análise.',
@@ -224,9 +224,9 @@ export class DocumentoController {
     },
   })
   async getMyDocumentsWithProblems(@Req() request: AuthenticatedRequest) {
-    const { aluno_id } = request.user;
+    const { userId } = request.user;
     return await this.documentoService.getDocumentsWithProblemsByStudent(
-      aluno_id,
+      userId,
     );
   }
 }
