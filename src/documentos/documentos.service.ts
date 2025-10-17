@@ -210,11 +210,10 @@ export class DocumentoService {
    * Get all pendent documents for a student
    */
   async getDocumentsWithProblemsByStudent(userId: number) {
-    
     try {
       const aluno = await this.alunoRepository.createQueryBuilder('aluno')
         .select('aluno.aluno_id')
-        .where("aluno.usuario.usuario_id = :usuarioId", { usuarioId: 1 }) 
+        .where("aluno.usuario.usuario_id = :usuarioId", { usuarioId: userId }) 
         .leftJoin('aluno.inscricoes', 'inscricao')
         .addSelect('inscricao.id')
         .leftJoinAndSelect('inscricao.documentos', 'documento')
