@@ -209,22 +209,21 @@ export class DocumentoService {
   /**
    * Get all pendent documents for a student
    */
-  async getDocumentsWithProblemsByStudent(aluno_id: number) {
+  async getDocumentsWithProblemsByStudent(userId: number) {
+    
     try {
       const aluno = await this.alunoRepository.createQueryBuilder('aluno')
         .select('aluno.aluno_id')
-        .where("aluno.aluno_id = :alunoId", { alunoId: aluno_id })
+        .where("aluno.usuario.usuario_id = :usuarioId", { usuarioId: 1 }) 
         .leftJoin('aluno.inscricoes', 'inscricao')
         .addSelect('inscricao.id')
         .leftJoinAndSelect('inscricao.documentos', 'documento')
-        .where(new NotBrackets((qb) => {
-          qb.where("documento.status_documento = :status", { status: StatusDocumento.APROVADO })
-        }))
+        .andWhere("(documento.status_documento != :status OR documento.status_documento IS NULL)", { status: StatusDocumento.APROVADO })
         .leftJoin('documento.validacoes', 'validacao')
         .addSelect(['validacao.parecer', 'validacao.data_validacao'])
-        .innerJoin('inscricao.vagas', 'vagas')
+        .leftJoin('inscricao.vagas', 'vagas')
         .addSelect('vagas.id')
-        .innerJoin('vagas.edital', 'edital')
+        .leftJoin('vagas.edital', 'edital')
         .addSelect('edital.titulo_edital')
         .getOne();
 
@@ -232,12 +231,25 @@ export class DocumentoService {
         throw new NotFoundException('Aluno não encontrado');
       }
 
+      // Se não houver inscrições, retorna array vazio
+      if (!aluno.inscricoes || aluno.inscricoes.length === 0 ) {
+        return {
+          success: true,
+          pendencias: [],
+        };
+      }
+
       const pendencias: PendentDocumentoDto[] = [];
       for (const inscricao of aluno.inscricoes) {
+        // Pula inscrições sem documentos pendentes
+        if (!inscricao.documentos || inscricao.documentos.length === 0) {
+          continue;
+        }
+
         const pendencia = new PendentDocumentoDto();
         pendencia.inscricao_id = inscricao.id;
         pendencia.titulo_edital = inscricao.vagas.edital.titulo_edital;
-        pendencia.documentos = inscricao.documentos
+        pendencia.documentos = inscricao.documentos;
         pendencias.push(pendencia);
       }
 
