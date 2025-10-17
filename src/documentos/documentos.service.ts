@@ -258,7 +258,12 @@ export class DocumentoService {
       };
     } catch (error) {
       const e = error as Error;
-      console.error('Erro ao buscar documentos pendentes', error);
+
+      // Relança NotFoundException
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      
       throw new BadRequestException(
         `Erro ao buscar documentos pendentes: ${e.message}`,
       );
