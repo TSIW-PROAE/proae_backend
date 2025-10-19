@@ -17,6 +17,36 @@ export class AlunoService {
     private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
+  async findUsers() {
+    const usuarios = await this.usuarioRepository.find({
+      relations: ['aluno', 'aluno.inscricoes'],
+    });
+
+    if (!usuarios || usuarios.length === 0) {
+      throw new NotFoundException('Alunos não encontrados.');
+    }
+
+    const dados = usuarios.map((usuario) => {
+      const aluno = usuario.aluno;
+
+      return {
+        aluno_id: aluno?.aluno_id,
+        email: usuario.email,
+        matricula: aluno?.matricula,
+        data_nascimento: usuario.data_nascimento,
+        curso: aluno?.curso,
+        campus: aluno?.campus,
+        cpf: usuario.cpf,
+        data_ingresso: aluno?.data_ingresso,
+        celular: usuario.celular,
+        inscricoes: aluno?.inscricoes || [],
+      };
+    });
+    return {
+      sucesso: true,
+      dados,
+    };
+  }
   /** Buscar aluno pelo userId */
   async findByUserId(userId: number) {
     const usuario = await this.usuarioRepository.findOne({

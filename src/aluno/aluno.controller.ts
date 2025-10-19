@@ -18,6 +18,11 @@ export class AlunoController {
     return this.alunoService.findByUserId(userId);
   }
 
+  @Get()
+  async findAll() {
+    return this.alunoService.findUsers();
+  }
+
   @Patch('/update')
   async updateStudentData(
     @Req() request: AuthenticatedRequest,
