@@ -208,9 +208,7 @@ export class AlunoService {
     }));
   }
 
-  /** Listar todos os alunos inscritos em um questionário (step) de um edital específico */
   async findAlunosInscritosEmStep(editalId: number, stepId: number) {
-    // Verificar se o edital existe
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
       relations: ['steps'],
@@ -220,7 +218,6 @@ export class AlunoService {
       throw new NotFoundException(`Edital com ID ${editalId} não encontrado.`);
     }
 
-    // Verificar se o step existe e pertence ao edital
     const step = await this.stepRepository.findOne({
       where: { id: stepId, edital: { id: editalId } },
       relations: ['edital'],
@@ -232,7 +229,6 @@ export class AlunoService {
       );
     }
 
-    // Buscar todas as vagas do edital
     const vagas = await this.vagasRepository.find({
       where: { edital: { id: editalId } },
     });
@@ -245,7 +241,6 @@ export class AlunoService {
       };
     }
 
-    // Buscar todas as inscrições das vagas do edital
     const vagaIds = vagas.map((vaga) => vaga.id);
     const inscricoes = await this.inscricaoRepository
       .createQueryBuilder('inscricao')
@@ -259,14 +254,12 @@ export class AlunoService {
       .where('vagas.id IN (:...vagaIds)', { vagaIds })
       .getMany();
 
-    // Filtrar inscrições que têm respostas para o step específico
     const inscricoesComRespostas = inscricoes.filter((inscricao) => {
       return inscricao.respostas.some((resposta) => {
         return resposta.pergunta.step.id === stepId;
       });
     });
 
-    // Mapear os dados dos alunos
     const alunosInscritos = inscricoesComRespostas.map((inscricao) => {
       const aluno = inscricao.aluno;
       const usuario = aluno.usuario;
