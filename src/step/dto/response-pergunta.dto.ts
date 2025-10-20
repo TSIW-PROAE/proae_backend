@@ -1,7 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { EnumInputFormat } from 'src/enum/enumInputFormat';
 import { EnumTipoInput } from 'src/enum/enumTipoInput';
+
+// DTO simples para o Dado
+export class DadoResponseDto {
+  @Expose()
+  @ApiProperty({ example: 1, description: 'ID do dado' })
+  id: number;
+
+  @Expose()
+  @ApiProperty({ example: 'CPF', description: 'Nome do tipo de dado' })
+  nome: string;
+}
 
 export class PerguntaResponseDto {
   @Expose()
@@ -47,4 +58,13 @@ export class PerguntaResponseDto {
     description: 'Opções para perguntas do tipo select',
   })
   opcoes: string[] = [];
+
+  @Expose()
+  @Type(() => DadoResponseDto)
+  @ApiProperty({
+    type: DadoResponseDto,
+    description: 'Dado associado à pergunta',
+    required: false,
+  })
+  dado?: DadoResponseDto;
 }

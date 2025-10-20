@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -43,4 +44,15 @@ export class UpdatePerguntaDto {
   @IsOptional()
   @IsEnum(EnumInputFormat)
   tipo_formatacao?: EnumInputFormat;
+
+  @ApiProperty({
+    description:
+      'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento). Use null para remover a vinculação.',
+    example: 10,
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsNumber()
+  dadoId?: number | null;
 }
