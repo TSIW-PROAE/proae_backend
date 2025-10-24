@@ -29,4 +29,13 @@ export class Resposta extends AbstractEntity<Resposta> {
 
   @CreateDateColumn()
   dataResposta: Date;
+
+  @Column({ type: 'boolean', default: false })
+  validada: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  dataValidacao?: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  dataValidade?: Date;
 }
