@@ -12,6 +12,7 @@ import { StatusDocumento } from 'src/enum/statusDocumento';
 import { Repository } from 'typeorm';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
+import { PendentDocumentoDto } from './dto/pendent-documento.dto';
 
 @Injectable()
 export class DocumentoService {
@@ -210,30 +211,59 @@ export class DocumentoService {
    */
   async getDocumentsWithProblemsByStudent(userId: number) {
     try {
-      const aluno = await this.alunoRepository.findOne({
-        where: { aluno_id: userId },
-        relations: ['inscricoes', 'inscricoes.documentos'],
-      });
+      const aluno = await this.alunoRepository.createQueryBuilder('aluno')
+        .select('aluno.aluno_id')
+        .where("aluno.usuario.usuario_id = :usuarioId", { usuarioId: userId }) 
+        .leftJoin('aluno.inscricoes', 'inscricao')
+        .addSelect('inscricao.id')
+        .leftJoinAndSelect('inscricao.documentos', 'documento')
+        .andWhere("(documento.status_documento != :status OR documento.status_documento IS NULL)", { status: StatusDocumento.APROVADO })
+        .leftJoin('documento.validacoes', 'validacao')
+        .addSelect(['validacao.parecer', 'validacao.data_validacao'])
+        .leftJoin('inscricao.vagas', 'vagas')
+        .addSelect('vagas.id')
+        .leftJoin('vagas.edital', 'edital')
+        .addSelect('edital.titulo_edital')
+        .getOne();
 
       if (!aluno) {
         throw new NotFoundException('Aluno não encontrado');
       }
 
-      const pendentDocuments: Documento[] = [];
+      // Se não houver inscrições, retorna array vazio
+      if (!aluno.inscricoes || aluno.inscricoes.length === 0 ) {
+        return {
+          success: true,
+          pendencias: [],
+        };
+      }
+
+      const pendencias: PendentDocumentoDto[] = [];
       for (const inscricao of aluno.inscricoes) {
-        const documentosPendentes = inscricao.documentos.filter(
-          (doc) => doc.status_documento !== StatusDocumento.APROVADO,
-        );
-        pendentDocuments.push(...documentosPendentes);
+        // Pula inscrições sem documentos pendentes
+        if (!inscricao.documentos || inscricao.documentos.length === 0) {
+          continue;
+        }
+
+        const pendencia = new PendentDocumentoDto();
+        pendencia.inscricao_id = inscricao.id;
+        pendencia.titulo_edital = inscricao.vagas.edital.titulo_edital;
+        pendencia.documentos = inscricao.documentos;
+        pendencias.push(pendencia);
       }
 
       return {
         success: true,
-        documentos: pendentDocuments,
+        pendencias: pendencias,
       };
     } catch (error) {
       const e = error as Error;
-      console.error('Erro ao buscar documentos pendentes', error);
+
+      // Relança NotFoundException
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      
       throw new BadRequestException(
         `Erro ao buscar documentos pendentes: ${e.message}`,
       );
