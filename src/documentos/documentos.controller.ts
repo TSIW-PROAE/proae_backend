@@ -2,16 +2,23 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   Get,
   Param,
+  ParseFilePipe,
   ParseIntPipe,
   Post,
   Put,
   Req,
+  UploadedFile,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -23,6 +30,7 @@ import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { ResubmitDocumentoDto } from './dto/resubmit-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('documentos')
 @ApiBearerAuth()
@@ -30,9 +38,77 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class DocumentoController {
   constructor(private readonly documentoService: DocumentoService) {}
 
-  @Post()
-  async create(@Body() createDocumentoDto: CreateDocumentoDto) {
-    return await this.documentoService.createDocumento(createDocumentoDto);
+  @Post('upload')
+  @ApiOperation({
+    summary: 'Fazer upload de documento',
+    description: 'Permite fazer upload de um documento associado a uma inscrição. Aceita arquivos PNG, JPEG ou PDF.'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'string',
+          format: 'binary',
+          description: 'Arquivo do documento (PNG, JPEG ou PDF)'
+        },
+        inscricao: {
+          type: 'number',
+          description: 'ID da inscrição associada ao documento'
+        },
+        tipo_documento: {
+          type: 'string',
+          description: 'Tipo do documento sendo enviado'
+        }
+      },
+      required: ['files', 'inscricao', 'tipo_documento']
+    }
+  })
+  @ApiOkResponse({
+    description: 'Documento enviado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true
+        },
+        documento: {
+          type: 'object',
+          properties: {
+            documento_id: {
+              type: 'number',
+              example: 1
+            },
+            tipo_documento: {
+              type: 'string',
+              example: 'RG'
+            },
+            documento_url: {
+              type: 'string',
+              example: 'documentos/aluno_1/inscricao_1/documento.pdf'
+            },
+            status_documento: {
+              type: 'string',
+              example: 'PENDENTE'
+            }
+          }
+        }
+      }
+    }
+  })
+  @UseInterceptors(FilesInterceptor('files'))
+  async create(@Body() createDocumentoDto: CreateDocumentoDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new FileTypeValidator({ fileType: /png|jpeg|pdf/ })],
+      }),
+    )
+    files: Express.Multer.File[],
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.documentoService.createDocumento(createDocumentoDto, files);
   }
 
   @Get('/inscricao/:inscricaoId')
@@ -65,11 +141,41 @@ export class DocumentoController {
     const { userId } = request.user;
     return await this.documentoService.getReprovadoDocumentsByStudent(userId);
   }
-
+  
   @Put('resubmissao/:id')
+  @ApiOperation({
+    summary: 'Reenviar documento reprovado',
+    description:
+      'Permite que o aluno reenviem um documento que foi previamente reprovado. O documento será atualizado com o novo arquivo enviado e seu status será alterado para "Enviado" para nova análise.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'string',
+          format: 'binary',
+          description: 'Arquivo do documento (PNG, JPEG ou PDF)'
+        },
+        tipo_documento: {
+          type: 'string',
+          description: 'Tipo do documento sendo enviado'
+        }
+      },
+      required: ['files', 'tipo_documento']
+    }
+  })
+  @UseInterceptors(FilesInterceptor('files'))
   async resubmitDocument(
     @Param('id', ParseIntPipe) id: number,
     @Body() resubmitDocumentoDto: ResubmitDocumentoDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new FileTypeValidator({ fileType: /png|jpeg|pdf/ })],
+      }),
+    )
+    files: Express.Multer.File[],
     @Req() request: AuthenticatedRequest,
   ) {
     const { userId } = request.user;
@@ -77,6 +183,7 @@ export class DocumentoController {
       userId,
       id,
       resubmitDocumentoDto,
+      files,
     );
   }
 

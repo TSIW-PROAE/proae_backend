@@ -29,7 +29,7 @@ export class AlunoController {
 
   @Get('/inscricoes')
   async getStudentRegistration(@Req() request: AuthenticatedRequest) {
-    const { userId } = request.user;
-    return this.alunoService.getStudentRegistration(userId);
+    const { aluno_id } = request.user;
+    return this.alunoService.getStudentRegistration(aluno_id);
   }
 }
