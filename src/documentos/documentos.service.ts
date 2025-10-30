@@ -33,6 +33,7 @@ export class DocumentoService {
     try {
       const inscricao = await this.inscricaoRepository.findOne({
         where: { id: createDocumentoDto.inscricao },
+        relations: ['aluno', 'aluno.usuario'],
       });
 
       if (!inscricao) {
@@ -43,7 +44,7 @@ export class DocumentoService {
         throw new BadRequestException('Nenhum arquivo foi enviado');
       }
 
-      const documentUrl = (await this.storageService.uploadDocuments(inscricao.aluno.aluno_id, files)).arquivos[0].nome_do_arquivo;
+      const documentUrl = (await this.storageService.uploadDocuments(inscricao.aluno.usuario.usuario_id, files)).arquivos[0].nome_do_arquivo;
 
       const documento = this.documentoRepository.create({
         ...createDocumentoDto,
@@ -318,7 +319,7 @@ export class DocumentoService {
         );
       }
 
-      const documentUrl = (await this.storageService.uploadDocuments(userId, file)).arquivos[0].nome_do_arquivo;
+      const documentUrl = (await this.storageService.uploadDocuments(documento.inscricao.aluno.usuario.usuario_id, file)).arquivos[0].nome_do_arquivo;
 
       // Update the document and reset status to PENDENTE for reanalysis
       Object.assign(documento, {
