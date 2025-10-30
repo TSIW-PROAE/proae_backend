@@ -5,9 +5,4 @@ export class ResubmitDocumentoDto {
   @IsOptional()
   @IsEnum(EnumTipoDocumento)
   tipo_documento?: EnumTipoDocumento;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl()
-  documento_url?: string;
 }

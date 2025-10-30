@@ -181,8 +181,8 @@ export class AlunoController {
     }
   })
   async getStudentRegistration(@Req() request: AuthenticatedRequest) {
-    const { userId } = request.user;
-    return this.alunoService.getStudentRegistration(userId);
+    const { aluno_id } = request.user;
+    return this.alunoService.getStudentRegistration(aluno_id);
   }
 
   @Get('/edital/:editalId/step/:stepId/alunos')
