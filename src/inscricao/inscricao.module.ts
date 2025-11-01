@@ -10,6 +10,7 @@ import { Resposta } from 'src/entities/resposta/resposta.entity';
 import { Vagas } from 'src/entities/vagas/vagas.entity';
 import { InscricaoController } from './inscricao.controller';
 import { InscricaoService } from './inscricao.service';
+import { RedisService } from '../redis/redis.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { InscricaoService } from './inscricao.service';
     forwardRef(() => AuthModule),
   ],
   controllers: [InscricaoController],
-  providers: [InscricaoService],
+  providers: [InscricaoService, RedisService],
   exports: [InscricaoService],
 })
 export class InscricaoModule {}

@@ -156,4 +156,29 @@ export class InscricaoController {
       request.user.userId,
     );
   }
+
+  @Post('cache/save/respostas')
+  @ApiOperation({ summary: 'Salvar respostas do formulário no cache' })
+  @ApiBody({ type: CreateInscricaoDto })
+  async saveRespostasCache(
+    @Body() createInscricaoDto: CreateInscricaoDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.inscricaoService.saveRespostaEmCache(
+      createInscricaoDto,
+      request.user.userId,
+    );
+  }
+
+  @Get('cache/respostas/vaga/:vagaId')
+  @ApiOperation({ summary: 'Buscar respostas do formulário no cache' })
+  async getRespostasCache(
+    @Param('vagaId', ParseIntPipe) vagaId: number,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.inscricaoService.findRespostaEmCache(
+      vagaId,
+      request.user.userId,
+    );
+  }
 }
