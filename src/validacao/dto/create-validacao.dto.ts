@@ -37,9 +37,9 @@ export class CreateValidacaoDto {
   @IsNumber()
   @ApiProperty({
     description: 'ID do responsável pela validação',
-    example: 1
+    example: 'eadadf0c-3f3b-4c2e-9f1b-2c3d4e5f6a7b'
   })
-  responsavel_id: number;
+  responsavel_id: string;
 
   @IsOptional()
   @IsNumber()

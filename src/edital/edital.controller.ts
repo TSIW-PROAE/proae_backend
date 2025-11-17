@@ -125,7 +125,7 @@ export class EditalController {
           campus: 'Salvador',
           data_ingresso: '2024-03-01',
           usuario: {
-            usuario_id: 2,
+            usuario_id: '550e8400-e29b-41d4-a716-446655440001',
             email: 'maria.silva@ufba.br',
             nome: 'Maria Silva Santos',
             cpf: '12345678902',
@@ -144,7 +144,7 @@ export class EditalController {
           campus: 'Salvador',
           data_ingresso: '2024-03-01',
           usuario: {
-            usuario_id: 3,
+            usuario_id: '550e8400-e29b-41d4-a716-446655440002',
             email: 'joao.oliveira@ufba.br',
             nome: 'João Pedro Oliveira',
             cpf: '12345678903',
