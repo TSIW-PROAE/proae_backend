@@ -9,14 +9,55 @@ import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusDocumento } from '../enum/statusDocumento';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { Usuario } from '../entities/usuarios/usuario.entity';
+import { Step } from '../entities/step/step.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
 
 @Injectable()
 export class AlunoService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Step)
+    private readonly stepRepository: Repository<Step>,
+    @InjectRepository(Edital)
+    private readonly editalRepository: Repository<Edital>,
+    @InjectRepository(Vagas)
+    private readonly vagasRepository: Repository<Vagas>,
+    @InjectRepository(Inscricao)
+    private readonly inscricaoRepository: Repository<Inscricao>,
   ) {}
 
+  async findUsers() {
+    const usuarios = await this.usuarioRepository.find({
+      relations: ['aluno', 'aluno.inscricoes'],
+    });
+
+    if (!usuarios || usuarios.length === 0) {
+      throw new NotFoundException('Alunos não encontrados.');
+    }
+
+    const dados = usuarios.map((usuario) => {
+      const aluno = usuario.aluno;
+
+      return {
+        aluno_id: aluno?.aluno_id,
+        email: usuario.email,
+        matricula: aluno?.matricula,
+        data_nascimento: usuario.data_nascimento,
+        curso: aluno?.curso,
+        campus: aluno?.campus,
+        cpf: usuario.cpf,
+        data_ingresso: aluno?.data_ingresso,
+        celular: usuario.celular,
+        inscricoes: aluno?.inscricoes || [],
+      };
+    });
+    return {
+      sucesso: true,
+      dados,
+    };
+  }
   /** Buscar aluno pelo userId */
   async findByUserId(userId: string) {
     const usuario = await this.usuarioRepository.findOne({
@@ -165,5 +206,106 @@ export class AlunoService {
       status_inscricao: inscricao.status_inscricao,
       possui_pendencias: false, // TODO: Reimplementar verificação real
     }));
+  }
+
+  async findAlunosInscritosEmStep(editalId: number, stepId: number) {
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+      relations: ['steps'],
+    });
+
+    if (!edital) {
+      throw new NotFoundException(`Edital com ID ${editalId} não encontrado.`);
+    }
+
+    const step = await this.stepRepository.findOne({
+      where: { id: stepId, edital: { id: editalId } },
+      relations: ['edital'],
+    });
+
+    if (!step) {
+      throw new NotFoundException(
+        `Step com ID ${stepId} não encontrado no edital ${editalId}.`,
+      );
+    }
+
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    if (!vagas || vagas.length === 0) {
+      return {
+        sucesso: true,
+        dados: [],
+        mensagem: 'Nenhuma vaga encontrada para este edital.',
+      };
+    }
+
+    const vagaIds = vagas.map((vaga) => vaga.id);
+    const inscricoes = await this.inscricaoRepository
+      .createQueryBuilder('inscricao')
+      .leftJoinAndSelect('inscricao.aluno', 'aluno')
+      .leftJoinAndSelect('aluno.usuario', 'usuario')
+      .leftJoinAndSelect('inscricao.vagas', 'vagas')
+      .leftJoinAndSelect('vagas.edital', 'edital')
+      .leftJoinAndSelect('inscricao.respostas', 'respostas')
+      .leftJoinAndSelect('respostas.pergunta', 'pergunta')
+      .leftJoinAndSelect('pergunta.step', 'step')
+      .where('vagas.id IN (:...vagaIds)', { vagaIds })
+      .getMany();
+
+    const inscricoesComRespostas = inscricoes.filter((inscricao) => {
+      return inscricao.respostas.some((resposta) => {
+        return resposta.pergunta.step.id === stepId;
+      });
+    });
+
+    const alunosInscritos = inscricoesComRespostas.map((inscricao) => {
+      const aluno = inscricao.aluno;
+      const usuario = aluno.usuario;
+
+      return {
+        aluno_id: aluno.aluno_id,
+        usuario_id: usuario.usuario_id,
+        email: usuario.email,
+        nome: usuario.nome,
+        matricula: aluno.matricula,
+        cpf: usuario.cpf,
+        celular: usuario.celular,
+        curso: aluno.curso,
+        campus: aluno.campus,
+        data_nascimento: usuario.data_nascimento,
+        data_ingresso: aluno.data_ingresso,
+        inscricao_id: inscricao.id,
+        status_inscricao: inscricao.status_inscricao,
+        data_inscricao: inscricao.data_inscricao,
+        respostas_step: inscricao.respostas
+          .filter((resposta) => resposta.pergunta.step.id === stepId)
+          .map((resposta) => ({
+            pergunta_id: resposta.pergunta.id,
+            pergunta_texto: resposta.pergunta.pergunta,
+            resposta_texto: resposta.texto,
+            data_resposta: resposta.dataResposta,
+          })),
+      };
+    });
+
+    return {
+      sucesso: true,
+      dados: {
+        edital: {
+          id: edital.id,
+          titulo: edital.titulo_edital,
+          descricao: edital.descricao,
+          status: edital.status_edital,
+        },
+        step: {
+          id: step.id,
+          texto: step.texto,
+        },
+        total_alunos: alunosInscritos.length,
+        alunos: alunosInscritos,
+      },
+    };
   }
 }

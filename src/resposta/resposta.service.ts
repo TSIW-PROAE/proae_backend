@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Resposta } from '../entities/resposta/resposta.entity';
@@ -8,7 +12,15 @@ import { CreateRespostaDto } from './dto/create-resposta.dto';
 import { RespostaResponseDto } from './dto/response-resposta.dto';
 import { plainToInstance } from 'class-transformer';
 import { UpdateRespostaDto } from './dto/update-resposta.dto';
+import { ValidateRespostaDto } from './dto/validate-resposta.dto';
 import { MinioClientService } from '../minio/minio.service';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { Usuario } from '../entities/usuarios/usuario.entity';
+import { Step } from '../entities/step/step.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
+import { ValorDado } from '../entities/valorDado/valorDado.entity';
+import { Dado } from '../entities/tipoDado/tipoDado.entity';
 
 @Injectable()
 export class RespostaService {
@@ -19,6 +31,20 @@ export class RespostaService {
     private readonly perguntaRepository: Repository<Pergunta>,
     @InjectRepository(Inscricao)
     private readonly inscricaoRepository: Repository<Inscricao>,
+    @InjectRepository(Aluno)
+    private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Step)
+    private readonly stepRepository: Repository<Step>,
+    @InjectRepository(Edital)
+    private readonly editalRepository: Repository<Edital>,
+    @InjectRepository(Vagas)
+    private readonly vagasRepository: Repository<Vagas>,
+    @InjectRepository(ValorDado)
+    private readonly valorDadoRepository: Repository<ValorDado>,
+    @InjectRepository(Dado)
+    private readonly dadoRepository: Repository<Dado>,
     private readonly minioService: MinioClientService,
   ) {}
 
@@ -118,5 +144,294 @@ export class RespostaService {
     const result = await this.respostaRepository.delete(id);
     if (result.affected === 0)
       throw new NotFoundException('Resposta não encontrada');
+  }
+
+  async findRespostasAlunoEdital(alunoId: number, editalId: number) {
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+    });
+    if (!edital) throw new NotFoundException('Edital não encontrado');
+
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+      relations: ['usuario'],
+    });
+    if (!aluno) throw new NotFoundException('Aluno não encontrado');
+
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    if (!vagas || vagas.length === 0) {
+      return {
+        sucesso: true,
+        dados: [],
+        mensagem: 'Nenhuma vaga encontrada para este edital.',
+      };
+    }
+
+    const vagaIds = vagas.map((vaga) => vaga.id);
+    const inscricoes = await this.inscricaoRepository.find({
+      where: {
+        aluno: { aluno_id: alunoId },
+        vagas: { id: vagaIds[0] },
+      },
+      relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
+    });
+
+    const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
+
+    return {
+      sucesso: true,
+      dados: {
+        edital: {
+          id: edital.id,
+          titulo: edital.titulo_edital,
+          descricao: edital.descricao,
+          status: edital.status_edital,
+        },
+        aluno: {
+          aluno_id: aluno.aluno_id,
+          nome: aluno.usuario.nome,
+          email: aluno.usuario.email,
+          matricula: aluno.matricula,
+        },
+        total_respostas: respostas.length,
+        respostas: respostas.map((resposta) => ({
+          id: resposta.id,
+          pergunta_id: resposta.pergunta.id,
+          pergunta_texto: resposta.pergunta.pergunta,
+          step_id: resposta.pergunta.step.id,
+          step_texto: resposta.pergunta.step.texto,
+          resposta_texto: resposta.texto,
+          valor_texto: resposta.valorTexto,
+          valor_opcoes: resposta.valorOpcoes,
+          url_arquivo: resposta.urlArquivo,
+          data_resposta: resposta.dataResposta,
+        })),
+      },
+    };
+  }
+
+  async findRespostasAlunoStep(
+    alunoId: number,
+    editalId: number,
+    stepId: number,
+  ) {
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+    });
+    if (!edital) throw new NotFoundException('Edital não encontrado');
+
+    const step = await this.stepRepository.findOne({
+      where: { id: stepId, edital: { id: editalId } },
+    });
+    if (!step) throw new NotFoundException('Step não encontrado no edital');
+
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+      relations: ['usuario'],
+    });
+    if (!aluno) throw new NotFoundException('Aluno não encontrado');
+
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    if (!vagas || vagas.length === 0) {
+      return {
+        sucesso: true,
+        dados: [],
+        mensagem: 'Nenhuma vaga encontrada para este edital.',
+      };
+    }
+
+    const vagaIds = vagas.map((vaga) => vaga.id);
+    const inscricoes = await this.inscricaoRepository.find({
+      where: {
+        aluno: { aluno_id: alunoId },
+        vagas: { id: vagaIds[0] },
+      },
+      relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
+    });
+
+    const respostas = inscricoes
+      .flatMap((inscricao) => inscricao.respostas)
+      .filter((resposta) => resposta.pergunta.step.id === stepId);
+
+    return {
+      sucesso: true,
+      dados: {
+        edital: {
+          id: edital.id,
+          titulo: edital.titulo_edital,
+          descricao: edital.descricao,
+          status: edital.status_edital,
+        },
+        step: {
+          id: step.id,
+          texto: step.texto,
+        },
+        aluno: {
+          aluno_id: aluno.aluno_id,
+          nome: aluno.usuario.nome,
+          email: aluno.usuario.email,
+          matricula: aluno.matricula,
+        },
+        total_respostas: respostas.length,
+        respostas: respostas.map((resposta) => ({
+          id: resposta.id,
+          pergunta_id: resposta.pergunta.id,
+          pergunta_texto: resposta.pergunta.pergunta,
+          resposta_texto: resposta.texto,
+          valor_texto: resposta.valorTexto,
+          valor_opcoes: resposta.valorOpcoes,
+          url_arquivo: resposta.urlArquivo,
+          data_resposta: resposta.dataResposta,
+        })),
+      },
+    };
+  }
+
+  async findRespostasPerguntaEdital(perguntaId: number, editalId: number) {
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+    });
+    if (!edital) throw new NotFoundException('Edital não encontrado');
+
+    const pergunta = await this.perguntaRepository.findOne({
+      where: { id: perguntaId },
+      relations: ['step', 'step.edital'],
+    });
+    if (!pergunta) throw new NotFoundException('Pergunta não encontrada');
+
+    if (pergunta.step.edital.id !== editalId) {
+      throw new NotFoundException(
+        'Pergunta não pertence ao edital especificado',
+      );
+    }
+
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    if (!vagas || vagas.length === 0) {
+      return {
+        sucesso: true,
+        dados: [],
+        mensagem: 'Nenhuma vaga encontrada para este edital.',
+      };
+    }
+
+    const vagaIds = vagas.map((vaga) => vaga.id);
+    const respostas = await this.respostaRepository.find({
+      where: {
+        pergunta: { id: perguntaId },
+        inscricao: {
+          vagas: { id: vagaIds[0] },
+        },
+      },
+      relations: [
+        'inscricao',
+        'inscricao.aluno',
+        'inscricao.aluno.usuario',
+        'pergunta',
+      ],
+    });
+
+    return {
+      sucesso: true,
+      dados: {
+        edital: {
+          id: edital.id,
+          titulo: edital.titulo_edital,
+          descricao: edital.descricao,
+          status: edital.status_edital,
+        },
+        pergunta: {
+          id: pergunta.id,
+          texto: pergunta.pergunta,
+          tipo: pergunta.tipo_Pergunta,
+          obrigatoriedade: pergunta.obrigatoriedade,
+        },
+        total_respostas: respostas.length,
+        respostas: respostas.map((resposta) => ({
+          id: resposta.id,
+          aluno: {
+            aluno_id: resposta.inscricao.aluno.aluno_id,
+            nome: resposta.inscricao.aluno.usuario.nome,
+            email: resposta.inscricao.aluno.usuario.email,
+            matricula: resposta.inscricao.aluno.matricula,
+          },
+          resposta_texto: resposta.texto,
+          valor_texto: resposta.valorTexto,
+          valor_opcoes: resposta.valorOpcoes,
+          url_arquivo: resposta.urlArquivo,
+          data_resposta: resposta.dataResposta,
+        })),
+      },
+    };
+  }
+
+  async validateResposta(respostaId: number, dto: ValidateRespostaDto) {
+    const resposta = await this.respostaRepository.findOne({
+      where: { id: respostaId },
+      relations: ['pergunta', 'pergunta.dado', 'inscricao', 'inscricao.aluno'],
+    });
+
+    if (!resposta) {
+      throw new NotFoundException('Resposta não encontrada');
+    }
+
+    if (resposta.validada) {
+      throw new BadRequestException('Resposta já foi validada');
+    }
+
+    resposta.validada = dto.validada ?? true;
+    resposta.dataValidacao = new Date();
+    resposta.dataValidade = dto.dataValidade
+      ? new Date(dto.dataValidade)
+      : undefined;
+
+    const respostaAtualizada = await this.respostaRepository.save(resposta);
+
+    if (resposta.pergunta.dado && resposta.validada) {
+      const valorDadoExistente = await this.valorDadoRepository.findOne({
+        where: {
+          aluno: { aluno_id: resposta.inscricao.aluno.aluno_id },
+          dado: { id: resposta.pergunta.dado.id },
+        },
+      });
+
+      if (valorDadoExistente) {
+        valorDadoExistente.valorTexto =
+          resposta.texto || resposta.valorTexto || '';
+        valorDadoExistente.valorOpcoes = resposta.valorOpcoes || [];
+        valorDadoExistente.valorArquivo = resposta.urlArquivo || '';
+        await this.valorDadoRepository.save(valorDadoExistente);
+      } else {
+        const novoValorDado = this.valorDadoRepository.create({
+          valorTexto: resposta.texto || resposta.valorTexto || '',
+          valorOpcoes: resposta.valorOpcoes || [],
+          valorArquivo: resposta.urlArquivo || '',
+          aluno: resposta.inscricao.aluno,
+          dado: resposta.pergunta.dado,
+        });
+        await this.valorDadoRepository.save(novoValorDado);
+      }
+    }
+
+    return {
+      sucesso: true,
+      dados: {
+        resposta: {
+          id: respostaAtualizada.id,
+          validada: respostaAtualizada.validada,
+          dataValidacao: respostaAtualizada.dataValidacao,
+          dataValidade: respostaAtualizada.dataValidade,
+        },
+        mensagem: 'Resposta validada com sucesso',
+      },
+    };
   }
 }
