@@ -198,7 +198,7 @@ export class EditalService {
     }
   }
 
-  async getAlunosInscritos(id: number, limit=20, offset=0): Promise<Aluno[]> {
+  async getAlunosInscritos(id: number, limit: number = 20, offset: number = 0): Promise<Aluno[]> {
     try {
       const editalExists = await this.editaisRepository.existsBy({ id });
       

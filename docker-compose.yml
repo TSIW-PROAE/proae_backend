@@ -3,7 +3,7 @@ name: proae-backend
 services:
   db:
     container_name: db
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_USER: ${DB_USERNAME}
