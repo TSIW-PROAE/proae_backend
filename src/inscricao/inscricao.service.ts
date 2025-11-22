@@ -17,6 +17,7 @@ import { StatusDocumento } from '../enum/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { RedisService } from '../redis/redis.service';
 
 export class InscricaoService {
   constructor(
@@ -34,6 +35,7 @@ export class InscricaoService {
     private readonly respostaRepository: Repository<Resposta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    private readonly redisService: RedisService,
   ) {}
 
   async createInscricao(
@@ -124,6 +126,8 @@ export class InscricaoService {
           return inscricaoSalva;
         },
       );
+
+      await this.removeRespostaEmCache(createInscricaoDto.vaga_id, userId);
 
       return plainToInstance(InscricaoResponseDto, result, {
         excludeExtraneousValues: true,
@@ -377,6 +381,82 @@ export class InscricaoService {
     }
   }
 
+  async saveRespostaEmCache(createInscricaoDto: CreateInscricaoDto, userId: number) {
+    const vagaExists = await this.vagasRepository.findOne({
+        where: { id: createInscricaoDto.vaga_id },
+        relations: ['edital'],
+    });
+
+    if (!vagaExists) {
+        throw new NotFoundException('Vaga não encontrada');
+    }
+
+    if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
+        throw new BadRequestException('Edital não está aberto para inscrições');
+    }
+    
+    const key = `userId:${userId}:form:${createInscricaoDto.vaga_id}:edital:${vagaExists.edital.id}`;
+
+    // Calcula a expiração baseada no fim do edital
+    let expirationInSeconds = 3 * 24 * 60 * 60; // 3 dias padrão
+    
+    expirationInSeconds = this.calculateExpirationBasedOnEdital(vagaExists, expirationInSeconds);
+    
+    await this.redisService.setValue(key, JSON.stringify(createInscricaoDto.respostas), expirationInSeconds);
+
+    return { 
+        message: 'Respostas salvas no cache com sucesso', 
+        key,
+        expirationInSeconds,
+        expirationInHours: Math.ceil(expirationInSeconds / 3600)
+    };
+  }
+
+  async findRespostaEmCache(vagaId: number, userId: number) {
+    const vagaExists = await this.vagasRepository.findOne({
+        where: { id: vagaId },
+        relations: ['edital'],
+    });
+
+    if (!vagaExists) {
+        throw new NotFoundException('Vaga não encontrada');
+    }
+
+    const key = `userId:${userId}:form:${vagaId}:edital:${vagaExists.edital.id}`;
+    const cachedData = await this.redisService.getValue(key);
+    
+    if (!cachedData) {
+        return { message: 'Nenhuma resposta encontrada no cache', respostas: [] };
+    }
+    
+    try {
+        const respostas = JSON.parse(cachedData);
+        return { 
+            message: 'Respostas encontradas no cache', 
+            respostas,
+        };
+    } catch (error) {
+        console.error('[CACHE] Erro ao fazer parse dos dados do cache:', error);
+        return { message: 'Erro ao recuperar dados do cache', respostas: [] };
+    }
+  }
+
+  async removeRespostaEmCache(vagaId: number, userId: number) {
+    const vagaExists = await this.vagasRepository.findOne({
+        where: { id: vagaId },
+        relations: ['edital'],
+    });
+
+    if (!vagaExists) {
+        throw new NotFoundException('Vaga não encontrada');
+    }
+
+    const key = `userId:${userId}:form:${vagaId}:edital:${vagaExists.edital.id}`;
+    await this.redisService.deleteValue(key);
+
+    return { message: 'Resposta removida do cache com sucesso', key };
+  }
+
   private validateRespostaByTipoPergunta(respostaDto: any, pergunta: any) {
     // Validação baseada no tipo de pergunta
     switch (pergunta.tipo_Pergunta) {
@@ -408,5 +488,46 @@ export class InscricaoService {
           );
         }
     }
+  }
+  
+  private calculateExpirationBasedOnEdital(vagaExists: Vagas, expirationInSeconds: number): number {
+    const today = new Date();
+    const editalSteps = vagaExists.edital.etapa_edital;
+    const threeDaysInSeconds = 3 * 24 * 60 * 60;
+
+    // Retorna se não há etapas ou não é um array
+    if (!editalSteps || !Array.isArray(editalSteps)) {
+      return expirationInSeconds;
+    }
+
+    // Encontra a etapa atual (ativa)
+    const currentStep = editalSteps.find(step => {
+      const startDate = new Date(step.data_inicio);
+      const endDate = new Date(step.data_fim);
+      return startDate <= today && endDate >= today;
+    });
+
+    // Retorna se nenhuma etapa ativa foi encontrada
+    if (!currentStep) {
+      return expirationInSeconds;
+    }
+
+    // Calcula o tempo restante até o fim da etapa
+    const stepEndDate = new Date(currentStep.data_fim);
+    const remainingTimeMs = stepEndDate.getTime() - today.getTime();
+    const remainingTimeSeconds = Math.floor(remainingTimeMs / 1000);
+
+    // Retorna se o tempo restante é inválido
+    if (remainingTimeSeconds <= 0) {
+      return expirationInSeconds;
+    }
+
+    // Se o edital termina em menos de 3 dias, usa o tempo até o fim
+    if (remainingTimeSeconds < threeDaysInSeconds) {
+      return remainingTimeSeconds;
+    }
+
+    // Se termina em mais de 3 dias, usa o padrão
+    return expirationInSeconds;
   }
 }

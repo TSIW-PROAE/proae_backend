@@ -14,11 +14,13 @@ import { VagasModule } from './vagas/vagas.module';
 import { ValidacaoModule } from './validacao/validacao.module';
 import { DadoModule } from './tipoDado/tipoDado.module';
 import { ValorDadoModule } from './valorDado/valorDado.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(typeOrmConfig),
+    RedisModule,
     AuthModule,
     MinioClientModule,
     AlunoModule,
