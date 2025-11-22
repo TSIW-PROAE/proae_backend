@@ -127,7 +127,7 @@ export class InscricaoService {
         },
       );
 
-      await this.removeRespostaEmCache(createInscricaoDto.vaga_id, userId);
+      await this.removeRespostaEmCache(createInscricaoDto.vaga_id, typeof userId === 'string' ? parseInt(userId, 10) : userId);
 
       return plainToInstance(InscricaoResponseDto, result, {
         excludeExtraneousValues: true,

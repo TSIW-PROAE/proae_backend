@@ -21,3 +21,4 @@ export class ValidateRespostaDto {
   @IsBoolean()
   validada?: boolean;
 }
+
