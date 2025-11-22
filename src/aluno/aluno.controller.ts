@@ -222,7 +222,7 @@ export class AlunoController {
           alunos: [
             {
               aluno_id: 1,
-              usuario_id: 1,
+              usuario_id: '550e8400-e29b-41d4-a716-446655440000',
               email: 'aluno1@exemplo.com',
               nome: 'João Silva',
               matricula: '2024001',

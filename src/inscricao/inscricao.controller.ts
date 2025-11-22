@@ -166,7 +166,7 @@ export class InscricaoController {
   ) {
     return await this.inscricaoService.saveRespostaEmCache(
       createInscricaoDto,
-      request.user.userId,
+      parseInt(request.user.userId, 10),
     );
   }
 
@@ -178,7 +178,7 @@ export class InscricaoController {
   ) {
     return await this.inscricaoService.findRespostaEmCache(
       vagaId,
-      request.user.userId,
+      parseInt(request.user.userId, 10),
     );
   }
 }
