@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { Repository } from 'typeorm';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { PendentDocumentoDto } from './dto/pendent-documento.dto';
+import { MinioClientService } from '../minio/minio.service';
 
 @Injectable()
 export class DocumentoService {
@@ -23,21 +25,33 @@ export class DocumentoService {
     private inscricaoRepository: Repository<Inscricao>,
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
+    @Inject()
+    private storageService: MinioClientService,
   ) {}
 
-  async createDocumento(createDocumentoDto: CreateDocumentoDto) {
+  async createDocumento(createDocumentoDto: CreateDocumentoDto, files: Express.Multer.File[]) {
     try {
       const inscricao = await this.inscricaoRepository.findOne({
         where: { id: createDocumentoDto.inscricao },
+        relations: ['aluno', 'aluno.usuario'],
       });
 
       if (!inscricao) {
         throw new BadRequestException('Inscrição não encontrada');
       }
+
+      if (!files || files.length === 0) {
+        throw new BadRequestException('Nenhum arquivo foi enviado');
+      }
+
+      const documentUrl = (await this.storageService.uploadDocuments(inscricao.aluno.usuario.usuario_id, files)).arquivos[0].nome_do_arquivo;
+
       const documento = this.documentoRepository.create({
         ...createDocumentoDto,
         inscricao,
+        documento_url: documentUrl,
       });
+
       const novoDocumento = await this.documentoRepository.save(documento);
       return {
         sucess: true,
@@ -144,7 +158,7 @@ export class DocumentoService {
   async hasReprovadoDocuments(userId: number): Promise<boolean> {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { aluno_id: userId },
+        where: { usuario: { usuario_id: userId } },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -277,6 +291,7 @@ export class DocumentoService {
     userId: number,
     documentoId: number,
     updateData: Partial<UpdateDocumentoDto>,
+    file: Express.Multer.File[],
   ) {
     try {
       // First, check if the student has permission to resubmit (has at least one reprovado document)
@@ -290,7 +305,7 @@ export class DocumentoService {
 
       const documento = await this.documentoRepository.findOne({
         where: { documento_id: documentoId },
-        relations: ['inscricao', 'inscricao.aluno'],
+        relations: ['inscricao', 'inscricao.aluno', 'inscricao.aluno.usuario'],
       });
 
       if (!documento) {
@@ -298,15 +313,18 @@ export class DocumentoService {
       }
 
       // Verify the document belongs to the requesting student
-      if (documento.inscricao.aluno.aluno_id !== userId) {
+      if (documento.inscricao.aluno.usuario.usuario_id !== userId) {
         throw new ForbiddenException(
           'Você não tem permissão para editar este documento',
         );
       }
 
+      const documentUrl = (await this.storageService.uploadDocuments(documento.inscricao.aluno.usuario.usuario_id, file)).arquivos[0].nome_do_arquivo;
+
       // Update the document and reset status to PENDENTE for reanalysis
       Object.assign(documento, {
         ...updateData,
+        documento_url: documentUrl,
         status_documento: StatusDocumento.PENDENTE, // Reset to pending for reanalysis
       });
 
