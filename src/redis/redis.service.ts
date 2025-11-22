@@ -40,6 +40,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
 
     async deleteValue(key: string): Promise<void> {
-        await this.redisClient.del(key);
+        try {
+            await this.redisClient.del(key);
+        } catch (error) {
+            console.error(`Error deleting key ${key}:`, error);
+            throw error;
+        }
     }
 }
