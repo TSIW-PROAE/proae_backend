@@ -1,6 +1,4 @@
 import { config } from "dotenv";
-import { parse } from "path";
-
 config();
 
 export const redisConfig = () => ({
