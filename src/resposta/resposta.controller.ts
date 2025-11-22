@@ -20,6 +20,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiBadRequestResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { RespostaResponseDto } from './dto/response-resposta.dto';
 
@@ -29,47 +30,82 @@ export class RespostaController {
   constructor(private readonly respostaService: RespostaService) {}
 
   @Post()
+  @ApiOperation({
+    summary: 'Criar uma nova resposta',
+    description: 'Cria uma nova resposta para uma pergunta de uma inscrição',
+  })
   @ApiCreatedResponse({
     type: RespostaResponseDto,
     description: 'Resposta criada com sucesso',
+  })
+  @ApiNotFoundResponse({
+    description: 'Pergunta ou inscrição não encontrada',
+  })
+  @ApiBadRequestResponse({
+    description: 'Dados inválidos fornecidos',
   })
   create(@Body() dto: CreateRespostaDto) {
     return this.respostaService.create(dto);
   }
 
   @Get()
+  @ApiOperation({
+    summary: 'Listar todas as respostas',
+    description: 'Retorna uma lista com todas as respostas cadastradas no sistema',
+  })
   @ApiOkResponse({
     type: [RespostaResponseDto],
-    description: 'Lista de respostas',
+    description: 'Lista de respostas encontrada com sucesso',
   })
   findAll() {
     return this.respostaService.findAll();
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Buscar resposta por ID',
+    description: 'Retorna os dados de uma resposta específica pelo seu ID',
+  })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
   @ApiOkResponse({
     type: RespostaResponseDto,
-    description: 'Resposta encontrada',
+    description: 'Resposta encontrada com sucesso',
   })
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
-  findOne(@Param('id') id: number) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.respostaService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiOperation({
+    summary: 'Atualizar uma resposta',
+    description: 'Atualiza os dados de uma resposta existente',
+  })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
   @ApiOkResponse({
     type: RespostaResponseDto,
-    description: 'Resposta atualizada',
+    description: 'Resposta atualizada com sucesso',
   })
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
-  update(@Param('id') id: number, @Body() dto: UpdateRespostaDto) {
+  @ApiBadRequestResponse({
+    description: 'Dados inválidos fornecidos',
+  })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateRespostaDto,
+  ) {
     return this.respostaService.update(id, dto);
   }
 
   @Delete(':id')
-  @ApiOkResponse({ description: 'Resposta removida' })
+  @ApiOperation({
+    summary: 'Remover uma resposta',
+    description: 'Remove uma resposta do sistema',
+  })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiOkResponse({ description: 'Resposta removida com sucesso' })
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
-  remove(@Param('id') id: number) {
+  remove(@Param('id', ParseIntPipe) id: number) {
     return this.respostaService.remove(id);
   }
 
@@ -81,7 +117,43 @@ export class RespostaController {
   })
   @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
   @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
-  @ApiOkResponse({ description: 'Respostas encontradas com sucesso' })
+  @ApiOkResponse({
+    description: 'Respostas encontradas com sucesso',
+    schema: {
+      example: {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: 1,
+            titulo: 'Edital de Bolsa 2024',
+            descricao: 'Edital para bolsas de estudo',
+            status: 'Aberto',
+          },
+          aluno: {
+            aluno_id: 1,
+            nome: 'João Silva',
+            email: 'joao@exemplo.com',
+            matricula: '2024001',
+          },
+          total_respostas: 5,
+          respostas: [
+            {
+              id: 1,
+              pergunta_id: 1,
+              pergunta_texto: 'Qual sua renda familiar?',
+              step_id: 1,
+              step_texto: 'Questionário socioeconômico',
+              resposta_texto: 'Renda entre 1 e 3 salários mínimos',
+              valor_texto: null,
+              valor_opcoes: null,
+              url_arquivo: null,
+              data_resposta: '2024-01-15T10:00:00.000Z',
+            },
+          ],
+        },
+      },
+    },
+  })
   @ApiNotFoundResponse({
     description: 'Aluno, edital ou respostas não encontradas',
   })
@@ -105,7 +177,45 @@ export class RespostaController {
     description: 'ID do step/questionário',
     type: 'number',
   })
-  @ApiOkResponse({ description: 'Respostas encontradas com sucesso' })
+  @ApiOkResponse({
+    description: 'Respostas encontradas com sucesso',
+    schema: {
+      example: {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: 1,
+            titulo: 'Edital de Bolsa 2024',
+            descricao: 'Edital para bolsas de estudo',
+            status: 'Aberto',
+          },
+          step: {
+            id: 1,
+            texto: 'Questionário socioeconômico',
+          },
+          aluno: {
+            aluno_id: 1,
+            nome: 'João Silva',
+            email: 'joao@exemplo.com',
+            matricula: '2024001',
+          },
+          total_respostas: 3,
+          respostas: [
+            {
+              id: 1,
+              pergunta_id: 1,
+              pergunta_texto: 'Qual sua renda familiar?',
+              resposta_texto: 'Renda entre 1 e 3 salários mínimos',
+              valor_texto: null,
+              valor_opcoes: null,
+              url_arquivo: null,
+              data_resposta: '2024-01-15T10:00:00.000Z',
+            },
+          ],
+        },
+      },
+    },
+  })
   @ApiNotFoundResponse({
     description: 'Aluno, edital, step ou respostas não encontradas',
   })
@@ -133,7 +243,45 @@ export class RespostaController {
     type: 'number',
   })
   @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
-  @ApiOkResponse({ description: 'Respostas encontradas com sucesso' })
+  @ApiOkResponse({
+    description: 'Respostas encontradas com sucesso',
+    schema: {
+      example: {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: 1,
+            titulo: 'Edital de Bolsa 2024',
+            descricao: 'Edital para bolsas de estudo',
+            status: 'Aberto',
+          },
+          pergunta: {
+            id: 1,
+            texto: 'Qual sua renda familiar?',
+            tipo: 'select',
+            obrigatoriedade: true,
+          },
+          total_respostas: 10,
+          respostas: [
+            {
+              id: 1,
+              aluno: {
+                aluno_id: 1,
+                nome: 'João Silva',
+                email: 'joao@exemplo.com',
+                matricula: '2024001',
+              },
+              resposta_texto: 'Renda entre 1 e 3 salários mínimos',
+              valor_texto: null,
+              valor_opcoes: null,
+              url_arquivo: null,
+              data_resposta: '2024-01-15T10:00:00.000Z',
+            },
+          ],
+        },
+      },
+    },
+  })
   @ApiNotFoundResponse({
     description: 'Pergunta, edital ou respostas não encontradas',
   })
@@ -154,6 +302,25 @@ export class RespostaController {
       'Valida uma resposta específica e, se vinculada a um dado, adiciona o valor na tabela de dados do aluno',
   })
   @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiBody({
+    type: ValidateRespostaDto,
+    description: 'Dados para validação da resposta',
+    examples: {
+      exemplo1: {
+        summary: 'Validação sem data de validade',
+        value: {
+          validada: true,
+        },
+      },
+      exemplo2: {
+        summary: 'Validação com data de validade',
+        value: {
+          validada: true,
+          dataValidade: '2024-12-31T23:59:59.000Z',
+        },
+      },
+    },
+  })
   @ApiOkResponse({
     description: 'Resposta validada com sucesso',
     schema: {

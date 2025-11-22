@@ -40,13 +40,11 @@ export class InscricaoService {
 
   async createInscricao(
     createInscricaoDto: CreateInscricaoDto,
-    userId: number,
+    userId: string,
   ): Promise<InscricaoResponseDto> {
     try {
       // Validação do aluno
-      const alunoExists = await this.alunoRepository.findOneBy({
-        aluno_id: userId,
-      });
+      const alunoExists = await this.alunoRepository.findOne({ where: { usuario: { usuario_id: userId } } });
 
       if (!alunoExists) {
         throw new NotFoundException('Aluno não encontrado');
@@ -129,7 +127,7 @@ export class InscricaoService {
         },
       );
 
-      await this.removeRespostaEmCache(createInscricaoDto.vaga_id, userId);
+      await this.removeRespostaEmCache(createInscricaoDto.vaga_id, typeof userId === 'string' ? parseInt(userId, 10) : userId);
 
       return plainToInstance(InscricaoResponseDto, result, {
         excludeExtraneousValues: true,
@@ -152,7 +150,7 @@ export class InscricaoService {
   async updateInscricao(
     inscricaoId: number,
     updateInscricaoDto: UpdateInscricaoDto,
-    userId: number,
+    userId: string,
   ): Promise<InscricaoResponseDto> {
     try {
       // Validação da inscrição
@@ -166,7 +164,7 @@ export class InscricaoService {
       }
 
       // Verifica se o aluno é o dono da inscrição
-      if (inscricaoExistente.aluno.aluno_id !== userId) {
+      if (inscricaoExistente.aluno.usuario.usuario_id !== userId) {
         throw new BadRequestException(
           'Você não tem permissão para editar esta inscrição',
         );
@@ -310,10 +308,10 @@ export class InscricaoService {
     }
   }
 
-  async getInscricoesByAluno(userId: number) {
+  async getInscricoesByAluno(userId: string) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { aluno_id: userId },
+        where: { usuario: { usuario_id: userId } },
       });
 
       if (!aluno) {

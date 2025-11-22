@@ -129,7 +129,7 @@ export class AuthService {
     }
   }
 
-  async updatePassword(userId: number, newPassword: string) {
+  async updatePassword(userId: string, newPassword: string) {
     const user = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
     });

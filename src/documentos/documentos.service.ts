@@ -29,7 +29,10 @@ export class DocumentoService {
     private storageService: MinioClientService,
   ) {}
 
-  async createDocumento(createDocumentoDto: CreateDocumentoDto, files: Express.Multer.File[]) {
+  async createDocumento(
+    createDocumentoDto: CreateDocumentoDto,
+    files: Express.Multer.File[],
+  ) {
     try {
       const inscricao = await this.inscricaoRepository.findOne({
         where: { id: createDocumentoDto.inscricao },
@@ -44,7 +47,12 @@ export class DocumentoService {
         throw new BadRequestException('Nenhum arquivo foi enviado');
       }
 
-      const documentUrl = (await this.storageService.uploadDocuments(inscricao.aluno.usuario.usuario_id, files)).arquivos[0].nome_do_arquivo;
+      const documentUrl = (
+        await this.storageService.uploadDocuments(
+          inscricao.aluno.usuario.usuario_id,
+          files,
+        )
+      ).arquivos[0].nome_do_arquivo;
 
       const documento = this.documentoRepository.create({
         ...createDocumentoDto,
@@ -155,7 +163,7 @@ export class DocumentoService {
   /**
    * Check if a student has any documents with "REPROVADO" status
    */
-  async hasReprovadoDocuments(userId: number): Promise<boolean> {
+  async hasReprovadoDocuments(userId: string): Promise<boolean> {
     try {
       const aluno = await this.alunoRepository.findOne({
         where: { usuario: { usuario_id: userId } },
@@ -188,10 +196,10 @@ export class DocumentoService {
   /**
    * Get all reprovado documents for a student
    */
-  async getReprovadoDocumentsByStudent(userId: number) {
+  async getReprovadoDocumentsByStudent(userId: string) {
     try {
       const aluno = await this.alunoRepository.findOne({
-        where: { aluno_id: userId },
+        where: { usuario: { usuario_id: userId } },
         relations: ['inscricoes', 'inscricoes.documentos'],
       });
 
@@ -223,15 +231,19 @@ export class DocumentoService {
   /**
    * Get all pendent documents for a student
    */
-  async getDocumentsWithProblemsByStudent(userId: number) {
+  async getDocumentsWithProblemsByStudent(userId: string) {
     try {
-      const aluno = await this.alunoRepository.createQueryBuilder('aluno')
+      const aluno = await this.alunoRepository
+        .createQueryBuilder('aluno')
         .select('aluno.aluno_id')
-        .where("aluno.usuario.usuario_id = :usuarioId", { usuarioId: userId }) 
+        .where('aluno.usuario.usuario_id = :usuarioId', { usuarioId: userId })
         .leftJoin('aluno.inscricoes', 'inscricao')
         .addSelect('inscricao.id')
         .leftJoinAndSelect('inscricao.documentos', 'documento')
-        .andWhere("(documento.status_documento != :status OR documento.status_documento IS NULL)", { status: StatusDocumento.APROVADO })
+        .andWhere(
+          '(documento.status_documento != :status OR documento.status_documento IS NULL)',
+          { status: StatusDocumento.APROVADO },
+        )
         .leftJoin('documento.validacoes', 'validacao')
         .addSelect(['validacao.parecer', 'validacao.data_validacao'])
         .leftJoin('inscricao.vagas', 'vagas')
@@ -245,7 +257,7 @@ export class DocumentoService {
       }
 
       // Se não houver inscrições, retorna array vazio
-      if (!aluno.inscricoes || aluno.inscricoes.length === 0 ) {
+      if (!aluno.inscricoes || aluno.inscricoes.length === 0) {
         return {
           success: true,
           pendencias: [],
@@ -277,7 +289,7 @@ export class DocumentoService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
+
       throw new BadRequestException(
         `Erro ao buscar documentos pendentes: ${e.message}`,
       );
@@ -288,7 +300,7 @@ export class DocumentoService {
    * Allow resubmission of a document (reset status to PENDENTE)
    */
   async resubmitDocument(
-    userId: number,
+    userId: string,
     documentoId: number,
     updateData: Partial<UpdateDocumentoDto>,
     file: Express.Multer.File[],
@@ -319,7 +331,12 @@ export class DocumentoService {
         );
       }
 
-      const documentUrl = (await this.storageService.uploadDocuments(documento.inscricao.aluno.usuario.usuario_id, file)).arquivos[0].nome_do_arquivo;
+      const documentUrl = (
+        await this.storageService.uploadDocuments(
+          documento.inscricao.aluno.usuario.usuario_id,
+          file,
+        )
+      ).arquivos[0].nome_do_arquivo;
 
       // Update the document and reset status to PENDENTE for reanalysis
       Object.assign(documento, {
@@ -352,7 +369,7 @@ export class DocumentoService {
   /**
    * Check if a student can edit their documents and data
    */
-  async checkResubmissionPermission(userId: number) {
+  async checkResubmissionPermission(userId: string) {
     try {
       const hasPermission = await this.hasReprovadoDocuments(userId);
       const reprovadoDocsData =
