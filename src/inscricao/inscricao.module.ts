@@ -10,6 +10,7 @@ import { Resposta } from 'src/entities/resposta/resposta.entity';
 import { Vagas } from 'src/entities/vagas/vagas.entity';
 import { InscricaoController } from './inscricao.controller';
 import { InscricaoService } from './inscricao.service';
+import { RedisService } from '../redis/redis.service';
 
 @Module({
   imports: [
