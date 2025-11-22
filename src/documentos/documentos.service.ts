@@ -10,7 +10,7 @@ import { Aluno } from 'src/entities/aluno/aluno.entity';
 import { Documento } from 'src/entities/documento/documento.entity';
 import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { StatusDocumento } from 'src/enum/statusDocumento';
-import { NotBrackets, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { PendentDocumentoDto } from './dto/pendent-documento.dto';
