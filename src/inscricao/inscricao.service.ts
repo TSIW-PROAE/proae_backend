@@ -435,7 +435,7 @@ export class InscricaoService {
         const respostas = JSON.parse(cachedData);
         return { 
             message: 'Respostas encontradas no cache', 
-            respostas: respostas,
+            respostas,
         };
     } catch (error) {
         console.error('[CACHE] Erro ao fazer parse dos dados do cache:', error);
