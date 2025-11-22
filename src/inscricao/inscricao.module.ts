@@ -26,7 +26,7 @@ import { RedisService } from '../redis/redis.service';
     forwardRef(() => AuthModule),
   ],
   controllers: [InscricaoController],
-  providers: [InscricaoService, RedisService],
+  providers: [InscricaoService],
   exports: [InscricaoService],
 })
 export class InscricaoModule {}
