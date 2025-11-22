@@ -111,4 +111,4 @@ describe('DocumentoService', () => {
             expect(result).toEqual(expectedSemPendencias);
         });
     });
-})
+});
