@@ -399,7 +399,7 @@ export class InscricaoService {
     
     const key = `userId:${userId}:form:${createInscricaoDto.vaga_id}:edital:${vagaExists.edital.id}`;
 
-    // Calcula a expiração baseada no fim do edi3tal
+    // Calcula a expiração baseada no fim do edital
     let expirationInSeconds = 3 * 24 * 60 * 60; // 3 dias padrão
     
     expirationInSeconds = this.calculateExpirationBasedOnEdital(vagaExists, expirationInSeconds);
