@@ -15,23 +15,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - uses: github/codeql-action/init@v3
+    - uses: github/codeql-action/init@v4
       with:
         languages: javascript
 
-    - uses: github/codeql-action/analyze@v3
+    - uses: github/codeql-action/analyze@v4
       if: github.event.pull_request.head.repo.fork == false
 
-    - uses: github/codeql-action/analyze@v3
+    - uses: github/codeql-action/analyze@v4
       with:
         upload: false
       if: github.event.pull_request.head.repo.fork == true
 
     - name: Export SARIF result
       if: github.event.pull_request.head.repo.fork == true
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: codeql-report
         path: codeql-results.sarif
