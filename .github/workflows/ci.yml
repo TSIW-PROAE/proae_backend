@@ -1,47 +1,45 @@
 name: CI
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - uses: actions/setup-node@v4
       with:
-        node-version: '23'
-        cache: 'npm'
+        node-version: 20
+        cache: npm
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Install dependencies (frozen)
+      run: npm ci --ignore-scripts
 
-    - name: Build project
+   # - name: Lint
+      #run: npm run lint
+
+    - name: Security audit
+      run: npm audit --omit=dev || true
+
+    #- name: Run tests
+    # run: npm run test:ci
+
+    - name: Build
       run: npm run build
 
-    # - name: Run tests
-    #   run: npm run test:ci
-
-    - name: Deploy HTML report to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./coverage/report
-
-    - name: Upload test results
+    - name: Upload coverage
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results
-        path: |
-          coverage/
-          coverage/junit/
+        name: coverage
+        path: coverage/
         retention-days: 7
