@@ -5,8 +5,8 @@ import { RolesEnum } from '@/src/enum/enumRoles';
 
 @Entity()
 export class Usuario {
-  @PrimaryGeneratedColumn()
-  usuario_id: number;
+  @PrimaryGeneratedColumn('uuid')
+  usuario_id: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;

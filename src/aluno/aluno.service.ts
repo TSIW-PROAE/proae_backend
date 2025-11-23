@@ -59,7 +59,7 @@ export class AlunoService {
     };
   }
   /** Buscar aluno pelo userId */
-  async findByUserId(userId: number) {
+  async findByUserId(userId: string) {
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
       relations: ['aluno', 'aluno.inscricoes'],
@@ -91,7 +91,7 @@ export class AlunoService {
   }
 
   /** Verificar se o aluno possui documentos reprovados */
-  async hasReprovadoDocuments(userId: number): Promise<boolean> {
+  async hasReprovadoDocuments(userId: string): Promise<boolean> {
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
       relations: ['aluno', 'aluno.inscricoes', 'aluno.inscricoes.documentos'],
@@ -114,7 +114,7 @@ export class AlunoService {
 
   /** Atualizar dados do aluno */
   async updateStudentData(
-    userId: number,
+    userId: string,
     atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     const usuario = await this.usuarioRepository.findOne({
@@ -172,7 +172,7 @@ export class AlunoService {
   }
 
   /** Verificar permissão para atualizar dados */
-  async checkUpdatePermission(userId: number) {
+  async checkUpdatePermission(userId: string) {
     const hasPermission = await this.hasReprovadoDocuments(userId);
 
     return {
@@ -185,7 +185,7 @@ export class AlunoService {
   }
 
   /** Retornar inscrições do aluno */
-  async getStudentRegistration(userId: number) {
+  async getStudentRegistration(userId: string) {
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
       relations: ['aluno', 'aluno.inscricoes', 'aluno.inscricoes.documentos'],

@@ -9,7 +9,7 @@ import type { Request } from 'express';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private static userId: number;
+  private static userId: string;
 
   constructor(private jwtService: JwtService) {}
 
@@ -44,11 +44,11 @@ export class AuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 
-  public static getUserId(): number {
+  public static getUserId(): string {
     return this.userId;
   }
 
-  private static setUserId(id: number): void {
+  private static setUserId(id: string): void {
     this.userId = id;
   }
 }

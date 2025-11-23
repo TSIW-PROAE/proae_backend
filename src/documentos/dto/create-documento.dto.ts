@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
 import { StatusDocumento } from '../../enum/statusDocumento';
+import { Type } from 'class-transformer';
 
 export class CreateDocumentoDto {
   @IsNotEmpty()
@@ -15,13 +16,9 @@ export class CreateDocumentoDto {
   tipo_documento: EnumTipoDocumento;
 
   @IsNotEmpty()
+  @Type(() => Number)
   @IsNumber()
   inscricao: number;
-
-  @IsNotEmpty()
-  @IsString()
-  @IsUrl()
-  documento_url: string;
 
   @IsOptional()
   @IsEnum(StatusDocumento)

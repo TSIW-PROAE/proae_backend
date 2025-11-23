@@ -3,9 +3,9 @@ import { Expose, Type } from 'class-transformer';
 import { StatusValidacao } from '../../enum/statusValidacao';
 
 export class UsuarioResponseDto {
-  @ApiProperty({ type: Number, description: 'ID do usuário' })
+  @ApiProperty({ type: String, description: 'ID do usuário' })
   @Expose()
-  usuario_id: number;
+  usuario_id: string;
 
   @ApiProperty({ type: String, description: 'Nome do usuário' })
   @Expose()
