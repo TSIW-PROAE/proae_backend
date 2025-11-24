@@ -26,7 +26,7 @@
     "migration:create": "npm run typeorm migration:create -- -n"
   },
   "dependencies": {
-    "@clerk/backend": "^1.26.0",
+    "@clerk/backend": "^2.23.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
