@@ -111,11 +111,10 @@ export class AuthService {
         senha_hash: senhaHash,
         data_nascimento: new Date(dto.data_nascimento),
         roles: [RolesEnum.ALUNO],
-        aluno, // aqui já associa
+        aluno,
       });
 
       const savedUser = await this.usuarioRepository.save(usuario);
-
       const { senha_hash, ...result } = savedUser;
 
       return {
@@ -124,7 +123,8 @@ export class AuthService {
         dados: { aluno: result },
       };
     } catch (error) {
-      console.log(error);
+      if (error instanceof BadRequestException) throw error;
+      console.error(error);
       throw new InternalServerErrorException('Erro ao cadastrar aluno');
     }
   }
@@ -297,6 +297,7 @@ export class AuthService {
 
     return { sucesso: true, mensagem: 'Admin rejeitado e removido' };
   }
+
   private generateRandomToken(length = 32): string {
     const chars =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
