@@ -57,8 +57,9 @@ async function bootstrap() {
   // Aplicando o filter globalmente
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Aplicação rodando na porta ${process.env.PORT ?? 3000}`);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Aplicação rodando na porta ${port}`);
 }
 
 bootstrap();
