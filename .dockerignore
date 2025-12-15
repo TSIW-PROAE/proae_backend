@@ -1,26 +1,50 @@
+# Node.js
 node_modules
-npm-debug.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
 dist
-.git
-.gitignore
+
+# Ambiente / segredos
 .env
-.env.local
-.env.*.local
-coverage
-.nyc_output
-.vscode
-.idea
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-*.md
-!README.md
-test
-.github
-.gitlab-ci.yml
-*.tmp
-*.temp
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# Cloud Run / GCP
 .gcloudignore
 cloudbuild*.yaml
+
+# Docker
+Dockerfile
+.dockerignore
+.docker/
+
+# IDEs
+.vscode
+.idea
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Temporários
+*.swp
+*.tmp
+.temp
+.tmp
+*~
+
+# Testes / cobertura
+coverage
+.nyc_output
+test
+
+# Banco local (NÃO subir dados do Cloud SQL)
+pgdata

@@ -21,7 +21,7 @@ steps:
       - 'gcr.io/$PROJECT_ID/proae-backend:latest'
     id: 'push-image-latest'
 
-  # Deploy no Cloud Run
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
