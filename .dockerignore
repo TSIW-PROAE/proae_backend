@@ -1,58 +1,50 @@
-# compiled output
-/dist
-/node_modules
-/pgdata
-
-# Logs
-logs
-*.log
+# Node.js
+node_modules
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
 
-# OS
-.DS_Store
+# Build
+dist
 
-# Tests
-/coverage
-/.nyc_output
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history/*
-
-# Environment variables
+# Ambiente / segredos
 .env
 .env.*
 !.env.example
 
+# Logs
+logs
+*.log
+
+# Cloud Run / GCP
+.gcloudignore
+cloudbuild*.yaml
+
 # Docker
+Dockerfile
+.dockerignore
 .docker/
 
-# temp directory
+# IDEs
+.vscode
+.idea
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Temporários
+*.swp
+*.tmp
 .temp
 .tmp
+*~
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Testes / cobertura
+coverage
+.nyc_output
+test
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# Banco local (NÃO subir dados do Cloud SQL)
+pgdata
