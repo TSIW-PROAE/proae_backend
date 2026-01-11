@@ -21,6 +21,8 @@ import { Edital } from '../entities/edital/edital.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
 import { ValorDado } from '../entities/valorDado/valorDado.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
+import { InputFormatPlaceholders } from '../enum/enumInputFormat';
+import { PerguntaResponseDto } from '../step/dto/response-pergunta.dto';
 
 @Injectable()
 export class RespostaService {
@@ -369,6 +371,152 @@ export class RespostaService {
           url_arquivo: resposta.urlArquivo,
           data_resposta: resposta.dataResposta,
         })),
+      },
+    };
+  }
+
+  async findPerguntasComRespostasAlunoStep(
+    alunoId: number,
+    editalId: number,
+    stepId: number,
+  ) {
+    // Validar edital
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+    });
+    if (!edital) throw new NotFoundException('Edital não encontrado');
+
+    // Validar step e verificar se pertence ao edital
+    const step = await this.stepRepository.findOne({
+      where: { id: stepId, edital: { id: editalId } },
+      relations: ['edital'],
+    });
+    if (!step)
+      throw new NotFoundException('Step não encontrado no edital');
+
+    // Validar aluno
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+      relations: ['usuario'],
+    });
+    if (!aluno) throw new NotFoundException('Aluno não encontrado');
+
+    // Buscar todas as perguntas do step
+    const perguntas = await this.perguntaRepository.find({
+      where: { step: { id: stepId } },
+      relations: ['dado'],
+      order: { id: 'ASC' },
+    });
+
+    // Buscar vagas do edital
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    if (!vagas || vagas.length === 0) {
+      return {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: edital.id,
+            titulo: edital.titulo_edital,
+            descricao: edital.descricao,
+            status: edital.status_edital,
+          },
+          step: {
+            id: step.id,
+            texto: step.texto,
+          },
+          aluno: {
+            aluno_id: aluno.aluno_id,
+            nome: aluno.usuario.nome,
+            email: aluno.usuario.email,
+            matricula: aluno.matricula,
+          },
+          perguntas: perguntas.map((pergunta) => {
+            const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
+              excludeExtraneousValues: true,
+            });
+            perguntaDto.placeholder =
+              InputFormatPlaceholders[pergunta.tipo_formatacao];
+            return {
+              pergunta: perguntaDto,
+              resposta: null,
+            };
+          }),
+        },
+      };
+    }
+
+    // Buscar inscrição do aluno no edital
+    const vagaIds = vagas.map((vaga) => vaga.id);
+    const inscricoes = await this.inscricaoRepository.find({
+      where: {
+        aluno: { aluno_id: alunoId },
+        vagas: { id: vagaIds[0] },
+      },
+      relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
+    });
+
+    // Buscar todas as respostas do aluno para as perguntas deste step
+    const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
+
+    // Criar um mapa de perguntaId -> resposta para facilitar a busca
+    const respostasMap = new Map<number, Resposta>();
+    respostas.forEach((resposta) => {
+      if (resposta.pergunta?.step?.id === stepId) {
+        respostasMap.set(resposta.pergunta.id, resposta);
+      }
+    });
+
+    // Combinar perguntas com respostas
+    const perguntasComRespostas = perguntas.map((pergunta) => {
+      const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
+        excludeExtraneousValues: true,
+      });
+      perguntaDto.placeholder =
+        InputFormatPlaceholders[pergunta.tipo_formatacao];
+
+      const resposta = respostasMap.get(pergunta.id);
+
+      return {
+        pergunta: perguntaDto,
+        resposta: resposta
+          ? {
+              id: resposta.id,
+              texto: resposta.texto,
+              valorTexto: resposta.valorTexto,
+              valorOpcoes: resposta.valorOpcoes,
+              urlArquivo: resposta.urlArquivo,
+              dataResposta: resposta.dataResposta,
+              validada: resposta.validada,
+              dataValidacao: resposta.dataValidacao,
+              dataValidade: resposta.dataValidade,
+            }
+          : null,
+      };
+    });
+
+    return {
+      sucesso: true,
+      dados: {
+        edital: {
+          id: edital.id,
+          titulo: edital.titulo_edital,
+          descricao: edital.descricao,
+          status: edital.status_edital,
+        },
+        step: {
+          id: step.id,
+          texto: step.texto,
+        },
+        aluno: {
+          aluno_id: aluno.aluno_id,
+          nome: aluno.usuario.nome,
+          email: aluno.usuario.email,
+          matricula: aluno.matricula,
+        },
+        perguntas: perguntasComRespostas,
       },
     };
   }
