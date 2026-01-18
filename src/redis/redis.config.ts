@@ -1,7 +1,14 @@
-import { config } from "dotenv";
+import { config } from 'dotenv';
+import { Redis } from '@upstash/redis';
+
 config();
 
-export const redisConfig = () => ({
-    url: process.env.REDIS_URL,
-    ttl: parseInt(process.env.REDIS_TTL || '259200', 10), // Default to 3 days in seconds
+export const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
+
+export const redisTTL = parseInt(
+  process.env.REDIS_TTL || '259200',
+  10,
+);
