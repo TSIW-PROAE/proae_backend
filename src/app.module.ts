@@ -19,7 +19,12 @@ import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(typeOrmConfig),
+    TypeOrmModule.forRoot({
+      ...typeOrmConfig,
+      retryAttempts: 5,
+      retryDelay: 3000,
+      autoLoadEntities: true,
+    }),
     RedisModule,
     AuthModule,
     MinioClientModule,
