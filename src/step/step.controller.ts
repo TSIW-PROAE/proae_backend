@@ -18,7 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
-import { StepResponseDto } from './dto/response-step.dto';
+import { AnswerStepResponseDto } from './dto/response-step.dto';
 import { StepSimpleResponseDto } from './dto/step-simple-response.dto';
 import { StepService } from './step.service';
 import { errorExamples } from '../common/swagger/error-examples';
@@ -51,7 +51,7 @@ export class StepController {
     summary: 'Buscar steps com perguntas de um edital específico',
   })
   @ApiOkResponse({
-    type: [StepResponseDto],
+    type: [AnswerStepResponseDto],
     description: 'Steps com perguntas encontrados com sucesso',
   })
   @ApiNotFoundResponse({
@@ -64,7 +64,7 @@ export class StepController {
   })
   async findStepsWithPerguntasByEdital(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<StepResponseDto[]> {
+  ): Promise<AnswerStepResponseDto[]> {
     return this.stepService.findStepsByEditalWithPerguntas(id);
   }
 

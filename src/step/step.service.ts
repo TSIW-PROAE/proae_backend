@@ -12,7 +12,7 @@ import { InputFormatPlaceholders } from '../enum/enumInputFormat';
 import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
 import { PerguntaResponseDto } from './dto/response-pergunta.dto';
-import { StepResponseDto } from './dto/response-step.dto';
+import {AnswerStepResponseDto } from './dto/response-step.dto';
 import { StepSimpleResponseDto } from './dto/step-simple-response.dto';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class StepService {
   ) {}
 
   // Buscar steps com perguntas de um edital específico
-  async findStepsByEditalWithPerguntas(id: number): Promise<StepResponseDto[]> {
+  async findStepsByEditalWithPerguntas(id: number): Promise<AnswerStepResponseDto[]> {
     try {
       const steps = await this.stepRepository.find({
         where: { edital: { id } },
@@ -40,7 +40,7 @@ export class StepService {
 
       // Transform steps and their perguntas
       return steps.map((step) => {
-        const transformedStep = plainToInstance(StepResponseDto, step, {
+        const transformedStep = plainToInstance(AnswerStepResponseDto, step, {
           excludeExtraneousValues: true,
         });
 
@@ -182,7 +182,7 @@ export class StepService {
   }
 
   // Manter compatibilidade com método antigo
-  async findStepsByEdital_OLD(id: number): Promise<StepResponseDto[]> {
+  async findStepsByEdital_OLD(id: number): Promise<AnswerStepResponseDto[]> {
     return this.findStepsByEditalWithPerguntas(id);
   }
 }

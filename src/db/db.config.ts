@@ -8,9 +8,6 @@ function buildTypeOrmConfig(): DataSourceOptions {
     return {
       type: 'postgres',
       url: process.env.DB_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
       extra: {
         ssl: {
           rejectUnauthorized: false,
