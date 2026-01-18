@@ -15,10 +15,12 @@ import { ValidacaoModule } from './validacao/validacao.module';
 import { DadoModule } from './tipoDado/tipoDado.module';
 import { ValorDadoModule } from './valorDado/valorDado.module';
 import { RedisModule } from './redis/redis.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    HealthModule,
     TypeOrmModule.forRoot({
       ...typeOrmConfig,
       retryAttempts: 5,

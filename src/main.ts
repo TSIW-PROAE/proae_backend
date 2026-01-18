@@ -58,8 +58,28 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0'); // Escuta em todas as interfaces
+  const server = await app.listen(port, '0.0.0.0'); // Escuta em todas as interfaces
+
+  // Ajustes recomendados pelo Render: evita ECONNRESET/socket hang up
+  // por keep-alive e timeouts do load balancer (default 5s é curto)
+  const httpServer = server as import('http').Server;
+  if (httpServer?.setTimeout) {
+    httpServer.keepAliveTimeout = 65000; // 65s
+    httpServer.headersTimeout = 66000;   // > keepAliveTimeout
+  }
+
   console.log(`✅ Aplicação rodando na porta ${port}`);
 }
+
+// Trata rejeições e exceções não capturadas para evitar crash por ECONNRESET
+// (ex.: falha em requisição HTTP para Upstash Redis, MinIO, etc.)
+process.on('unhandledRejection', (reason: any, promise: Promise<unknown>) => {
+  console.error('[unhandledRejection]', reason?.message ?? reason);
+});
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('[uncaughtException]', err.message, err.stack);
+  process.exit(1);
+});
 
 bootstrap();
