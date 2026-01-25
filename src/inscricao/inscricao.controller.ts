@@ -8,6 +8,8 @@ import {
   Req,
   UseGuards,
   ParseIntPipe,
+  Res,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,7 +23,9 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import AuthenticatedRequest from 'src/types/authenticated-request.interface';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
@@ -29,13 +33,17 @@ import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { InscricaoService } from './inscricao.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PdfService } from '../pdf/pdf.service';
 
 @ApiTags('Inscrições')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('inscricoes')
 export class InscricaoController {
-  constructor(private readonly inscricaoService: InscricaoService) {}
+  constructor(
+    private readonly inscricaoService: InscricaoService,
+    private readonly pdfService: PdfService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Criar uma nova inscrição' })
@@ -180,5 +188,61 @@ export class InscricaoController {
       vagaId,
       parseInt(request.user.userId, 10),
     );
+  }
+
+  @Get('aprovados/pdf')
+  @ApiOperation({
+    summary: 'Gerar PDF com todos os estudantes aprovados',
+    description:
+      'Gera um PDF contendo a lista de todos os estudantes com inscrições aprovadas. Opcionalmente pode filtrar por edital específico.',
+  })
+  @ApiQuery({
+    name: 'editalId',
+    required: false,
+    type: Number,
+    description: 'ID do edital para filtrar os aprovados (opcional)',
+  })
+  @ApiOkResponse({
+    description: 'PDF gerado com sucesso',
+    content: {
+      'application/pdf': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Nenhum estudante aprovado encontrado ou edital não encontrado',
+    schema: { example: errorExamples.notFound },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Não autorizado',
+    schema: { example: errorExamples.unauthorized },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Erro interno do servidor',
+    schema: { example: errorExamples.internalServerError },
+  })
+  async generateAprovadosPdf(
+    @Res() res: Response,
+    @Query('editalId') editalIdStr?: string,
+  ) {
+    const editalId = editalIdStr ? parseInt(editalIdStr, 10) : undefined;
+    const pdfBuffer = await this.pdfService.generateAprovadosPdf(editalId);
+
+    const filename = editalId
+      ? `estudantes-aprovados-edital-${editalId}.pdf`
+      : `estudantes-aprovados-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`,
+    );
+    res.setHeader('Content-Length', pdfBuffer.length.toString());
+
+    return res.send(pdfBuffer);
   }
 }
