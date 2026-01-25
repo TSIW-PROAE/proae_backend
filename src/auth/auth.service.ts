@@ -53,11 +53,38 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.senha_hash);
     if (!isPasswordValid) return null;
 
+    // Verifica se é admin e se está aprovado
+    if (user.roles?.includes(RolesEnum.ADMIN) && user.admin) {
+      if (!user.admin.aprovado) {
+        throw new UnauthorizedException(
+          'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
+        );
+      }
+    }
+
     const { senha_hash, ...result } = user;
     return result;
   }
 
   async login(user: Usuario) {
+    // Garante que o admin está carregado com a relação
+    const userWithAdmin = await this.usuarioRepository.findOne({
+      where: { usuario_id: user.usuario_id },
+      relations: ['admin'],
+    });
+
+    // Verifica novamente se admin está aprovado (segurança extra)
+    if (
+      userWithAdmin?.roles?.includes(RolesEnum.ADMIN) &&
+      userWithAdmin.admin
+    ) {
+      if (!userWithAdmin.admin.aprovado) {
+        throw new UnauthorizedException(
+          'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
+        );
+      }
+    }
+
     const payload = {
       sub: user.usuario_id,
       email: user.email,
@@ -74,6 +101,8 @@ export class AuthService {
         email: user.email,
         nome: user.nome,
         roles: user.roles,
+        adminAprovado:
+          userWithAdmin?.admin?.aprovado ?? null,
       },
     };
   }
@@ -194,7 +223,18 @@ export class AuthService {
 
       if (!user) throw new NotFoundException('Usuário não encontrado');
 
-      return { valid: true, user, roles: user.roles, payload };
+      // Inclui status de aprovação do admin na resposta
+      const response: any = {
+        valid: true,
+        user: {
+          ...user,
+          adminAprovado: user.admin?.aprovado ?? null,
+        },
+        roles: user.roles,
+        payload,
+      };
+
+      return response;
     } catch (e) {
       return { valid: false, error: e.message };
     }
@@ -279,6 +319,12 @@ export class AuthService {
     admin.approvalTokenExpires = undefined;
 
     await this.adminRepository.save(admin);
+
+    // Recarrega o admin para garantir que os dados estão atualizados
+    await this.adminRepository.findOne({
+      where: { id_admin: admin.id_admin },
+      relations: ['usuario'],
+    });
 
     return { sucesso: true, mensagem: 'Admin aprovado com sucesso' };
   }

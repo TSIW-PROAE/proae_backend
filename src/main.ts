@@ -63,7 +63,7 @@ async function bootstrap() {
   // Ajustes recomendados pelo Render: evita ECONNRESET/socket hang up
   // por keep-alive e timeouts do load balancer (default 5s é curto)
   const httpServer = server as import('http').Server;
-  if (httpServer?.setTimeout) {
+  if (httpServer?.setTimeout()) {
     httpServer.keepAliveTimeout = 65000; // 65s
     httpServer.headersTimeout = 66000;   // > keepAliveTimeout
   }
