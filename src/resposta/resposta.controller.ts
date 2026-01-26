@@ -52,7 +52,8 @@ export class RespostaController {
   @Get()
   @ApiOperation({
     summary: 'Listar todas as respostas',
-    description: 'Retorna uma lista com todas as respostas cadastradas no sistema',
+    description:
+      'Retorna uma lista com todas as respostas cadastradas no sistema',
   })
   @ApiOkResponse({
     type: [RespostaResponseDto],
