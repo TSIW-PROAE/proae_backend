@@ -9,6 +9,7 @@ import { EditalModule } from './edital/edital.module';
 import { InscricaoModule } from './inscricao/inscricao.module';
 import { MinioClientModule } from './minio/minio-client.module';
 import { PerguntaModule } from './pergunta/pergunta.module';
+import { RespostaModule } from './resposta/resposta.module';
 import { StepModule } from './step/step.module';
 import { VagasModule } from './vagas/vagas.module';
 import { ValidacaoModule } from './validacao/validacao.module';
@@ -37,6 +38,7 @@ import { HealthModule } from './health/health.module';
     ValidacaoModule,
     StepModule,
     PerguntaModule,
+    RespostaModule,
     VagasModule,
     DadoModule,
     ValorDadoModule,

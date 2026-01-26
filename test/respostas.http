@@ -1,0 +1,63 @@
+### Variáveis
+@baseUrl = http://localhost:3000
+@alunoId = 1
+@editalId = 1
+@stepId = 1
+
+
+GET {{baseUrl}}/respostas/aluno/{{alunoId}}/edital/{{editalId}}/step/{{stepId}}/perguntas-com-respostas
+
+### =============================================
+### OUTRAS ROTAS DE RESPOSTAS
+### =============================================
+
+### Listar todas as respostas
+GET {{baseUrl}}/respostas
+
+### Buscar resposta por ID
+GET {{baseUrl}}/respostas/1
+
+### Todas as respostas de um aluno em um edital
+GET {{baseUrl}}/respostas/aluno/{{alunoId}}/edital/{{editalId}}
+
+### Todas as respostas de um aluno em um step específico
+GET {{baseUrl}}/respostas/aluno/{{alunoId}}/edital/{{editalId}}/step/{{stepId}}
+
+### Todas as respostas de uma pergunta em um edital
+GET {{baseUrl}}/respostas/pergunta/1/edital/{{editalId}}
+
+### =============================================
+### CRIAR/ATUALIZAR/DELETAR RESPOSTAS
+### =============================================
+
+### Criar uma nova resposta
+POST {{baseUrl}}/respostas
+Content-Type: application/json
+
+{
+  "inscricaoId": 1,
+  "perguntaId": 1,
+  "texto": "Minha resposta aqui",
+  "valorTexto": null,
+  "valorOpcoes": null
+}
+
+### Atualizar uma resposta
+PATCH {{baseUrl}}/respostas/1
+Content-Type: application/json
+
+{
+  "texto": "Resposta atualizada"
+}
+
+### Validar uma resposta
+PATCH {{baseUrl}}/respostas/1/validate
+Content-Type: application/json
+
+{
+  "validada": true,
+  "dataValidade": "2026-12-31T23:59:59.000Z"
+}
+
+### Deletar uma resposta
+DELETE {{baseUrl}}/respostas/1
