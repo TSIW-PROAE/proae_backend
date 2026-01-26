@@ -21,6 +21,10 @@ import { Edital } from '../entities/edital/edital.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
 import { ValorDado } from '../entities/valorDado/valorDado.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
+import {
+  StepRespostasResponseDto,
+  PerguntaComRespostaDto,
+} from './dto/step-respostas.dto';
 
 @Injectable()
 export class RespostaService {
@@ -433,5 +437,100 @@ export class RespostaService {
         mensagem: 'Resposta validada com sucesso',
       },
     };
+  }
+
+  async findRespostasByAlunoStepEdital(
+    alunoId: number,
+    stepId: number,
+    editalId: number,
+  ): Promise<StepRespostasResponseDto> {
+    // Buscar o aluno
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+    });
+    if (!aluno) {
+      throw new NotFoundException('Aluno não encontrado');
+    }
+
+    // Buscar o step com suas perguntas
+    const step = await this.stepRepository.findOne({
+      where: { id: stepId },
+      relations: ['edital', 'perguntas'],
+    });
+    if (!step) {
+      throw new NotFoundException('Step não encontrado');
+    }
+
+    // Verificar se o step pertence ao edital especificado
+    if (step.edital.id !== editalId) {
+      throw new BadRequestException(
+        'O step não pertence ao edital especificado',
+      );
+    }
+
+    // Buscar a inscrição do aluno no edital
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: {
+        aluno: { aluno_id: alunoId },
+        vagas: { edital: { id: editalId } },
+      },
+      relations: ['vagas', 'vagas.edital'],
+    });
+
+    // Buscar todas as respostas do aluno para as perguntas deste step
+    let respostas: Resposta[] = [];
+    if (inscricao) {
+      respostas = await this.respostaRepository.find({
+        where: {
+          inscricao: { id: inscricao.id },
+          pergunta: { step: { id: stepId } },
+        },
+        relations: ['pergunta'],
+      });
+    }
+
+    // Mapear as respostas por perguntaId para facilitar o acesso
+    const respostasMap = new Map<number, Resposta>();
+    respostas.forEach((resposta) => {
+      respostasMap.set(resposta.pergunta.id, resposta);
+    });
+
+    // Montar o resultado com todas as perguntas e suas respectivas respostas
+    const perguntasComRespostas: PerguntaComRespostaDto[] = step.perguntas.map(
+      (pergunta) => {
+        const resposta = respostasMap.get(pergunta.id);
+
+        return plainToInstance(
+          PerguntaComRespostaDto,
+          {
+            perguntaId: pergunta.id,
+            pergunta: pergunta.pergunta,
+            obrigatoriedade: pergunta.obrigatoriedade,
+            tipoPergunta: pergunta.tipo_Pergunta,
+            opcoes: pergunta.opcoes,
+            respostaId: resposta?.id,
+            valorTexto: resposta?.valorTexto,
+            valorOpcoes: resposta?.valorOpcoes,
+            urlArquivo: resposta?.urlArquivo,
+            dataResposta: resposta?.dataResposta,
+            validada: resposta?.validada,
+          },
+          { excludeExtraneousValues: true },
+        );
+      },
+    );
+
+    return plainToInstance(
+      StepRespostasResponseDto,
+      {
+        stepId: step.id,
+        stepTexto: step.texto,
+        editalId: editalId,
+        alunoId: alunoId,
+        inscricaoId: inscricao?.id,
+        perguntas: perguntasComRespostas,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 }

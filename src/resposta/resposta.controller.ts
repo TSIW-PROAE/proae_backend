@@ -23,6 +23,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { RespostaResponseDto } from './dto/response-resposta.dto';
+import { StepRespostasResponseDto } from './dto/step-respostas.dto';
 
 @ApiTags('Respostas')
 @Controller('respostas')
@@ -107,6 +108,37 @@ export class RespostaController {
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.respostaService.remove(id);
+  }
+
+  @Get('aluno/:alunoId/step/:stepId/edital/:editalId')
+  @ApiOperation({
+    summary: 'Buscar perguntas de um step com respostas do aluno',
+    description:
+      'Retorna todas as perguntas de um step específico com suas respectivas respostas do aluno (mesmo que não tenha respondido)',
+  })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
+  @ApiParam({ name: 'stepId', description: 'ID do step', type: 'number' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  @ApiOkResponse({
+    type: StepRespostasResponseDto,
+    description: 'Perguntas e respostas encontradas com sucesso',
+  })
+  @ApiNotFoundResponse({
+    description: 'Aluno, step ou edital não encontrado',
+  })
+  @ApiBadRequestResponse({
+    description: 'O step não pertence ao edital especificado',
+  })
+  findRespostasByAlunoStepEdital(
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+    @Param('stepId', ParseIntPipe) stepId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+  ) {
+    return this.respostaService.findRespostasByAlunoStepEdital(
+      alunoId,
+      stepId,
+      editalId,
+    );
   }
 
   @Get('aluno/:alunoId/edital/:editalId')
