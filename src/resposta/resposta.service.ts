@@ -391,8 +391,7 @@ export class RespostaService {
       where: { id: stepId, edital: { id: editalId } },
       relations: ['edital'],
     });
-    if (!step)
-      throw new NotFoundException('Step não encontrado no edital');
+    if (!step) throw new NotFoundException('Step não encontrado no edital');
 
     // Validar aluno
     const aluno = await this.alunoRepository.findOne({
@@ -579,6 +578,176 @@ export class RespostaService {
           dataValidade: respostaAtualizada.dataValidade,
         },
         mensagem: 'Resposta validada com sucesso',
+      },
+    };
+  }
+
+  async findAllStepsComPerguntasRespostas(alunoId: number, editalId: number) {
+    // Validar edital
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+    });
+    if (!edital) throw new NotFoundException('Edital não encontrado');
+
+    // Validar aluno
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+      relations: ['usuario'],
+    });
+    if (!aluno) throw new NotFoundException('Aluno não encontrado');
+
+    // Buscar todos os steps do edital
+    const steps = await this.stepRepository.find({
+      where: { edital: { id: editalId } },
+      order: { id: 'ASC' },
+    });
+
+    if (!steps || steps.length === 0) {
+      return {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: edital.id,
+            titulo: edital.titulo_edital,
+            descricao: edital.descricao,
+            status: edital.status_edital,
+          },
+          aluno: {
+            aluno_id: aluno.aluno_id,
+            nome: aluno.usuario.nome,
+            email: aluno.usuario.email,
+            matricula: aluno.matricula,
+          },
+          steps: [],
+        },
+      };
+    }
+
+    // Buscar vagas do edital
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    // Buscar inscrição do aluno no edital (se houver vagas)
+    let respostasMap = new Map<number, Resposta>();
+    if (vagas && vagas.length > 0) {
+      const vagaIds = vagas.map((vaga) => vaga.id);
+      const inscricoes = await this.inscricaoRepository.find({
+        where: {
+          aluno: { aluno_id: alunoId },
+          vagas: { id: vagaIds[0] },
+        },
+        relations: [
+          'respostas',
+          'respostas.pergunta',
+          'respostas.pergunta.step',
+        ],
+      });
+
+      // Criar mapa de perguntaId -> resposta
+      const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
+      respostas.forEach((resposta) => {
+        if (resposta.pergunta) {
+          respostasMap.set(resposta.pergunta.id, resposta);
+        }
+      });
+    }
+
+    // Processar cada step
+    const stepsComDados = await Promise.all(
+      steps.map(async (step) => {
+        // Buscar perguntas do step
+        const perguntas = await this.perguntaRepository.find({
+          where: { step: { id: step.id } },
+          relations: ['dado'],
+          order: { id: 'ASC' },
+        });
+
+        // Combinar perguntas com respostas
+        const perguntasComRespostas = perguntas.map((pergunta) => {
+          const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
+            excludeExtraneousValues: true,
+          });
+          perguntaDto.placeholder =
+            InputFormatPlaceholders[pergunta.tipo_formatacao];
+
+          const resposta = respostasMap.get(pergunta.id);
+
+          return {
+            pergunta: perguntaDto,
+            resposta: resposta
+              ? {
+                  id: resposta.id,
+                  texto: resposta.texto,
+                  valorTexto: resposta.valorTexto,
+                  valorOpcoes: resposta.valorOpcoes,
+                  urlArquivo: resposta.urlArquivo,
+                  dataResposta: resposta.dataResposta,
+                  validada: resposta.validada,
+                  dataValidacao: resposta.dataValidacao,
+                  dataValidade: resposta.dataValidade,
+                }
+              : null,
+          };
+        });
+
+        // Calcular status do step baseado nas respostas
+        // CONCLUIDO: todas as perguntas têm respostas validadas (validada === true)
+        // PENDENTE_CORRECAO: alguma resposta foi validada como falsa (validada === false e dataValidacao !== null)
+        // EM_ANDAMENTO: há pelo menos uma pergunta sem resposta ou com resposta não validada ainda
+        let statusStep: 'CONCLUIDO' | 'EM_ANDAMENTO' | 'PENDENTE_CORRECAO' =
+          'EM_ANDAMENTO';
+
+        if (perguntas.length > 0) {
+          const todasRespondidas = perguntasComRespostas.every(
+            (pr) => pr.resposta !== null,
+          );
+          const todasValidadas = perguntasComRespostas.every(
+            (pr) => pr.resposta !== null && pr.resposta.validada === true,
+          );
+          const algumaPendenteCorrecao = perguntasComRespostas.some(
+            (pr) =>
+              pr.resposta !== null &&
+              pr.resposta.validada === false &&
+              pr.resposta.dataValidacao !== null,
+          );
+
+          if (todasValidadas) {
+            statusStep = 'CONCLUIDO';
+          } else if (algumaPendenteCorrecao) {
+            statusStep = 'PENDENTE_CORRECAO';
+          } else {
+            statusStep = 'EM_ANDAMENTO';
+          }
+        }
+
+        return {
+          step: {
+            id: step.id,
+            texto: step.texto,
+          },
+          status: statusStep,
+          perguntas: perguntasComRespostas,
+        };
+      }),
+    );
+
+    return {
+      sucesso: true,
+      dados: {
+        edital: {
+          id: edital.id,
+          titulo: edital.titulo_edital,
+          descricao: edital.descricao,
+          status: edital.status_edital,
+        },
+        aluno: {
+          aluno_id: aluno.aluno_id,
+          nome: aluno.usuario.nome,
+          email: aluno.usuario.email,
+          matricula: aluno.matricula,
+        },
+        steps: stepsComDados,
       },
     };
   }

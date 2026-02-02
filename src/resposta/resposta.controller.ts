@@ -51,7 +51,8 @@ export class RespostaController {
   @Get()
   @ApiOperation({
     summary: 'Listar todas as respostas',
-    description: 'Retorna uma lista com todas as respostas cadastradas no sistema',
+    description:
+      'Retorna uma lista com todas as respostas cadastradas no sistema',
   })
   @ApiOkResponse({
     type: [RespostaResponseDto],
@@ -444,5 +445,125 @@ export class RespostaController {
     @Body() dto: ValidateRespostaDto,
   ) {
     return this.respostaService.validateResposta(id, dto);
+  }
+
+  @Get('aluno/:alunoId/edital/:editalId/steps-completos')
+  @ApiOperation({
+    summary: 'Todos os steps do edital com perguntas e respostas do aluno',
+    description:
+      'Retorna todos os steps de um edital, com suas perguntas e respostas do aluno. Cada step inclui uma flag de status: CONCLUIDO (todas validadas), EM_ANDAMENTO (pendente validação), PENDENTE_CORRECAO (alguma invalidada).',
+  })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  @ApiOkResponse({
+    description: 'Steps com perguntas e respostas encontrados com sucesso',
+    schema: {
+      example: {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: 1,
+            titulo: 'Edital de Bolsa 2024',
+            descricao: 'Edital para bolsas de estudo',
+            status: 'Aberto',
+          },
+          aluno: {
+            aluno_id: 1,
+            nome: 'João Silva',
+            email: 'joao@exemplo.com',
+            matricula: '2024001',
+          },
+          steps: [
+            {
+              step: {
+                id: 1,
+                texto: 'Questionário socioeconômico',
+              },
+              status: 'CONCLUIDO',
+              perguntas: [
+                {
+                  pergunta: {
+                    id: 1,
+                    pergunta: 'Qual sua renda familiar?',
+                    tipo_Pergunta: 'select',
+                    obrigatoriedade: true,
+                    opcoes: [
+                      'Até 1 salário',
+                      '1 a 3 salários',
+                      '3 a 5 salários',
+                    ],
+                    tipo_formatacao: 'single-select',
+                    placeholder: 'Selecione uma opção',
+                  },
+                  resposta: {
+                    id: 1,
+                    texto: null,
+                    valorTexto: null,
+                    valorOpcoes: ['1 a 3 salários'],
+                    urlArquivo: null,
+                    dataResposta: '2024-01-15T10:00:00.000Z',
+                    validada: true,
+                    dataValidacao: '2024-01-20T10:00:00.000Z',
+                    dataValidade: null,
+                  },
+                },
+              ],
+            },
+            {
+              step: {
+                id: 2,
+                texto: 'Documentação',
+              },
+              status: 'PENDENTE_CORRECAO',
+              perguntas: [
+                {
+                  pergunta: {
+                    id: 2,
+                    pergunta: 'Comprovante de renda',
+                    tipo_Pergunta: 'file',
+                    obrigatoriedade: true,
+                  },
+                  resposta: {
+                    id: 2,
+                    validada: false,
+                    dataValidacao: '2024-01-20T10:00:00.000Z',
+                  },
+                },
+              ],
+            },
+            {
+              step: {
+                id: 3,
+                texto: 'Dados complementares',
+              },
+              status: 'EM_ANDAMENTO',
+              perguntas: [
+                {
+                  pergunta: {
+                    id: 3,
+                    pergunta: 'Observações adicionais',
+                    tipo_Pergunta: 'text',
+                    obrigatoriedade: false,
+                  },
+                  resposta: null,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Aluno ou edital não encontrados',
+  })
+  findAllStepsComPerguntasRespostas(
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+  ) {
+    return this.respostaService.findAllStepsComPerguntasRespostas(
+      alunoId,
+      editalId,
+    );
   }
 }
