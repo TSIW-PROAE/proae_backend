@@ -188,7 +188,13 @@ export class AlunoService {
   async getStudentRegistration(userId: string) {
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
-      relations: ['aluno', 'aluno.inscricoes', 'aluno.inscricoes.documentos'],
+      relations: [
+        'aluno',
+        'aluno.inscricoes',
+        'aluno.inscricoes.vagas',
+        'aluno.inscricoes.vagas.edital',
+        'aluno.inscricoes.documentos',
+      ],
     });
 
     if (!usuario || !usuario.aluno) {
@@ -198,11 +204,11 @@ export class AlunoService {
     const inscricoes = usuario.aluno.inscricoes || [];
 
     return inscricoes.map((inscricao: Inscricao) => ({
-      edital_id: 0, // TODO: Buscar via vagas
+      edital_id: inscricao.vagas?.edital?.id || null,
       inscricao_id: inscricao.id,
-      titulo_edital: 'TODO: Buscar via vagas',
-      status_edital: 'TODO: Buscar via vagas',
-      etapas_edital: [], // TODO: Buscar via vagas
+      titulo_edital: inscricao.vagas?.edital?.titulo_edital || null,
+      status_edital: inscricao.vagas?.edital?.status_edital || null,
+      etapas_edital: [], // TODO: Buscar steps do edital se necessário
       status_inscricao: inscricao.status_inscricao,
       possui_pendencias: false, // TODO: Reimplementar verificação real
     }));

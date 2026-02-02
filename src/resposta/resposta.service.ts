@@ -23,6 +23,7 @@ import { ValorDado } from '../entities/valorDado/valorDado.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
 import { InputFormatPlaceholders } from '../enum/enumInputFormat';
 import { PerguntaResponseDto } from '../step/dto/response-pergunta.dto';
+import { StatusInscricao } from '../enum/enumStatusInscricao';
 
 @Injectable()
 export class RespostaService {
@@ -530,9 +531,9 @@ export class RespostaService {
       throw new NotFoundException('Resposta não encontrada');
     }
 
-    if (resposta.validada) {
-      throw new BadRequestException('Resposta já foi validada');
-    }
+    // if (resposta.validada) {
+    //   throw new BadRequestException('Resposta já foi validada');
+    // }
 
     resposta.validada = dto.validada ?? true;
     resposta.dataValidacao = new Date();
@@ -568,6 +569,14 @@ export class RespostaService {
       }
     }
 
+    // Verificar status de todas as respostas da inscrição e atualizar status da inscrição
+    await this.atualizarStatusInscricao(resposta.inscricao.id);
+
+    // Buscar a inscrição atualizada para retornar o status
+    const inscricaoAtualizada = await this.inscricaoRepository.findOne({
+      where: { id: resposta.inscricao.id },
+    });
+
     return {
       sucesso: true,
       dados: {
@@ -577,9 +586,46 @@ export class RespostaService {
           dataValidacao: respostaAtualizada.dataValidacao,
           dataValidade: respostaAtualizada.dataValidade,
         },
+        inscricao: {
+          id: inscricaoAtualizada?.id,
+          status: inscricaoAtualizada?.status_inscricao,
+        },
         mensagem: 'Resposta validada com sucesso',
       },
     };
+  }
+
+  /**
+   * Verifica todas as respostas de uma inscrição e atualiza o status:
+   * - APROVADA: se todas as respostas estiverem validadas (validada === true)
+   * - PENDENTE: se houver alguma resposta ainda não validada
+   */
+  private async atualizarStatusInscricao(inscricaoId: number): Promise<void> {
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: ['respostas'],
+    });
+
+    if (
+      !inscricao ||
+      !inscricao.respostas ||
+      inscricao.respostas.length === 0
+    ) {
+      return;
+    }
+
+    // Verificar se todas as respostas estão validadas
+    const todasValidadas = inscricao.respostas.every(
+      (r) => r.validada === true,
+    );
+
+    if (todasValidadas) {
+      inscricao.status_inscricao = StatusInscricao.APROVADA;
+    } else {
+      inscricao.status_inscricao = StatusInscricao.PENDENTE;
+    }
+
+    await this.inscricaoRepository.save(inscricao);
   }
 
   async findAllStepsComPerguntasRespostas(alunoId: number, editalId: number) {
