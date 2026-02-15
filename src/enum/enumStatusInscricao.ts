@@ -1,5 +1,9 @@
 export enum StatusInscricao {
-  NEGADA = 'Inscrição Negada',
-  APROVADA = 'Inscrição Aprovada',
-  PENDENTE = 'Inscrição Pendente',
+  APROVADA = 'Aprovada',
+  REJEITADA = 'Rejeitada',
+  EM_ANALISE = 'Em Análise',
+  SELECIONADA = 'Selecionada',
+  NAO_SELECIONADA = 'Não Selecionada',
+  PENDENTE_REGULARIZACAO = 'Pendente de Regularização',
+  PENDENTE = 'Pendente',
 }

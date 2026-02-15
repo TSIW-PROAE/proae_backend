@@ -33,9 +33,21 @@ export class Resposta extends AbstractEntity<Resposta> {
   @Column({ type: 'boolean', default: false })
   validada: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  invalidada: boolean;
+
   @Column({ type: 'timestamp', nullable: true })
   dataValidacao?: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   dataValidade?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  parecer?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  prazoReenvio?: Date;
+
+  @Column({ type: 'boolean', default: false })
+  requerReenvio: boolean;
 }

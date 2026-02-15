@@ -535,11 +535,20 @@ export class RespostaService {
     //   throw new BadRequestException('Resposta já foi validada');
     // }
 
-    resposta.validada = dto.validada ?? true;
+    resposta.validada = dto.validada ?? false;
+    resposta.invalidada = dto.invalidada ?? false;
     resposta.dataValidacao = new Date();
     resposta.dataValidade = dto.dataValidade
       ? new Date(dto.dataValidade)
       : undefined;
+
+    // Campos de reenvio: sempre reseta para garantir que dados antigos não interfiram
+    resposta.requerReenvio = dto.requerReenvio ?? false;
+    resposta.parecer = dto.requerReenvio ? dto.parecer : undefined;
+    resposta.prazoReenvio =
+      dto.requerReenvio && dto.prazoReenvio
+        ? new Date(dto.prazoReenvio)
+        : undefined;
 
     const respostaAtualizada = await this.respostaRepository.save(resposta);
 
@@ -583,8 +592,12 @@ export class RespostaService {
         resposta: {
           id: respostaAtualizada.id,
           validada: respostaAtualizada.validada,
+          invalidada: respostaAtualizada.invalidada,
           dataValidacao: respostaAtualizada.dataValidacao,
           dataValidade: respostaAtualizada.dataValidade,
+          parecer: respostaAtualizada.parecer,
+          prazoReenvio: respostaAtualizada.prazoReenvio,
+          requerReenvio: respostaAtualizada.requerReenvio,
         },
         inscricao: {
           id: inscricaoAtualizada?.id,
@@ -596,9 +609,13 @@ export class RespostaService {
   }
 
   /**
-   * Verifica todas as respostas de uma inscrição e atualiza o status:
-   * - APROVADA: se todas as respostas estiverem validadas (validada === true)
-   * - PENDENTE: se houver alguma resposta ainda não validada
+   * Verifica todas as respostas de uma inscrição e atualiza o status.
+   * Prioridade: APROVADA > PENDENTE_REGULARIZACAO > REJEITADA > EM_ANALISE
+   *
+   * - APROVADA: todas validadas
+   * - PENDENTE_REGULARIZACAO: ao menos uma com requerReenvio === true
+   * - REJEITADA: ao menos uma invalidada sem reenvio
+   * - EM_ANALISE: alguma ainda não foi avaliada (validada === false && invalidada === false)
    */
   private async atualizarStatusInscricao(inscricaoId: number): Promise<void> {
     const inscricao = await this.inscricaoRepository.findOne({
@@ -614,15 +631,27 @@ export class RespostaService {
       return;
     }
 
-    // Verificar se todas as respostas estão validadas
-    const todasValidadas = inscricao.respostas.every(
-      (r) => r.validada === true,
+    const respostas = inscricao.respostas;
+
+    const todasValidadas = respostas.every((r) => r.validada === true);
+    const algumaPendenteReenvio = respostas.some(
+      (r) => r.requerReenvio === true,
+    );
+    const algumaInvalidadaSemReenvio = respostas.some(
+      (r) => r.invalidada === true && r.requerReenvio === false,
+    );
+    const algumaNaoAvaliada = respostas.some(
+      (r) => r.validada === false && r.invalidada === false,
     );
 
     if (todasValidadas) {
       inscricao.status_inscricao = StatusInscricao.APROVADA;
-    } else {
-      inscricao.status_inscricao = StatusInscricao.PENDENTE;
+    } else if (algumaPendenteReenvio) {
+      inscricao.status_inscricao = StatusInscricao.PENDENTE_REGULARIZACAO;
+    } else if (algumaInvalidadaSemReenvio) {
+      inscricao.status_inscricao = StatusInscricao.REJEITADA;
+    } else if (algumaNaoAvaliada) {
+      inscricao.status_inscricao = StatusInscricao.EM_ANALISE;
     }
 
     await this.inscricaoRepository.save(inscricao);
@@ -676,6 +705,7 @@ export class RespostaService {
 
     // Buscar inscrição do aluno no edital (se houver vagas)
     let respostasMap = new Map<number, Resposta>();
+    let inscricaoAtual: Inscricao | null = null;
     if (vagas && vagas.length > 0) {
       const vagaIds = vagas.map((vaga) => vaga.id);
       const inscricoes = await this.inscricaoRepository.find({
@@ -689,6 +719,8 @@ export class RespostaService {
           'respostas.pergunta.step',
         ],
       });
+
+      inscricaoAtual = inscricoes.length > 0 ? inscricoes[0] : null;
 
       // Criar mapa de perguntaId -> resposta
       const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
@@ -730,38 +762,48 @@ export class RespostaService {
                   urlArquivo: resposta.urlArquivo,
                   dataResposta: resposta.dataResposta,
                   validada: resposta.validada,
+                  invalidada: resposta.invalidada,
                   dataValidacao: resposta.dataValidacao,
                   dataValidade: resposta.dataValidade,
+                  parecer: resposta.parecer,
+                  prazoReenvio: resposta.prazoReenvio,
+                  requerReenvio: resposta.requerReenvio,
                 }
               : null,
           };
         });
 
         // Calcular status do step baseado nas respostas
-        // CONCLUIDO: todas as perguntas têm respostas validadas (validada === true)
-        // PENDENTE_CORRECAO: alguma resposta foi validada como falsa (validada === false e dataValidacao !== null)
-        // EM_ANDAMENTO: há pelo menos uma pergunta sem resposta ou com resposta não validada ainda
-        let statusStep: 'CONCLUIDO' | 'EM_ANDAMENTO' | 'PENDENTE_CORRECAO' =
-          'EM_ANDAMENTO';
+        // CONCLUIDO: todas validadas
+        // PENDENTE_REGULARIZACAO: ao menos uma com requerReenvio
+        // REJEITADO: ao menos uma invalidada sem reenvio
+        // EM_ANDAMENTO: alguma ainda não avaliada
+        let statusStep:
+          | 'CONCLUIDO'
+          | 'EM_ANDAMENTO'
+          | 'PENDENTE_REGULARIZACAO'
+          | 'REJEITADO' = 'EM_ANDAMENTO';
 
         if (perguntas.length > 0) {
-          const todasRespondidas = perguntasComRespostas.every(
-            (pr) => pr.resposta !== null,
-          );
           const todasValidadas = perguntasComRespostas.every(
             (pr) => pr.resposta !== null && pr.resposta.validada === true,
           );
-          const algumaPendenteCorrecao = perguntasComRespostas.some(
+          const algumaPendenteReenvio = perguntasComRespostas.some(
+            (pr) => pr.resposta !== null && pr.resposta.requerReenvio === true,
+          );
+          const algumaInvalidadaSemReenvio = perguntasComRespostas.some(
             (pr) =>
               pr.resposta !== null &&
-              pr.resposta.validada === false &&
-              pr.resposta.dataValidacao !== null,
+              pr.resposta.invalidada === true &&
+              pr.resposta.requerReenvio === false,
           );
 
           if (todasValidadas) {
             statusStep = 'CONCLUIDO';
-          } else if (algumaPendenteCorrecao) {
-            statusStep = 'PENDENTE_CORRECAO';
+          } else if (algumaPendenteReenvio) {
+            statusStep = 'PENDENTE_REGULARIZACAO';
+          } else if (algumaInvalidadaSemReenvio) {
+            statusStep = 'REJEITADO';
           } else {
             statusStep = 'EM_ANDAMENTO';
           }
@@ -793,6 +835,12 @@ export class RespostaService {
           email: aluno.usuario.email,
           matricula: aluno.matricula,
         },
+        inscricao: inscricaoAtual
+          ? {
+              id: inscricaoAtual.id,
+              status: inscricaoAtual.status_inscricao,
+            }
+          : null,
         steps: stepsComDados,
       },
     };

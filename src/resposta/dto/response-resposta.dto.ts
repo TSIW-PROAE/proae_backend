@@ -48,4 +48,53 @@ export class RespostaResponseDto {
   @ApiProperty({ description: 'ID da inscrição', example: 15 })
   @Expose()
   inscricaoId: number;
+
+  @ApiPropertyOptional({
+    description: 'Indica se a resposta foi validada',
+    example: true,
+  })
+  @Expose()
+  validada?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Indica se a resposta foi invalidada',
+    example: false,
+  })
+  @Expose()
+  invalidada?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Data de validação da resposta',
+    example: '2025-09-03T12:00:00Z',
+  })
+  @Expose()
+  dataValidacao?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Data de validade da resposta',
+    example: '2025-12-31T23:59:59Z',
+  })
+  @Expose()
+  dataValidade?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Parecer sobre a resposta',
+    example: 'Documento precisa ser mais legível',
+  })
+  @Expose()
+  parecer?: string;
+
+  @ApiPropertyOptional({
+    description: 'Prazo para reenvio da resposta',
+    example: '2025-12-31T23:59:59Z',
+  })
+  @Expose()
+  prazoReenvio?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Indica se a resposta requer reenvio/correção',
+    example: false,
+  })
+  @Expose()
+  requerReenvio?: boolean;
 }
