@@ -1,13 +1,22 @@
-import { Body, Controller, Get, Patch, Req, UseGuards, Param, ParseIntPipe } from '@nestjs/common';
-import { 
-  ApiBearerAuth, 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Req,
+  UseGuards,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
   ApiParam,
   ApiOkResponse,
   ApiNotFoundResponse,
-  ApiBadRequestResponse
+  ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import AuthenticatedRequest from '../types/authenticated-request.interface';
@@ -22,11 +31,11 @@ export class AlunoController {
   constructor(private readonly alunoService: AlunoService) {}
 
   @Get('me')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar dados do aluno autenticado',
-    description: 'Retorna os dados do aluno baseado no token JWT fornecido'
+    description: 'Retorna os dados do aluno baseado no token JWT fornecido',
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'Dados do aluno encontrados com sucesso',
     schema: {
       example: {
@@ -34,29 +43,29 @@ export class AlunoController {
         dados: {
           aluno: {
             aluno_id: 1,
-            email: "aluno@exemplo.com",
-            matricula: "2024001",
-            data_nascimento: "2000-01-01",
-            curso: "Ciência da Computação",
-            campus: "Vitória da Conquista",
-            cpf: "123.456.789-00",
-            data_ingresso: "2024-01-01",
-            celular: "(77) 99999-9999",
-            inscricoes: []
-          }
-        }
-      }
-    }
+            email: 'aluno@exemplo.com',
+            matricula: '2024001',
+            data_nascimento: '2000-01-01',
+            curso: 'Ciência da Computação',
+            campus: 'Vitória da Conquista',
+            cpf: '123.456.789-00',
+            data_ingresso: '2024-01-01',
+            celular: '(77) 99999-9999',
+            inscricoes: [],
+          },
+        },
+      },
+    },
   })
-  @ApiNotFoundResponse({ 
+  @ApiNotFoundResponse({
     description: 'Aluno não encontrado',
     schema: {
       example: {
         statusCode: 404,
         message: 'Aluno não encontrado',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
   async findOne(@Req() request: AuthenticatedRequest) {
     const { userId } = request.user;
@@ -64,11 +73,11 @@ export class AlunoController {
   }
 
   @Get('all')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Listar todos os alunos',
-    description: 'Retorna uma lista com todos os alunos cadastrados no sistema'
+    description: 'Retorna uma lista com todos os alunos cadastrados no sistema',
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'Lista de alunos encontrada com sucesso',
     schema: {
       example: {
@@ -76,67 +85,67 @@ export class AlunoController {
         dados: [
           {
             aluno_id: 1,
-            email: "aluno@exemplo.com",
-            matricula: "2024001",
-            data_nascimento: "2000-01-01",
-            curso: "Ciência da Computação",
-            campus: "Vitória da Conquista",
-            cpf: "123.456.789-00",
-            data_ingresso: "2024-01-01",
-            celular: "(77) 99999-9999",
-            inscricoes: []
-          }
-        ]
-      }
-    }
+            email: 'aluno@exemplo.com',
+            matricula: '2024001',
+            data_nascimento: '2000-01-01',
+            curso: 'Ciência da Computação',
+            campus: 'Vitória da Conquista',
+            cpf: '123.456.789-00',
+            data_ingresso: '2024-01-01',
+            celular: '(77) 99999-9999',
+            inscricoes: [],
+          },
+        ],
+      },
+    },
   })
-  @ApiNotFoundResponse({ 
+  @ApiNotFoundResponse({
     description: 'Nenhum aluno encontrado',
     schema: {
       example: {
         statusCode: 404,
         message: 'Alunos não encontrados.',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
   async findAll() {
     return this.alunoService.findUsers();
   }
 
   @Patch('/update')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Atualizar dados do aluno',
-    description: 'Permite ao aluno atualizar seus dados pessoais'
+    description: 'Permite ao aluno atualizar seus dados pessoais',
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'Dados do aluno atualizados com sucesso',
     schema: {
       example: {
         success: true,
-        message: 'Dados do aluno atualizados com sucesso!'
-      }
-    }
+        message: 'Dados do aluno atualizados com sucesso!',
+      },
+    },
   })
-  @ApiBadRequestResponse({ 
+  @ApiBadRequestResponse({
     description: 'Dados inválidos ou email já em uso',
     schema: {
       example: {
         statusCode: 400,
         message: 'Email já está em uso.',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
-  @ApiNotFoundResponse({ 
+  @ApiNotFoundResponse({
     description: 'Aluno não encontrado',
     schema: {
       example: {
         statusCode: 404,
         message: 'Aluno não encontrado.',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
   async updateStudentData(
     @Req() request: AuthenticatedRequest,
@@ -147,38 +156,68 @@ export class AlunoController {
   }
 
   @Get('/inscricoes')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Buscar inscrições do aluno',
-    description: 'Retorna todas as inscrições do aluno autenticado'
+    description:
+      'Retorna todas as inscrições do aluno autenticado, incluindo etapas do edital, data de inscrição, vaga e pendências quando aplicável',
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'Inscrições do aluno encontradas com sucesso',
     schema: {
-      example: {
-        sucesso: true,
-        dados: [
-          {
-            edital_id: 1,
-            inscricao_id: 1,
-            titulo_edital: 'Edital de Bolsa 2024',
-            status_edital: 'Aberto',
-            etapas_edital: [],
-            status_inscricao: 'Pendente',
-            possui_pendencias: false
-          }
-        ]
-      }
-    }
+      example: [
+        {
+          edital_id: 1,
+          inscricao_id: 1,
+          titulo_edital: 'Edital de Bolsa 2024',
+          status_edital: 'Aberto',
+          etapa_edital: [
+            {
+              etapa: 'Inscrições',
+              ordem_elemento: 1,
+              data_inicio: '2024-01-01',
+              data_fim: '2024-02-01',
+            },
+          ],
+          status_inscricao: 'Pendente de Regularização',
+          data_inscricao: '2024-01-15',
+          vaga: {
+            vaga_id: 1,
+            beneficio: 'Bolsa Alimentação',
+            descricao_beneficio: 'Auxílio para alimentação no campus',
+            numero_vagas: 50,
+          },
+          possui_pendencias: true,
+          total_pendencias: 2,
+          pendencias_por_step: [
+            {
+              step_id: 1,
+              step_texto: 'Questionário socioeconômico',
+              perguntas_pendentes: [
+                {
+                  pergunta_id: 1,
+                  pergunta_texto: 'Qual sua renda familiar?',
+                  resposta_id: 10,
+                  resposta_texto: 'Informação incorreta',
+                  parecer: 'Valor informado inconsistente',
+                  prazo_reenvio: '2024-03-01T00:00:00.000Z',
+                },
+              ],
+              total_pendentes: 1,
+            },
+          ],
+        },
+      ],
+    },
   })
-  @ApiNotFoundResponse({ 
+  @ApiNotFoundResponse({
     description: 'Aluno não encontrado',
     schema: {
       example: {
         statusCode: 404,
         message: 'Aluno não encontrado.',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
   async getStudentRegistration(@Req() request: AuthenticatedRequest) {
     const { userId } = request.user;
@@ -186,24 +225,26 @@ export class AlunoController {
   }
 
   @Get('/edital/:editalId/step/:stepId/alunos')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Listar alunos inscritos em questionário específico',
-    description: 'Retorna todos os alunos que responderam um questionário (step) específico de um edital'
+    description:
+      'Retorna todos os alunos que responderam um questionário (step) específico de um edital',
   })
-  @ApiParam({ 
-    name: 'editalId', 
+  @ApiParam({
+    name: 'editalId',
     description: 'ID do edital',
     type: 'number',
-    example: 1
+    example: 1,
   })
-  @ApiParam({ 
-    name: 'stepId', 
+  @ApiParam({
+    name: 'stepId',
     description: 'ID do step/questionário',
     type: 'number',
-    example: 1
+    example: 1,
   })
-  @ApiOkResponse({ 
-    description: 'Lista de alunos inscritos no questionário encontrada com sucesso',
+  @ApiOkResponse({
+    description:
+      'Lista de alunos inscritos no questionário encontrada com sucesso',
     schema: {
       example: {
         sucesso: true,
@@ -212,11 +253,11 @@ export class AlunoController {
             id: 1,
             titulo: 'Edital de Bolsa 2024',
             descricao: 'Edital para bolsas de estudo',
-            status: 'Aberto'
+            status: 'Aberto',
           },
           step: {
             id: 1,
-            texto: 'Questionário socioeconômico'
+            texto: 'Questionário socioeconômico',
           },
           total_alunos: 2,
           alunos: [
@@ -240,34 +281,34 @@ export class AlunoController {
                   pergunta_id: 1,
                   pergunta_texto: 'Qual sua renda familiar?',
                   resposta_texto: 'Renda entre 1 e 3 salários mínimos',
-                  data_resposta: '2024-01-15T10:00:00.000Z'
-                }
-              ]
-            }
-          ]
-        }
-      }
-    }
+                  data_resposta: '2024-01-15T10:00:00.000Z',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
   })
-  @ApiNotFoundResponse({ 
+  @ApiNotFoundResponse({
     description: 'Edital ou step não encontrado',
     schema: {
       example: {
         statusCode: 404,
         message: 'Edital com ID 1 não encontrado.',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
-  @ApiBadRequestResponse({ 
+  @ApiBadRequestResponse({
     description: 'Parâmetros inválidos',
     schema: {
       example: {
         statusCode: 400,
         message: 'ID do edital e step devem ser números válidos',
-        timestamp: '2025-01-27T10:00:00.000Z'
-      }
-    }
+        timestamp: '2025-01-27T10:00:00.000Z',
+      },
+    },
   })
   async findAlunosInscritosEmStep(
     @Param('editalId', ParseIntPipe) editalId: number,

@@ -3,15 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import type { EntityManager, Repository } from 'typeorm';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusDocumento } from '../enum/statusDocumento';
+import { StatusInscricao } from '../enum/enumStatusInscricao';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { Usuario } from '../entities/usuarios/usuario.entity';
 import { Step } from '../entities/step/step.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
+import { checkPendenciasExpiradas } from '../common/helpers/check-pendencias-expiradas';
 
 @Injectable()
 export class AlunoService {
@@ -26,6 +28,8 @@ export class AlunoService {
     private readonly vagasRepository: Repository<Vagas>,
     @InjectRepository(Inscricao)
     private readonly inscricaoRepository: Repository<Inscricao>,
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
   ) {}
 
   async findUsers() {
@@ -186,6 +190,9 @@ export class AlunoService {
 
   /** Retornar inscrições do aluno */
   async getStudentRegistration(userId: string) {
+    // Checar pendências expiradas antes de retornar os dados
+    await checkPendenciasExpiradas(this.entityManager);
+
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
       relations: [
@@ -194,6 +201,9 @@ export class AlunoService {
         'aluno.inscricoes.vagas',
         'aluno.inscricoes.vagas.edital',
         'aluno.inscricoes.documentos',
+        'aluno.inscricoes.respostas',
+        'aluno.inscricoes.respostas.pergunta',
+        'aluno.inscricoes.respostas.pergunta.step',
       ],
     });
 
@@ -203,15 +213,116 @@ export class AlunoService {
 
     const inscricoes = usuario.aluno.inscricoes || [];
 
-    return inscricoes.map((inscricao: Inscricao) => ({
-      edital_id: inscricao.vagas?.edital?.id || null,
-      inscricao_id: inscricao.id,
-      titulo_edital: inscricao.vagas?.edital?.titulo_edital || null,
-      status_edital: inscricao.vagas?.edital?.status_edital || null,
-      etapas_edital: [], // TODO: Buscar steps do edital se necessário
-      status_inscricao: inscricao.status_inscricao,
-      possui_pendencias: false, // TODO: Reimplementar verificação real
-    }));
+    return inscricoes.map((inscricao: Inscricao) => {
+      const edital = inscricao.vagas?.edital;
+      const vaga = inscricao.vagas;
+
+      // Montar pendências agrupadas por step quando status é PENDENTE_REGULARIZACAO
+      let pendencias_por_step: {
+        step_id: number;
+        step_texto: string;
+        perguntas_pendentes: {
+          pergunta_id: number;
+          pergunta_texto: string;
+          resposta_id: number;
+          resposta_texto: string | null;
+          parecer: string | null;
+          prazo_reenvio: Date | null;
+        }[];
+        total_pendentes: number;
+      }[] = [];
+      let total_pendencias = 0;
+
+      if (
+        inscricao.status_inscricao === StatusInscricao.PENDENTE_REGULARIZACAO
+      ) {
+        const respostasPendentes = (inscricao.respostas || []).filter(
+          (r) => r.invalidada === true || r.requerReenvio === true,
+        );
+
+        const stepMap = new Map<
+          number,
+          {
+            step_id: number;
+            step_texto: string;
+            perguntas_pendentes: {
+              pergunta_id: number;
+              pergunta_texto: string;
+              resposta_id: number;
+              resposta_texto: string | null;
+              parecer: string | null;
+              prazo_reenvio: Date | null;
+            }[];
+          }
+        >();
+
+        for (const resposta of respostasPendentes) {
+          const step = resposta.pergunta?.step;
+          if (!step) continue;
+
+          if (!stepMap.has(step.id)) {
+            stepMap.set(step.id, {
+              step_id: step.id,
+              step_texto: step.texto,
+              perguntas_pendentes: [],
+            });
+          }
+
+          stepMap.get(step.id)!.perguntas_pendentes.push({
+            pergunta_id: resposta.pergunta.id,
+            pergunta_texto: resposta.pergunta.pergunta,
+            resposta_id: resposta.id,
+            resposta_texto: resposta.valorTexto || null,
+            parecer: resposta.parecer || null,
+            prazo_reenvio: resposta.prazoReenvio || null,
+          });
+        }
+
+        pendencias_por_step = Array.from(stepMap.values()).map((step) => ({
+          ...step,
+          total_pendentes: step.perguntas_pendentes.length,
+        }));
+
+        total_pendencias = respostasPendentes.length;
+      }
+
+      // Flag: inscrição rejeitada por perda de prazo de reenvio
+      let rejeitada_por_prazo = false;
+      if (inscricao.status_inscricao === StatusInscricao.REJEITADA) {
+        rejeitada_por_prazo = (inscricao.respostas || []).some(
+          (r) =>
+            r.invalidada === true &&
+            r.requerReenvio === false &&
+            r.prazoReenvio !== null &&
+            r.prazoReenvio !== undefined,
+        );
+      }
+
+      return {
+        edital_id: edital?.id || null,
+        inscricao_id: inscricao.id,
+        titulo_edital: edital?.titulo_edital || null,
+        status_edital: edital?.status_edital || null,
+        etapa_edital: edital?.etapa_edital || null,
+        status_inscricao: inscricao.status_inscricao,
+        data_inscricao: inscricao.data_inscricao,
+        vaga: vaga
+          ? {
+              vaga_id: vaga.id,
+              beneficio: vaga.beneficio,
+              descricao_beneficio: vaga.descricao_beneficio,
+              numero_vagas: vaga.numero_vagas,
+            }
+          : null,
+        rejeitada_por_prazo,
+        possui_pendencias: total_pendencias > 0,
+        total_pendencias,
+        ...(inscricao.status_inscricao ===
+        StatusInscricao.PENDENTE_REGULARIZACAO
+          ? { pendencias_por_step }
+          : {}),
+      };
+    });
   }
 
   async findAlunosInscritosEmStep(editalId: number, stepId: number) {
@@ -290,7 +401,7 @@ export class AlunoService {
           .map((resposta) => ({
             pergunta_id: resposta.pergunta.id,
             pergunta_texto: resposta.pergunta.pergunta,
-            resposta_texto: resposta.texto,
+            resposta_texto: resposta.valorTexto,
             data_resposta: resposta.dataResposta,
           })),
       };

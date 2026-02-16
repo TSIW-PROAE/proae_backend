@@ -43,10 +43,10 @@ export class Resposta extends AbstractEntity<Resposta> {
   dataValidade?: Date;
 
   @Column({ type: 'text', nullable: true })
-  parecer?: string;
+  parecer?: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  prazoReenvio?: Date;
+  prazoReenvio?: Date | null;
 
   @Column({ type: 'boolean', default: false })
   requerReenvio: boolean;

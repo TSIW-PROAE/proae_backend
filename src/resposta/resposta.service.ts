@@ -132,11 +132,34 @@ export class RespostaService {
     id: number,
     dto: UpdateRespostaDto,
   ): Promise<RespostaResponseDto> {
-    const resposta = await this.respostaRepository.findOneBy({ id });
+    const resposta = await this.respostaRepository.findOne({
+      where: { id },
+      relations: ['inscricao'],
+    });
     if (!resposta) throw new NotFoundException('Resposta não encontrada');
 
+    // Detectar reenvio: resposta estava invalidada com requerReenvio
+    const isReenvio =
+      resposta.invalidada === true && resposta.requerReenvio === true;
+
     Object.assign(resposta, dto);
+
+    if (isReenvio) {
+      // Resetar campos de validação — volta para "pendente de análise"
+      resposta.validada = false;
+      resposta.invalidada = false;
+      resposta.requerReenvio = false;
+      resposta.parecer = null;
+      resposta.prazoReenvio = null;
+      resposta.dataValidacao = undefined;
+    }
+
     const updated = await this.respostaRepository.save(resposta);
+
+    // Atualizar status da inscrição após reenvio
+    if (isReenvio) {
+      await this.atualizarStatusInscricao(resposta.inscricao.id);
+    }
 
     return plainToInstance(RespostaResponseDto, updated, {
       excludeExtraneousValues: true,
@@ -206,8 +229,7 @@ export class RespostaService {
           pergunta_texto: resposta.pergunta.pergunta,
           step_id: resposta.pergunta.step.id,
           step_texto: resposta.pergunta.step.texto,
-          resposta_texto: resposta.texto,
-          valor_texto: resposta.valorTexto,
+          resposta_texto: resposta.valorTexto,
           valor_opcoes: resposta.valorOpcoes,
           url_arquivo: resposta.urlArquivo,
           data_resposta: resposta.dataResposta,
@@ -286,8 +308,7 @@ export class RespostaService {
           id: resposta.id,
           pergunta_id: resposta.pergunta.id,
           pergunta_texto: resposta.pergunta.pergunta,
-          resposta_texto: resposta.texto,
-          valor_texto: resposta.valorTexto,
+          resposta_texto: resposta.valorTexto,
           valor_opcoes: resposta.valorOpcoes,
           url_arquivo: resposta.urlArquivo,
           data_resposta: resposta.dataResposta,
@@ -366,8 +387,7 @@ export class RespostaService {
             email: resposta.inscricao.aluno.usuario.email,
             matricula: resposta.inscricao.aluno.matricula,
           },
-          resposta_texto: resposta.texto,
-          valor_texto: resposta.valorTexto,
+          resposta_texto: resposta.valorTexto,
           valor_opcoes: resposta.valorOpcoes,
           url_arquivo: resposta.urlArquivo,
           data_resposta: resposta.dataResposta,
@@ -484,7 +504,7 @@ export class RespostaService {
         resposta: resposta
           ? {
               id: resposta.id,
-              texto: resposta.texto,
+
               valorTexto: resposta.valorTexto,
               valorOpcoes: resposta.valorOpcoes,
               urlArquivo: resposta.urlArquivo,
@@ -542,13 +562,20 @@ export class RespostaService {
       ? new Date(dto.dataValidade)
       : undefined;
 
-    // Campos de reenvio: sempre reseta para garantir que dados antigos não interfiram
+    // Campos de reenvio
     resposta.requerReenvio = dto.requerReenvio ?? false;
-    resposta.parecer = dto.requerReenvio ? dto.parecer : undefined;
-    resposta.prazoReenvio =
-      dto.requerReenvio && dto.prazoReenvio
+
+    if (dto.requerReenvio) {
+      // Admin pediu reenvio: salvar parecer e prazo
+      resposta.parecer = dto.parecer ?? null;
+      resposta.prazoReenvio = dto.prazoReenvio
         ? new Date(dto.prazoReenvio)
-        : undefined;
+        : null;
+    } else {
+      // Admin NÃO pediu reenvio (invalidou direto): limpar parecer e prazo antigos
+      resposta.parecer = null;
+      resposta.prazoReenvio = null;
+    }
 
     const respostaAtualizada = await this.respostaRepository.save(resposta);
 
@@ -561,14 +588,13 @@ export class RespostaService {
       });
 
       if (valorDadoExistente) {
-        valorDadoExistente.valorTexto =
-          resposta.texto || resposta.valorTexto || '';
+        valorDadoExistente.valorTexto = resposta.valorTexto || '';
         valorDadoExistente.valorOpcoes = resposta.valorOpcoes || [];
         valorDadoExistente.valorArquivo = resposta.urlArquivo || '';
         await this.valorDadoRepository.save(valorDadoExistente);
       } else {
         const novoValorDado = this.valorDadoRepository.create({
-          valorTexto: resposta.texto || resposta.valorTexto || '',
+          valorTexto: resposta.valorTexto || '',
           valorOpcoes: resposta.valorOpcoes || [],
           valorArquivo: resposta.urlArquivo || '',
           aluno: resposta.inscricao.aluno,
@@ -585,6 +611,17 @@ export class RespostaService {
     const inscricaoAtualizada = await this.inscricaoRepository.findOne({
       where: { id: resposta.inscricao.id },
     });
+
+    // Determinar mensagem adequada
+    let mensagem = 'Resposta validada com sucesso';
+    if (respostaAtualizada.invalidada && respostaAtualizada.requerReenvio) {
+      mensagem = 'Resposta invalidada — reenvio solicitado com prazo';
+    } else if (
+      respostaAtualizada.invalidada &&
+      !respostaAtualizada.requerReenvio
+    ) {
+      mensagem = 'Resposta invalidada definitivamente — reenvio não permitido';
+    }
 
     return {
       sucesso: true,
@@ -603,18 +640,18 @@ export class RespostaService {
           id: inscricaoAtualizada?.id,
           status: inscricaoAtualizada?.status_inscricao,
         },
-        mensagem: 'Resposta validada com sucesso',
+        mensagem,
       },
     };
   }
 
   /**
    * Verifica todas as respostas de uma inscrição e atualiza o status.
-   * Prioridade: APROVADA > PENDENTE_REGULARIZACAO > REJEITADA > EM_ANALISE
+   * Prioridade: APROVADA > REJEITADA > PENDENTE_REGULARIZACAO > EM_ANALISE
    *
    * - APROVADA: todas validadas
+   * - REJEITADA: ao menos uma invalidada sem reenvio (tem prioridade)
    * - PENDENTE_REGULARIZACAO: ao menos uma com requerReenvio === true
-   * - REJEITADA: ao menos uma invalidada sem reenvio
    * - EM_ANALISE: alguma ainda não foi avaliada (validada === false && invalidada === false)
    */
   private async atualizarStatusInscricao(inscricaoId: number): Promise<void> {
@@ -646,10 +683,10 @@ export class RespostaService {
 
     if (todasValidadas) {
       inscricao.status_inscricao = StatusInscricao.APROVADA;
-    } else if (algumaPendenteReenvio) {
-      inscricao.status_inscricao = StatusInscricao.PENDENTE_REGULARIZACAO;
     } else if (algumaInvalidadaSemReenvio) {
       inscricao.status_inscricao = StatusInscricao.REJEITADA;
+    } else if (algumaPendenteReenvio) {
+      inscricao.status_inscricao = StatusInscricao.PENDENTE_REGULARIZACAO;
     } else if (algumaNaoAvaliada) {
       inscricao.status_inscricao = StatusInscricao.EM_ANALISE;
     }
@@ -756,7 +793,6 @@ export class RespostaService {
             resposta: resposta
               ? {
                   id: resposta.id,
-                  texto: resposta.texto,
                   valorTexto: resposta.valorTexto,
                   valorOpcoes: resposta.valorOpcoes,
                   urlArquivo: resposta.urlArquivo,

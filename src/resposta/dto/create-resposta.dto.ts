@@ -14,10 +14,13 @@ export class CreateRespostaDto {
   @IsNotEmpty()
   perguntaId: number;
 
-  @ApiProperty({ description: 'ID da inscrição', example: 2 })
+  @ApiPropertyOptional({
+    description: 'ID da inscrição (opcional na criação de inscrição)',
+    example: 2,
+  })
+  @IsOptional()
   @IsNumber()
-  @IsNotEmpty()
-  inscricaoId: number;
+  inscricaoId?: number;
 
   @ApiPropertyOptional({
     description: 'Valor em texto',
