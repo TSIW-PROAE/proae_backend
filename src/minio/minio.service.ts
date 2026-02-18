@@ -182,6 +182,25 @@ export class MinioClientService implements OnModuleInit {
   }
 
   /**
+   * Remove um objeto do MinIO. Usado ao reenviar um arquivo, para excluir o antigo.
+   * Silencia erros de "NotFound" — se o arquivo já não existe, não há nada a fazer.
+   */
+  async deleteObject(objectKey: string): Promise<void> {
+    if (!objectKey) return;
+    try {
+      await this.minioClient.removeObject(this.bucket, objectKey);
+      this.logger.log(`Objeto removido do MinIO: "${objectKey}"`);
+    } catch (e: any) {
+      if (e?.code === 'NotFound') {
+        this.logger.warn(`Objeto já não existia no MinIO: "${objectKey}"`);
+        return;
+      }
+      this.logger.error(`Erro ao remover objeto "${objectKey}":`, e);
+      // Não relança — a deleção do arquivo antigo não deve bloquear o reenvio
+    }
+  }
+
+  /**
    * Busca o stream e metadados de um objeto no MinIO.
    */
   private async fetchStream(

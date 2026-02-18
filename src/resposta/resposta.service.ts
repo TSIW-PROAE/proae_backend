@@ -152,6 +152,15 @@ export class RespostaService {
       !resposta.urlArquivo &&
       (!resposta.valorOpcoes || resposta.valorOpcoes.length === 0);
 
+    // Se está reenviando um arquivo, deletar o anterior do MinIO
+    if (
+      dto.urlArquivo &&
+      resposta.urlArquivo &&
+      dto.urlArquivo !== resposta.urlArquivo
+    ) {
+      await this.minioService.deleteObject(resposta.urlArquivo);
+    }
+
     Object.assign(resposta, dto);
 
     if (isReenvio) {

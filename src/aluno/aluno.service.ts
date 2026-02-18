@@ -226,6 +226,8 @@ export class AlunoService {
         perguntas_pendentes: {
           pergunta_id: string;
           pergunta_texto: string;
+          tipo_pergunta: string;
+          opcoes: string[] | null;
           resposta_id: string;
           resposta_texto: string | null;
           parecer: string | null;
@@ -252,6 +254,8 @@ export class AlunoService {
             perguntas_pendentes: {
               pergunta_id: string;
               pergunta_texto: string;
+              tipo_pergunta: string;
+              opcoes: string[] | null;
               resposta_id: string;
               resposta_texto: string | null;
               parecer: string | null;
@@ -277,6 +281,8 @@ export class AlunoService {
           stepMap.get(step.id)!.perguntas_pendentes.push({
             pergunta_id: resposta.pergunta.id,
             pergunta_texto: resposta.pergunta.pergunta,
+            tipo_pergunta: resposta.pergunta.tipo_Pergunta || 'text',
+            opcoes: resposta.pergunta.opcoes || null,
             resposta_id: resposta.id,
             resposta_texto: resposta.valorTexto || null,
             parecer: resposta.parecer || null,
