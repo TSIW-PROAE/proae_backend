@@ -4,8 +4,8 @@ import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 export class CreateVagaDto {
   @ApiProperty({ description: 'ID do edital ao qual a vaga pertence' })
   @IsNotEmpty()
-  @IsNumber()
-  edital_id: number;
+  @IsString()
+  edital_id: string;
 
   @ApiProperty({ description: 'Nome do benefício oferecido' })
   @IsNotEmpty()

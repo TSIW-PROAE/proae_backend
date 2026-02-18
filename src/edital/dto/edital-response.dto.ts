@@ -31,9 +31,9 @@ class EtapaEditalResponseDto {
 }
 
 export class EditalResponseDto {
-  @ApiProperty({ type: Number, description: 'ID do edital' })
+  @ApiProperty({ type: String, description: 'ID do edital' })
   @Expose()
-  id: number;
+  id: string;
 
   @ApiProperty({ type: String, description: 'Título do edital' })
   @Expose()

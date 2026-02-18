@@ -1,14 +1,14 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { StatusInscricao } from '../../enum/enumStatusInscricao';
 
 export class UpdateIndeferidoInscricaoDto {
   @IsOptional()
-  @IsNumber()
-  formulario?: number;
+  @IsString()
+  formulario?: string;
 
   @IsOptional()
   @IsArray({ each: true })
-  documentos?: number[];
+  documentos?: string[];
 
   @IsNotEmpty()
   status_inscricao: StatusInscricao;

@@ -4,7 +4,6 @@ import {
   IsBoolean,
   IsEnum,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -15,11 +14,11 @@ import { EnumTipoInput } from '../../enum/enumTipoInput';
 export class CreatePerguntaDto {
   @ApiProperty({
     description: 'ID do step ao qual a pergunta pertence',
-    example: 9,
+    example: '550e8400-e29b-41d4-a916-446655440000',
   })
   @IsNotEmpty()
-  @IsNumber()
-  step_id: number;
+  @IsString()
+  step_id: string;
 
   @ApiProperty({
     enum: EnumTipoInput,
@@ -61,9 +60,18 @@ export class CreatePerguntaDto {
 
   @ApiPropertyOptional({
     description: 'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento)',
-    example: 10,
+    example: '550e8400-e29b-41d4-a916-446655440000',
   })
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  dadoId?: number;
+  dadoId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Prazo para os alunos já inscritos responderem a nova pergunta. Obrigatório quando já existem inscrições com respostas neste edital.',
+    example: '2026-03-15T23:59:59.000Z',
+  })
+  @IsOptional()
+  @IsString()
+  prazoResposta?: string;
 }

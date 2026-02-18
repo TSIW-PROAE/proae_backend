@@ -17,9 +17,9 @@ export class UsuarioResponseDto {
 }
 
 export class StepResponseDto {
-  @ApiProperty({ type: Number, description: 'ID do step' })
+  @ApiProperty({ type: String, description: 'ID do step' })
   @Expose()
-  id: number;
+  id: string;
 
   @ApiProperty({ type: String, description: 'Texto do step' })
   @Expose()
@@ -27,9 +27,9 @@ export class StepResponseDto {
 }
 
 export class ValidacaoResponseDto {
-  @ApiProperty({ type: Number, description: 'ID da validação' })
+  @ApiProperty({ type: String, description: 'ID da validação' })
   @Expose()
-  id: number;
+  id: string;
 
   @ApiProperty({
     type: String,

@@ -15,7 +15,7 @@ export class PdfService {
     private readonly editalRepository: Repository<Edital>,
   ) {}
 
-  async generateAprovadosPdf(editalId?: number): Promise<Buffer> {
+  async generateAprovadosPdf(editalId?: string): Promise<Buffer> {
     try {
       // Buscar inscrições aprovadas
       const queryBuilder = this.inscricaoRepository

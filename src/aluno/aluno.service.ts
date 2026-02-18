@@ -14,6 +14,7 @@ import { Step } from '../entities/step/step.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
 import { checkPendenciasExpiradas } from '../common/helpers/check-pendencias-expiradas';
+import { InputFormatPlaceholders } from '../enum/enumInputFormat';
 
 @Injectable()
 export class AlunoService {
@@ -204,6 +205,7 @@ export class AlunoService {
         'aluno.inscricoes.respostas',
         'aluno.inscricoes.respostas.pergunta',
         'aluno.inscricoes.respostas.pergunta.step',
+        'aluno.inscricoes.respostas.pergunta.dado',
       ],
     });
 
@@ -219,15 +221,17 @@ export class AlunoService {
 
       // Montar pendências agrupadas por step quando status é PENDENTE_REGULARIZACAO
       let pendencias_por_step: {
-        step_id: number;
+        step_id: string;
         step_texto: string;
         perguntas_pendentes: {
-          pergunta_id: number;
+          pergunta_id: string;
           pergunta_texto: string;
-          resposta_id: number;
+          resposta_id: string;
           resposta_texto: string | null;
           parecer: string | null;
           prazo_reenvio: Date | null;
+          nova_pergunta: boolean;
+          prazo_resposta_nova_pergunta: Date | null;
         }[];
         total_pendentes: number;
       }[] = [];
@@ -241,17 +245,19 @@ export class AlunoService {
         );
 
         const stepMap = new Map<
-          number,
+          string,
           {
-            step_id: number;
+            step_id: string;
             step_texto: string;
             perguntas_pendentes: {
-              pergunta_id: number;
+              pergunta_id: string;
               pergunta_texto: string;
-              resposta_id: number;
+              resposta_id: string;
               resposta_texto: string | null;
               parecer: string | null;
               prazo_reenvio: Date | null;
+              nova_pergunta: boolean;
+              prazo_resposta_nova_pergunta: Date | null;
             }[];
           }
         >();
@@ -275,6 +281,8 @@ export class AlunoService {
             resposta_texto: resposta.valorTexto || null,
             parecer: resposta.parecer || null,
             prazo_reenvio: resposta.prazoReenvio || null,
+            nova_pergunta: false,
+            prazo_resposta_nova_pergunta: null,
           });
         }
 
@@ -284,6 +292,99 @@ export class AlunoService {
         }));
 
         total_pendencias = respostasPendentes.length;
+      }
+
+      // Novas perguntas pendentes (adicionadas após inscrição)
+      let novas_perguntas_pendentes_por_step: {
+        step_id: string;
+        step_texto: string;
+        perguntas_novas: {
+          pergunta_id: string;
+          pergunta_texto: string;
+          tipo_Pergunta: string;
+          obrigatoriedade: boolean;
+          tipo_formatacao: string | null;
+          placeholder: string | null;
+          opcoes: string[] | null;
+          dado: { id: string; nome: string } | null;
+          resposta_id: string;
+          prazo_resposta: Date | null;
+        }[];
+        total_novas: number;
+      }[] = [];
+      let total_novas_perguntas = 0;
+
+      if (
+        inscricao.status_inscricao === StatusInscricao.AGUARDANDO_COMPLEMENTO ||
+        inscricao.status_inscricao === StatusInscricao.PENDENTE_REGULARIZACAO
+      ) {
+        const respostasNovaPergunta = (inscricao.respostas || []).filter(
+          (r) =>
+            r.perguntaAdicionadaPosInscricao === true &&
+            !r.valorTexto &&
+            !r.urlArquivo &&
+            (!r.valorOpcoes || r.valorOpcoes.length === 0),
+        );
+
+        const stepMapNovas = new Map<
+          string,
+          {
+            step_id: string;
+            step_texto: string;
+            perguntas_novas: {
+              pergunta_id: string;
+              pergunta_texto: string;
+              tipo_Pergunta: string;
+              obrigatoriedade: boolean;
+              tipo_formatacao: string | null;
+              placeholder: string | null;
+              opcoes: string[] | null;
+              dado: { id: string; nome: string } | null;
+              resposta_id: string;
+              prazo_resposta: Date | null;
+            }[];
+          }
+        >();
+
+        for (const resposta of respostasNovaPergunta) {
+          const step = resposta.pergunta?.step;
+          if (!step) continue;
+
+          if (!stepMapNovas.has(step.id)) {
+            stepMapNovas.set(step.id, {
+              step_id: step.id,
+              step_texto: step.texto,
+              perguntas_novas: [],
+            });
+          }
+
+          const pergunta = resposta.pergunta;
+          stepMapNovas.get(step.id)!.perguntas_novas.push({
+            pergunta_id: pergunta.id,
+            pergunta_texto: pergunta.pergunta,
+            tipo_Pergunta: pergunta.tipo_Pergunta,
+            obrigatoriedade: pergunta.obrigatoriedade,
+            tipo_formatacao: pergunta.tipo_formatacao || null,
+            placeholder: pergunta.tipo_formatacao
+              ? InputFormatPlaceholders[pergunta.tipo_formatacao] || null
+              : null,
+            opcoes: pergunta.opcoes || null,
+            dado: pergunta.dado
+              ? { id: pergunta.dado.id, nome: pergunta.dado.nome }
+              : null,
+            resposta_id: resposta.id,
+            prazo_resposta: resposta.prazoRespostaNovaPergunta || null,
+          });
+        }
+
+        novas_perguntas_pendentes_por_step = Array.from(
+          stepMapNovas.values(),
+        ).map((step) => ({
+          ...step,
+          total_novas: step.perguntas_novas.length,
+        }));
+
+        total_novas_perguntas = respostasNovaPergunta.length;
       }
 
       // Flag: inscrição rejeitada por perda de prazo de reenvio
@@ -297,6 +398,11 @@ export class AlunoService {
             r.prazoReenvio !== undefined,
         );
       }
+
+      // Flag: inscrição rejeitada por perda de prazo de complemento (novas perguntas)
+      const rejeitada_por_prazo_complemento =
+        inscricao.status_inscricao ===
+        StatusInscricao.REJEITADA_PRAZO_COMPLEMENTO;
 
       return {
         edital_id: edital?.id || null,
@@ -315,17 +421,23 @@ export class AlunoService {
             }
           : null,
         rejeitada_por_prazo,
+        rejeitada_por_prazo_complemento,
         possui_pendencias: total_pendencias > 0,
         total_pendencias,
+        possui_novas_perguntas_pendentes: total_novas_perguntas > 0,
+        total_novas_perguntas,
         ...(inscricao.status_inscricao ===
         StatusInscricao.PENDENTE_REGULARIZACAO
           ? { pendencias_por_step }
+          : {}),
+        ...(total_novas_perguntas > 0
+          ? { novas_perguntas_pendentes_por_step }
           : {}),
       };
     });
   }
 
-  async findAlunosInscritosEmStep(editalId: number, stepId: number) {
+  async findAlunosInscritosEmStep(editalId: string, stepId: string) {
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
       relations: ['steps'],

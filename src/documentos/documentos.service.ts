@@ -47,12 +47,11 @@ export class DocumentoService {
         throw new BadRequestException('Nenhum arquivo foi enviado');
       }
 
-      const documentUrl = (
-        await this.storageService.uploadDocuments(
-          inscricao.aluno.usuario.usuario_id,
-          files,
-        )
-      ).arquivos[0].nome_do_arquivo;
+      const uploadResult = await this.storageService.uploadDocuments(
+        inscricao.aluno.usuario.usuario_id,
+        files,
+      );
+      const documentUrl = uploadResult.objectKey ?? undefined;
 
       const documento = this.documentoRepository.create({
         ...createDocumentoDto,
@@ -72,7 +71,7 @@ export class DocumentoService {
     }
   }
 
-  async findAllDocumentoByInscricao(inscricaoId: number) {
+  async findAllDocumentoByInscricao(inscricaoId: string) {
     try {
       const documentos = await this.documentoRepository.find({
         where: { inscricao: { id: inscricaoId } },
@@ -97,7 +96,7 @@ export class DocumentoService {
     }
   }
 
-  async findOneDocumento(id: number) {
+  async findOneDocumento(id: string) {
     try {
       const documento = await this.documentoRepository.findOne({
         where: { documento_id: id },
@@ -119,7 +118,7 @@ export class DocumentoService {
     }
   }
 
-  async updateDocumento(id: number, updateDocumentoDto: UpdateDocumentoDto) {
+  async updateDocumento(id: string, updateDocumentoDto: UpdateDocumentoDto) {
     try {
       const documento = await this.documentoRepository.findOne({
         where: { documento_id: id },
@@ -142,7 +141,7 @@ export class DocumentoService {
     }
   }
 
-  async removeDocumento(id: number) {
+  async removeDocumento(id: string) {
     try {
       const documento = await this.documentoRepository.findOne({
         where: { documento_id: id },
@@ -301,7 +300,7 @@ export class DocumentoService {
    */
   async resubmitDocument(
     userId: string,
-    documentoId: number,
+    documentoId: string,
     updateData: Partial<UpdateDocumentoDto>,
     file: Express.Multer.File[],
   ) {
@@ -331,12 +330,11 @@ export class DocumentoService {
         );
       }
 
-      const documentUrl = (
-        await this.storageService.uploadDocuments(
-          documento.inscricao.aluno.usuario.usuario_id,
-          file,
-        )
-      ).arquivos[0].nome_do_arquivo;
+      const reuploadResult = await this.storageService.uploadDocuments(
+        documento.inscricao.aluno.usuario.usuario_id,
+        file,
+      );
+      const documentUrl = reuploadResult.objectKey ?? undefined;
 
       // Update the document and reset status to PENDENTE for reanalysis
       Object.assign(documento, {

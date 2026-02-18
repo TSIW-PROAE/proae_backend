@@ -6,7 +6,7 @@ import {
   Req,
   UseGuards,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -233,14 +233,14 @@ export class AlunoController {
   @ApiParam({
     name: 'editalId',
     description: 'ID do edital',
-    type: 'number',
-    example: 1,
+    type: 'string',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @ApiParam({
     name: 'stepId',
     description: 'ID do step/questionário',
-    type: 'number',
-    example: 1,
+    type: 'string',
+    example: '550e8400-e29b-41d4-a716-446655440001',
   })
   @ApiOkResponse({
     description:
@@ -311,8 +311,8 @@ export class AlunoController {
     },
   })
   async findAlunosInscritosEmStep(
-    @Param('editalId', ParseIntPipe) editalId: number,
-    @Param('stepId', ParseIntPipe) stepId: number,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
+    @Param('stepId', ParseUUIDPipe) stepId: string,
   ) {
     return this.alunoService.findAlunosInscritosEmStep(editalId, stepId);
   }

@@ -21,7 +21,7 @@ export class DadoService {
     return this.dadoRepo.find({ relations: ['valores'] });
   }
 
-  async findOne(id: number): Promise<Dado> {
+  async findOne(id: string): Promise<Dado> {
     const dado = await this.dadoRepo.findOne({
       where: { id },
       relations: ['valores'],
@@ -30,13 +30,13 @@ export class DadoService {
     return dado;
   }
 
-  async update(id: number, dto: UpdateDadoDto): Promise<Dado> {
+  async update(id: string, dto: UpdateDadoDto): Promise<Dado> {
     const dado = await this.findOne(id);
     Object.assign(dado, dto);
     return this.dadoRepo.save(dado);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const dado = await this.findOne(id);
     await this.dadoRepo.remove(dado);
   }

@@ -4,7 +4,7 @@ import { Expose } from 'class-transformer';
 export class EtapaEditalResponseDto {
   @ApiProperty()
   @Expose()
-  id: number;
+  id: string;
 
   @ApiProperty()
   @Expose()

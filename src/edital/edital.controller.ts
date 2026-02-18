@@ -89,7 +89,7 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   async findOne(@Param('id') id: string) {
-    return this.editalService.findOne(+id);
+    return this.editalService.findOne(id);
   }
 
   @Patch(':id')
@@ -109,7 +109,7 @@ export class EditalController {
     @Param('id') id: string,
     @Body() updateEditalDto: UpdateEditalDto,
   ) {
-    return this.editalService.update(+id, updateEditalDto);
+    return this.editalService.update(id, updateEditalDto);
   }
 
   @Get(':id/inscritos')
@@ -173,7 +173,7 @@ export class EditalController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
-    return this.editalService.getAlunosInscritos(+id, limit, offset);
+    return this.editalService.getAlunosInscritos(id, limit, offset);
   }
 
   @Patch(':id/status/:status')
@@ -205,7 +205,7 @@ export class EditalController {
     @Param('status')
     status: 'RASCUNHO' | 'ABERTO' | 'ENCERRADO' | 'EM_ANDAMENTO',
   ) {
-    return this.editalService.updateStatusByParam(+id, status);
+    return this.editalService.updateStatusByParam(id, status);
   }
 
   @Delete(':id')
@@ -219,6 +219,6 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   async remove(@Param('id') id: string) {
-    return this.editalService.remove(+id);
+    return this.editalService.remove(id);
   }
 }

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Resposta } from '../entities/resposta/resposta.entity';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
@@ -60,19 +60,22 @@ export class RespostaService {
     });
     if (!pergunta) throw new NotFoundException('Pergunta não encontrada');
 
-    const inscricao = await this.inscricaoRepository.findOneBy({
-      id: dto.inscricaoId,
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: dto.inscricaoId },
+      relations: ['aluno', 'aluno.usuario'],
     });
     if (!inscricao) throw new NotFoundException('Inscrição não encontrada');
 
     let urlArquivo: string | undefined;
 
     if (files && files.length > 0) {
+      // Usa o usuario_id real para o path no MinIO (consistente com o upload via controller)
       const uploadResult = await this.minioService.uploadDocuments(
-        inscricao.id,
+        inscricao.aluno.usuario.usuario_id,
         files,
       );
-      urlArquivo = uploadResult.arquivos[0].nome_do_arquivo;
+      // Armazena o objectKey completo (ex: userId/documentos/timestamp_filename.pdf)
+      urlArquivo = uploadResult.objectKey ?? undefined;
     }
 
     const resposta = this.respostaRepository.create({
@@ -110,7 +113,7 @@ export class RespostaService {
     );
   }
 
-  async findOne(id: number): Promise<RespostaResponseDto> {
+  async findOne(id: string): Promise<RespostaResponseDto> {
     const resposta = await this.respostaRepository.findOne({
       where: { id },
       relations: ['pergunta', 'inscricao'],
@@ -129,7 +132,7 @@ export class RespostaService {
   }
 
   async update(
-    id: number,
+    id: string,
     dto: UpdateRespostaDto,
   ): Promise<RespostaResponseDto> {
     const resposta = await this.respostaRepository.findOne({
@@ -141,6 +144,13 @@ export class RespostaService {
     // Detectar reenvio: resposta estava invalidada com requerReenvio
     const isReenvio =
       resposta.invalidada === true && resposta.requerReenvio === true;
+
+    // Detectar resposta a nova pergunta adicionada pós-inscrição
+    const isRespostaNovaPergunta =
+      resposta.perguntaAdicionadaPosInscricao === true &&
+      !resposta.valorTexto &&
+      !resposta.urlArquivo &&
+      (!resposta.valorOpcoes || resposta.valorOpcoes.length === 0);
 
     Object.assign(resposta, dto);
 
@@ -154,10 +164,15 @@ export class RespostaService {
       resposta.dataValidacao = undefined;
     }
 
+    if (isRespostaNovaPergunta) {
+      // Aluno respondeu à nova pergunta — limpar prazo mas manter flag de origem
+      resposta.prazoRespostaNovaPergunta = null;
+    }
+
     const updated = await this.respostaRepository.save(resposta);
 
-    // Atualizar status da inscrição após reenvio
-    if (isReenvio) {
+    // Atualizar status da inscrição após reenvio ou resposta de nova pergunta
+    if (isReenvio || isRespostaNovaPergunta) {
       await this.atualizarStatusInscricao(resposta.inscricao.id);
     }
 
@@ -166,13 +181,13 @@ export class RespostaService {
     });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const result = await this.respostaRepository.delete(id);
     if (result.affected === 0)
       throw new NotFoundException('Resposta não encontrada');
   }
 
-  async findRespostasAlunoEdital(alunoId: number, editalId: number) {
+  async findRespostasAlunoEdital(alunoId: string, editalId: string) {
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
     });
@@ -239,9 +254,9 @@ export class RespostaService {
   }
 
   async findRespostasAlunoStep(
-    alunoId: number,
-    editalId: number,
-    stepId: number,
+    alunoId: string,
+    editalId: string,
+    stepId: string,
   ) {
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
@@ -317,7 +332,7 @@ export class RespostaService {
     };
   }
 
-  async findRespostasPerguntaEdital(perguntaId: number, editalId: number) {
+  async findRespostasPerguntaEdital(perguntaId: string, editalId: string) {
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
     });
@@ -397,9 +412,9 @@ export class RespostaService {
   }
 
   async findPerguntasComRespostasAlunoStep(
-    alunoId: number,
-    editalId: number,
-    stepId: number,
+    alunoId: string,
+    editalId: string,
+    stepId: string,
   ) {
     // Validar edital
     const edital = await this.editalRepository.findOne({
@@ -482,7 +497,7 @@ export class RespostaService {
     const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
 
     // Criar um mapa de perguntaId -> resposta para facilitar a busca
-    const respostasMap = new Map<number, Resposta>();
+    const respostasMap = new Map<string, Resposta>();
     respostas.forEach((resposta) => {
       if (resposta.pergunta?.step?.id === stepId) {
         respostasMap.set(resposta.pergunta.id, resposta);
@@ -499,12 +514,17 @@ export class RespostaService {
 
       const resposta = respostasMap.get(pergunta.id);
 
+      const aguardandoRespostaNovaPergunta =
+        resposta?.perguntaAdicionadaPosInscricao === true &&
+        !resposta.valorTexto &&
+        !resposta.urlArquivo &&
+        (!resposta.valorOpcoes || resposta.valorOpcoes.length === 0);
+
       return {
         pergunta: perguntaDto,
         resposta: resposta
           ? {
               id: resposta.id,
-
               valorTexto: resposta.valorTexto,
               valorOpcoes: resposta.valorOpcoes,
               urlArquivo: resposta.urlArquivo,
@@ -512,6 +532,9 @@ export class RespostaService {
               validada: resposta.validada,
               dataValidacao: resposta.dataValidacao,
               dataValidade: resposta.dataValidade,
+              aguardandoRespostaNovaPergunta,
+              prazoRespostaNovaPergunta:
+                resposta.prazoRespostaNovaPergunta || null,
             }
           : null,
       };
@@ -541,7 +564,7 @@ export class RespostaService {
     };
   }
 
-  async validateResposta(respostaId: number, dto: ValidateRespostaDto) {
+  async validateResposta(respostaId: string, dto: ValidateRespostaDto) {
     const resposta = await this.respostaRepository.findOne({
       where: { id: respostaId },
       relations: ['pergunta', 'pergunta.dado', 'inscricao', 'inscricao.aluno'],
@@ -647,14 +670,9 @@ export class RespostaService {
 
   /**
    * Verifica todas as respostas de uma inscrição e atualiza o status.
-   * Prioridade: APROVADA > REJEITADA > PENDENTE_REGULARIZACAO > EM_ANALISE
-   *
-   * - APROVADA: todas validadas
-   * - REJEITADA: ao menos uma invalidada sem reenvio (tem prioridade)
-   * - PENDENTE_REGULARIZACAO: ao menos uma com requerReenvio === true
-   * - EM_ANALISE: alguma ainda não foi avaliada (validada === false && invalidada === false)
+   * Prioridade: APROVADA > REJEITADA > AGUARDANDO_COMPLEMENTO > PENDENTE_REGULARIZACAO > EM_ANALISE
    */
-  private async atualizarStatusInscricao(inscricaoId: number): Promise<void> {
+  private async atualizarStatusInscricao(inscricaoId: string): Promise<void> {
     const inscricao = await this.inscricaoRepository.findOne({
       where: { id: inscricaoId },
       relations: ['respostas'],
@@ -671,22 +689,42 @@ export class RespostaService {
     const respostas = inscricao.respostas;
 
     const todasValidadas = respostas.every((r) => r.validada === true);
+    const algumaAguardandoNovaPergunta = respostas.some(
+      (r) =>
+        r.perguntaAdicionadaPosInscricao === true &&
+        !r.valorTexto &&
+        !r.urlArquivo &&
+        (!r.valorOpcoes || r.valorOpcoes.length === 0),
+    );
     const algumaPendenteReenvio = respostas.some(
       (r) => r.requerReenvio === true,
     );
+    const algumaComplementoInvalidada = respostas.some(
+      (r) => r.invalidada === true && r.perguntaAdicionadaPosInscricao === true,
+    );
     const algumaInvalidadaSemReenvio = respostas.some(
-      (r) => r.invalidada === true && r.requerReenvio === false,
+      (r) =>
+        r.invalidada === true &&
+        r.requerReenvio === false &&
+        r.perguntaAdicionadaPosInscricao !== true,
     );
     const algumaNaoAvaliada = respostas.some(
       (r) => r.validada === false && r.invalidada === false,
     );
 
+    // Prioridade: APROVADA > REJEITADA_PRAZO_COMPLEMENTO > REJEITADA > PENDENTE_REGULARIZACAO > AGUARDANDO_COMPLEMENTO > EM_ANALISE
+    // Rejeição tem prioridade sobre complemento e regularização — o status só sai de
+    // rejeitado quando o admin valida a resposta que causou a rejeição.
     if (todasValidadas) {
       inscricao.status_inscricao = StatusInscricao.APROVADA;
+    } else if (algumaComplementoInvalidada) {
+      inscricao.status_inscricao = StatusInscricao.REJEITADA_PRAZO_COMPLEMENTO;
     } else if (algumaInvalidadaSemReenvio) {
       inscricao.status_inscricao = StatusInscricao.REJEITADA;
     } else if (algumaPendenteReenvio) {
       inscricao.status_inscricao = StatusInscricao.PENDENTE_REGULARIZACAO;
+    } else if (algumaAguardandoNovaPergunta) {
+      inscricao.status_inscricao = StatusInscricao.AGUARDANDO_COMPLEMENTO;
     } else if (algumaNaoAvaliada) {
       inscricao.status_inscricao = StatusInscricao.EM_ANALISE;
     }
@@ -694,7 +732,81 @@ export class RespostaService {
     await this.inscricaoRepository.save(inscricao);
   }
 
-  async findAllStepsComPerguntasRespostas(alunoId: number, editalId: number) {
+  /**
+   * Reabre o prazo de complemento para uma resposta de nova pergunta
+   * que foi invalidada por expiração de prazo.
+   * Reseta a invalidação, define novo prazo e volta a inscrição para AGUARDANDO_COMPLEMENTO.
+   */
+  async reabrirComplemento(respostaId: string, novoPrazo: string) {
+    const resposta = await this.respostaRepository.findOne({
+      where: { id: respostaId },
+      relations: ['inscricao'],
+    });
+
+    if (!resposta) {
+      throw new NotFoundException('Resposta não encontrada');
+    }
+
+    if (!resposta.perguntaAdicionadaPosInscricao) {
+      throw new BadRequestException(
+        'Esta resposta não é de uma pergunta de complemento. Use o fluxo de reenvio normal.',
+      );
+    }
+
+    if (!resposta.invalidada) {
+      throw new BadRequestException(
+        'Esta resposta não está invalidada. Não é necessário reabrir.',
+      );
+    }
+
+    const novoPrazoDate = new Date(novoPrazo);
+    if (novoPrazoDate <= new Date()) {
+      throw new BadRequestException('O novo prazo deve ser uma data futura.');
+    }
+
+    // Resetar a resposta para aguardar nova resposta do aluno
+    resposta.invalidada = false;
+    resposta.validada = false;
+    resposta.prazoRespostaNovaPergunta = novoPrazoDate;
+    resposta.valorTexto = undefined;
+    resposta.valorOpcoes = undefined;
+    resposta.urlArquivo = undefined;
+    resposta.dataValidacao = undefined;
+    resposta.parecer = undefined;
+
+    await this.respostaRepository.save(resposta);
+
+    // Recalcular status da inscrição respeitando prioridades
+    // Não força AGUARDANDO_COMPLEMENTO — se houver outra resposta rejeitada, o status fica REJEITADA
+    await this.atualizarStatusInscricao(resposta.inscricao.id);
+
+    // Buscar inscrição atualizada para retornar o status correto
+    const inscricaoAtualizada = await this.inscricaoRepository.findOne({
+      where: { id: resposta.inscricao.id },
+    });
+
+    return {
+      sucesso: true,
+      dados: {
+        resposta: {
+          id: resposta.id,
+          invalidada: resposta.invalidada,
+          validada: resposta.validada,
+          prazoRespostaNovaPergunta: resposta.prazoRespostaNovaPergunta,
+          perguntaAdicionadaPosInscricao:
+            resposta.perguntaAdicionadaPosInscricao,
+        },
+        inscricao: {
+          id: inscricaoAtualizada?.id,
+          status: inscricaoAtualizada?.status_inscricao,
+        },
+        mensagem:
+          'Prazo de complemento reaberto com sucesso. O aluno poderá responder até o novo prazo.',
+      },
+    };
+  }
+
+  async findAllStepsComPerguntasRespostas(alunoId: string, editalId: string) {
     // Validar edital
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
@@ -741,14 +853,14 @@ export class RespostaService {
     });
 
     // Buscar inscrição do aluno no edital (se houver vagas)
-    let respostasMap = new Map<number, Resposta>();
+    let respostasMap = new Map<string, Resposta>();
     let inscricaoAtual: Inscricao | null = null;
     if (vagas && vagas.length > 0) {
       const vagaIds = vagas.map((vaga) => vaga.id);
       const inscricoes = await this.inscricaoRepository.find({
         where: {
           aluno: { aluno_id: alunoId },
-          vagas: { id: vagaIds[0] },
+          vagas: { id: In(vagaIds) },
         },
         relations: [
           'respostas',
@@ -788,6 +900,13 @@ export class RespostaService {
 
           const resposta = respostasMap.get(pergunta.id);
 
+          // Flag: é uma pergunta nova aguardando resposta do aluno
+          const aguardandoRespostaNovaPergunta =
+            resposta?.perguntaAdicionadaPosInscricao === true &&
+            !resposta.valorTexto &&
+            !resposta.urlArquivo &&
+            (!resposta.valorOpcoes || resposta.valorOpcoes.length === 0);
+
           return {
             pergunta: perguntaDto,
             resposta: resposta
@@ -804,6 +923,9 @@ export class RespostaService {
                   parecer: resposta.parecer,
                   prazoReenvio: resposta.prazoReenvio,
                   requerReenvio: resposta.requerReenvio,
+                  aguardandoRespostaNovaPergunta,
+                  prazoRespostaNovaPergunta:
+                    resposta.prazoRespostaNovaPergunta || null,
                 }
               : null,
           };
@@ -811,18 +933,27 @@ export class RespostaService {
 
         // Calcular status do step baseado nas respostas
         // CONCLUIDO: todas validadas
+        // AGUARDANDO_COMPLEMENTO: ao menos uma pergunta nova aguardando resposta
         // PENDENTE_REGULARIZACAO: ao menos uma com requerReenvio
         // REJEITADO: ao menos uma invalidada sem reenvio
+        // PRAZO_COMPLEMENTO_EXPIRADO: pergunta nova com prazo vencido
         // EM_ANDAMENTO: alguma ainda não avaliada
         let statusStep:
           | 'CONCLUIDO'
           | 'EM_ANDAMENTO'
           | 'PENDENTE_REGULARIZACAO'
+          | 'AGUARDANDO_COMPLEMENTO'
+          | 'PRAZO_COMPLEMENTO_EXPIRADO'
           | 'REJEITADO' = 'EM_ANDAMENTO';
 
         if (perguntas.length > 0) {
           const todasValidadas = perguntasComRespostas.every(
             (pr) => pr.resposta !== null && pr.resposta.validada === true,
+          );
+          const algumaAguardandoNovaPergunta = perguntasComRespostas.some(
+            (pr) =>
+              pr.resposta !== null &&
+              pr.resposta.aguardandoRespostaNovaPergunta === true,
           );
           const algumaPendenteReenvio = perguntasComRespostas.some(
             (pr) => pr.resposta !== null && pr.resposta.requerReenvio === true,
@@ -834,8 +965,21 @@ export class RespostaService {
               pr.resposta.requerReenvio === false,
           );
 
+          // Verificar se alguma pergunta nova tem prazo expirado
+          const algumaPrazoComplementoExpirado = perguntasComRespostas.some(
+            (pr) =>
+              pr.resposta !== null &&
+              pr.resposta.aguardandoRespostaNovaPergunta === true &&
+              pr.resposta.prazoRespostaNovaPergunta !== null &&
+              new Date(pr.resposta.prazoRespostaNovaPergunta) < new Date(),
+          );
+
           if (todasValidadas) {
             statusStep = 'CONCLUIDO';
+          } else if (algumaPrazoComplementoExpirado) {
+            statusStep = 'PRAZO_COMPLEMENTO_EXPIRADO';
+          } else if (algumaAguardandoNovaPergunta) {
+            statusStep = 'AGUARDANDO_COMPLEMENTO';
           } else if (algumaPendenteReenvio) {
             statusStep = 'PENDENTE_REGULARIZACAO';
           } else if (algumaInvalidadaSemReenvio) {

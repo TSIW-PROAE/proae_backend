@@ -6,7 +6,7 @@ import {
   Delete,
   Param,
   Body,
-  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CreateValorDadoDto } from '../valorDado/dto/create-valor-dado.dto';
@@ -27,7 +27,7 @@ export class ValorDadoController {
 
   @Get('aluno/:alunoId')
   @ApiOperation({ summary: 'Lista todos os Valores de um Aluno' })
-  findValorByAluno(@Param('alunoId', ParseIntPipe) alunoId: number) {
+  findValorByAluno(@Param('alunoId', ParseUUIDPipe) alunoId: string) {
     return this.valorDadoService.findValorByAluno(alunoId);
   }
 
@@ -39,7 +39,7 @@ export class ValorDadoController {
     description: 'ValorDado atualizado com sucesso.',
   })
   updateValor(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateValorDadoDto,
   ) {
     return this.valorDadoService.updateValor(id, dto);
@@ -47,7 +47,7 @@ export class ValorDadoController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Remove um ValorDado pelo ID' })
-  removeValor(@Param('id', ParseIntPipe) id: number) {
+  removeValor(@Param('id', ParseUUIDPipe) id: string) {
     return this.valorDadoService.removeValor(id);
   }
 }

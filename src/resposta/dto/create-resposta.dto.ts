@@ -5,22 +5,21 @@ import {
   IsString,
   IsArray,
   IsUrl,
-  IsNumber,
 } from 'class-validator';
 
 export class CreateRespostaDto {
-  @ApiProperty({ description: 'ID da pergunta', example: 5 })
-  @IsNumber()
+  @ApiProperty({ description: 'ID da pergunta', example: '550e8400-e29b-41d4-a916-446655440000' })
+  @IsString()
   @IsNotEmpty()
-  perguntaId: number;
+  perguntaId: string;
 
   @ApiPropertyOptional({
     description: 'ID da inscrição (opcional na criação de inscrição)',
-    example: 2,
+    example: '550e8400-e29b-41d4-a916-446655440000',
   })
   @IsOptional()
-  @IsNumber()
-  inscricaoId?: number;
+  @IsString()
+  inscricaoId?: string;
 
   @ApiPropertyOptional({
     description: 'Valor em texto',
@@ -39,10 +38,10 @@ export class CreateRespostaDto {
   valorOpcoes?: string[];
 
   @ApiPropertyOptional({
-    description: 'URL de arquivo',
-    example: 'http://meuarquivo.com/file.pdf',
+    description: 'Nome do arquivo (enviado via multipart/form-data no campo files)',
+    example: 'meu_documento.pdf',
   })
   @IsOptional()
-  @IsUrl()
+  @IsString()
   urlArquivo?: string;
 }

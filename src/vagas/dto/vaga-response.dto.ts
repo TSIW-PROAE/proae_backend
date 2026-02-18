@@ -3,8 +3,8 @@ import { Expose } from 'class-transformer';
 
 export class VagaResponseDto {
   @Expose()
-  @ApiProperty({ example: 1, description: 'ID da vaga' })
-  id: number;
+  @ApiProperty({ example: '550e8400-e29b-41d4-a916-446655440000', description: 'ID da vaga' })
+  id: string;
 
   @Expose()
   @ApiProperty({ example: 'Auxílio Alimentação', description: 'Nome do benefício' })

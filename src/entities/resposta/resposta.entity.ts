@@ -50,4 +50,10 @@ export class Resposta extends AbstractEntity<Resposta> {
 
   @Column({ type: 'boolean', default: false })
   requerReenvio: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  perguntaAdicionadaPosInscricao: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  prazoRespostaNovaPergunta?: Date | null;
 }

@@ -34,7 +34,7 @@ export class CreateValidacaoDto {
   data_validacao?: Date;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty({
     description: 'ID do responsável pela validação',
     example: 'eadadf0c-3f3b-4c2e-9f1b-2c3d4e5f6a7b'
@@ -42,18 +42,18 @@ export class CreateValidacaoDto {
   responsavel_id: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsString()
   @ApiPropertyOptional({
     description: 'ID do questionário (Step) do edital',
-    example: 1
+    example: '550e8400-e29b-41d4-a916-446655440000'
   })
-  questionario_id?: number;
+  questionario_id?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsString()
   @ApiPropertyOptional({
     description: 'ID do documento (mantido para compatibilidade)',
-    example: 1
+    example: '550e8400-e29b-41d4-a916-446655440000'
   })
-  documento_id?: number;
+  documento_id?: string;
 }

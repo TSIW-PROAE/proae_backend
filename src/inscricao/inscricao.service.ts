@@ -130,7 +130,7 @@ export class InscricaoService {
 
       await this.removeRespostaEmCache(
         createInscricaoDto.vaga_id,
-        typeof userId === 'string' ? parseInt(userId, 10) : userId,
+        userId,
       );
 
       return plainToInstance(InscricaoResponseDto, result, {
@@ -152,7 +152,7 @@ export class InscricaoService {
   }
 
   async updateInscricao(
-    inscricaoId: number,
+    inscricaoId: string,
     updateInscricaoDto: UpdateInscricaoDto,
     userId: string,
   ): Promise<InscricaoResponseDto> {
@@ -385,7 +385,7 @@ export class InscricaoService {
 
   async saveRespostaEmCache(
     createInscricaoDto: CreateInscricaoDto,
-    userId: number,
+    userId: string,
   ) {
     const vagaExists = await this.vagasRepository.findOne({
       where: { id: createInscricaoDto.vaga_id },
@@ -424,7 +424,7 @@ export class InscricaoService {
     };
   }
 
-  async findRespostaEmCache(vagaId: number, userId: number) {
+  async findRespostaEmCache(vagaId: string, userId: string) {
     const vagaExists = await this.vagasRepository.findOne({
       where: { id: vagaId },
       relations: ['edital'],
@@ -453,7 +453,7 @@ export class InscricaoService {
     }
   }
 
-  async removeRespostaEmCache(vagaId: number, userId: number) {
+  async removeRespostaEmCache(vagaId: string, userId: string) {
     const vagaExists = await this.vagasRepository.findOne({
       where: { id: vagaId },
       relations: ['edital'],

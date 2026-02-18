@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsNumber, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { CreateRespostaDto } from '../../resposta/dto/create-resposta.dto';
 
 export class CreateInscricaoDto {
   @ApiProperty({
     description: 'ID da vaga',
-    example: 1,
+    example: '550e8400-e29b-41d4-a916-446655440000',
     required: true,
   })
   @IsNotEmpty()
-  @IsNumber()
-  vaga_id: number;
+  @IsString()
+  vaga_id: string;
 
   @ApiProperty({
     type: [CreateRespostaDto],

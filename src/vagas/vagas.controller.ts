@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -74,7 +74,7 @@ export class VagasController {
     schema: { example: errorExamples.internalServerError },
   })
   async findByEdital(
-    @Param('editalId', ParseIntPipe) editalId: number,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
   ): Promise<VagaResponseDto[]> {
     return this.vagasService.findByEdital(editalId);
   }
@@ -100,7 +100,7 @@ export class VagasController {
     schema: { example: errorExamples.internalServerError },
   })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateVagaDto: UpdateVagaDto,
   ) {
     return this.vagasService.update(id, updateVagaDto);
@@ -123,7 +123,7 @@ export class VagasController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.vagasService.remove(id);
   }
 }

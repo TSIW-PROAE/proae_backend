@@ -12,8 +12,8 @@ import { Validacao } from '../validacao/validacao.entity';
 
 @Entity()
 export class Documento {
-  @PrimaryGeneratedColumn()
-  documento_id: number;
+  @PrimaryGeneratedColumn('uuid')
+  documento_id: string;
 
   @ManyToOne(() => Inscricao, (inscricao) => inscricao.documentos)
   inscricao: Inscricao;
