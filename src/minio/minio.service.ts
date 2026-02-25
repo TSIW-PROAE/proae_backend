@@ -29,13 +29,17 @@ export class MinioClientService implements OnModuleInit {
     try {
       const exists = await this.minioClient.bucketExists(this.bucket);
       if (!exists) {
-        await this.minioClient.makeBucket(this.bucket);
-        this.logger.log(`Bucket "${this.bucket}" criado com sucesso.`);
+        this.logger.warn(
+          `Bucket "${this.bucket}" não encontrado. Verifique se o bucket existe no Google Cloud Storage.`,
+        );
       } else {
-        this.logger.log(`Bucket "${this.bucket}" já existe.`);
+        this.logger.log(`Bucket "${this.bucket}" encontrado e acessível.`);
       }
     } catch (e) {
-      this.logger.error(`Erro ao verificar/criar bucket "${this.bucket}":`, e);
+      this.logger.error(
+        `Erro ao verificar bucket "${this.bucket}". Verifique as credenciais e o endpoint:`,
+        e,
+      );
     }
   }
 
