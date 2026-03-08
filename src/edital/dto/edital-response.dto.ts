@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
 
 class EditalUrlResponseDto {
   @ApiProperty({ description: 'Título do documento' })

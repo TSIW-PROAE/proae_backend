@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -13,7 +14,6 @@ import { RespostaResponseDto } from './dto/response-resposta.dto';
 import { plainToInstance } from 'class-transformer';
 import { UpdateRespostaDto } from './dto/update-resposta.dto';
 import { ValidateRespostaDto } from './dto/validate-resposta.dto';
-import { MinioClientService } from '../minio/minio.service';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { Usuario } from '../entities/usuarios/usuario.entity';
 import { Step } from '../entities/step/step.entity';
@@ -21,8 +21,24 @@ import { Edital } from '../entities/edital/edital.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
 import { ValorDado } from '../entities/valorDado/valorDado.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
-import { InputFormatPlaceholders } from '../enum/enumInputFormat';
+import { InputFormatPlaceholders } from '../core/shared-kernel/enums/enumInputFormat';
 import { PerguntaResponseDto } from '../step/dto/response-pergunta.dto';
+import {
+  CreateRespostaUseCase,
+  FindAllRespostasUseCase,
+  FindRespostaByIdUseCase,
+  UpdateRespostaUseCase,
+  RemoveRespostaUseCase,
+  FindRespostasAlunoEditalUseCase,
+  FindRespostasAlunoStepUseCase,
+  FindPerguntasComRespostasAlunoStepUseCase,
+  FindRespostasPerguntaEditalUseCase,
+  ValidateRespostaUseCase,
+} from '../core/application/resposta';
+import {
+  FILE_STORAGE,
+  type FileStoragePort,
+} from '../core/application/utilities';
 
 @Injectable()
 export class RespostaService {
@@ -47,7 +63,18 @@ export class RespostaService {
     private readonly valorDadoRepository: Repository<ValorDado>,
     @InjectRepository(Dado)
     private readonly dadoRepository: Repository<Dado>,
-    private readonly minioService: MinioClientService,
+    @Inject(FILE_STORAGE)
+    private readonly minioService: FileStoragePort,
+    private readonly createRespostaUseCase: CreateRespostaUseCase,
+    private readonly findAllRespostasUseCase: FindAllRespostasUseCase,
+    private readonly findRespostaByIdUseCase: FindRespostaByIdUseCase,
+    private readonly updateRespostaUseCase: UpdateRespostaUseCase,
+    private readonly removeRespostaUseCase: RemoveRespostaUseCase,
+    private readonly findRespostasAlunoEditalUseCase: FindRespostasAlunoEditalUseCase,
+    private readonly findRespostasAlunoStepUseCase: FindRespostasAlunoStepUseCase,
+    private readonly findPerguntasComRespostasAlunoStepUseCase: FindPerguntasComRespostasAlunoStepUseCase,
+    private readonly findRespostasPerguntaEditalUseCase: FindRespostasPerguntaEditalUseCase,
+    private readonly validateRespostaUseCase: ValidateRespostaUseCase,
   ) {}
 
   async create(
@@ -74,15 +101,14 @@ export class RespostaService {
       urlArquivo = uploadResult.arquivos[0].nome_do_arquivo;
     }
 
-    const resposta = this.respostaRepository.create({
+    const saved = await this.createRespostaUseCase.execute({
+      perguntaId: pergunta.id,
+      inscricaoId: inscricao.id,
       valorTexto: dto.valorTexto,
       valorOpcoes: dto.valorOpcoes,
       urlArquivo: urlArquivo || dto.urlArquivo,
-      pergunta,
-      inscricao,
+      texto: dto.valorTexto,
     });
-
-    const saved = await this.respostaRepository.save(resposta);
 
     return plainToInstance(
       RespostaResponseDto,
@@ -96,32 +122,26 @@ export class RespostaService {
   }
 
   async findAll(): Promise<RespostaResponseDto[]> {
-    const respostas = await this.respostaRepository.find({
-      relations: ['pergunta', 'inscricao'],
-    });
+    const respostas = await this.findAllRespostasUseCase.execute();
 
     return respostas.map((r) =>
       plainToInstance(
         RespostaResponseDto,
-        { ...r, perguntaId: r.pergunta?.id, inscricaoId: r.inscricao?.id },
+        { ...r, perguntaId: r.perguntaId, inscricaoId: r.inscricaoId },
         { excludeExtraneousValues: true },
       ),
     );
   }
 
   async findOne(id: number): Promise<RespostaResponseDto> {
-    const resposta = await this.respostaRepository.findOne({
-      where: { id },
-      relations: ['pergunta', 'inscricao'],
-    });
-    if (!resposta) throw new NotFoundException('Resposta não encontrada');
+    const resposta = await this.findRespostaByIdUseCase.execute(id);
 
     return plainToInstance(
       RespostaResponseDto,
       {
         ...resposta,
-        perguntaId: resposta.pergunta?.id,
-        inscricaoId: resposta.inscricao?.id,
+        perguntaId: resposta.perguntaId,
+        inscricaoId: resposta.inscricaoId,
       },
       { excludeExtraneousValues: true },
     );
@@ -131,11 +151,12 @@ export class RespostaService {
     id: number,
     dto: UpdateRespostaDto,
   ): Promise<RespostaResponseDto> {
-    const resposta = await this.respostaRepository.findOneBy({ id });
-    if (!resposta) throw new NotFoundException('Resposta não encontrada');
-
-    Object.assign(resposta, dto);
-    const updated = await this.respostaRepository.save(resposta);
+    const updated = await this.updateRespostaUseCase.execute(id, {
+      valorTexto: dto.valorTexto,
+      valorOpcoes: dto.valorOpcoes,
+      urlArquivo: dto.urlArquivo,
+      texto: dto.valorTexto,
+    });
 
     return plainToInstance(RespostaResponseDto, updated, {
       excludeExtraneousValues: true,
@@ -143,76 +164,11 @@ export class RespostaService {
   }
 
   async remove(id: number): Promise<void> {
-    const result = await this.respostaRepository.delete(id);
-    if (result.affected === 0)
-      throw new NotFoundException('Resposta não encontrada');
+    await this.removeRespostaUseCase.execute(id);
   }
 
   async findRespostasAlunoEdital(alunoId: number, editalId: number) {
-    const edital = await this.editalRepository.findOne({
-      where: { id: editalId },
-    });
-    if (!edital) throw new NotFoundException('Edital não encontrado');
-
-    const aluno = await this.alunoRepository.findOne({
-      where: { aluno_id: alunoId },
-      relations: ['usuario'],
-    });
-    if (!aluno) throw new NotFoundException('Aluno não encontrado');
-
-    const vagas = await this.vagasRepository.find({
-      where: { edital: { id: editalId } },
-    });
-
-    if (!vagas || vagas.length === 0) {
-      return {
-        sucesso: true,
-        dados: [],
-        mensagem: 'Nenhuma vaga encontrada para este edital.',
-      };
-    }
-
-    const vagaIds = vagas.map((vaga) => vaga.id);
-    const inscricoes = await this.inscricaoRepository.find({
-      where: {
-        aluno: { aluno_id: alunoId },
-        vagas: { id: vagaIds[0] },
-      },
-      relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
-    });
-
-    const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
-
-    return {
-      sucesso: true,
-      dados: {
-        edital: {
-          id: edital.id,
-          titulo: edital.titulo_edital,
-          descricao: edital.descricao,
-          status: edital.status_edital,
-        },
-        aluno: {
-          aluno_id: aluno.aluno_id,
-          nome: aluno.usuario.nome,
-          email: aluno.usuario.email,
-          matricula: aluno.matricula,
-        },
-        total_respostas: respostas.length,
-        respostas: respostas.map((resposta) => ({
-          id: resposta.id,
-          pergunta_id: resposta.pergunta.id,
-          pergunta_texto: resposta.pergunta.pergunta,
-          step_id: resposta.pergunta.step.id,
-          step_texto: resposta.pergunta.step.texto,
-          resposta_texto: resposta.texto,
-          valor_texto: resposta.valorTexto,
-          valor_opcoes: resposta.valorOpcoes,
-          url_arquivo: resposta.urlArquivo,
-          data_resposta: resposta.dataResposta,
-        })),
-      },
-    };
+    return this.findRespostasAlunoEditalUseCase.execute(alunoId, editalId);
   }
 
   async findRespostasAlunoStep(
@@ -220,159 +176,11 @@ export class RespostaService {
     editalId: number,
     stepId: number,
   ) {
-    const edital = await this.editalRepository.findOne({
-      where: { id: editalId },
-    });
-    if (!edital) throw new NotFoundException('Edital não encontrado');
-
-    const step = await this.stepRepository.findOne({
-      where: { id: stepId, edital: { id: editalId } },
-    });
-    if (!step) throw new NotFoundException('Step não encontrado no edital');
-
-    const aluno = await this.alunoRepository.findOne({
-      where: { aluno_id: alunoId },
-      relations: ['usuario'],
-    });
-    if (!aluno) throw new NotFoundException('Aluno não encontrado');
-
-    const vagas = await this.vagasRepository.find({
-      where: { edital: { id: editalId } },
-    });
-
-    if (!vagas || vagas.length === 0) {
-      return {
-        sucesso: true,
-        dados: [],
-        mensagem: 'Nenhuma vaga encontrada para este edital.',
-      };
-    }
-
-    const vagaIds = vagas.map((vaga) => vaga.id);
-    const inscricoes = await this.inscricaoRepository.find({
-      where: {
-        aluno: { aluno_id: alunoId },
-        vagas: { id: vagaIds[0] },
-      },
-      relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
-    });
-
-    const respostas = inscricoes
-      .flatMap((inscricao) => inscricao.respostas)
-      .filter((resposta) => resposta.pergunta.step.id === stepId);
-
-    return {
-      sucesso: true,
-      dados: {
-        edital: {
-          id: edital.id,
-          titulo: edital.titulo_edital,
-          descricao: edital.descricao,
-          status: edital.status_edital,
-        },
-        step: {
-          id: step.id,
-          texto: step.texto,
-        },
-        aluno: {
-          aluno_id: aluno.aluno_id,
-          nome: aluno.usuario.nome,
-          email: aluno.usuario.email,
-          matricula: aluno.matricula,
-        },
-        total_respostas: respostas.length,
-        respostas: respostas.map((resposta) => ({
-          id: resposta.id,
-          pergunta_id: resposta.pergunta.id,
-          pergunta_texto: resposta.pergunta.pergunta,
-          resposta_texto: resposta.texto,
-          valor_texto: resposta.valorTexto,
-          valor_opcoes: resposta.valorOpcoes,
-          url_arquivo: resposta.urlArquivo,
-          data_resposta: resposta.dataResposta,
-        })),
-      },
-    };
+    return this.findRespostasAlunoStepUseCase.execute(alunoId, editalId, stepId);
   }
 
   async findRespostasPerguntaEdital(perguntaId: number, editalId: number) {
-    const edital = await this.editalRepository.findOne({
-      where: { id: editalId },
-    });
-    if (!edital) throw new NotFoundException('Edital não encontrado');
-
-    const pergunta = await this.perguntaRepository.findOne({
-      where: { id: perguntaId },
-      relations: ['step', 'step.edital'],
-    });
-    if (!pergunta) throw new NotFoundException('Pergunta não encontrada');
-
-    if (pergunta.step.edital.id !== editalId) {
-      throw new NotFoundException(
-        'Pergunta não pertence ao edital especificado',
-      );
-    }
-
-    const vagas = await this.vagasRepository.find({
-      where: { edital: { id: editalId } },
-    });
-
-    if (!vagas || vagas.length === 0) {
-      return {
-        sucesso: true,
-        dados: [],
-        mensagem: 'Nenhuma vaga encontrada para este edital.',
-      };
-    }
-
-    const vagaIds = vagas.map((vaga) => vaga.id);
-    const respostas = await this.respostaRepository.find({
-      where: {
-        pergunta: { id: perguntaId },
-        inscricao: {
-          vagas: { id: vagaIds[0] },
-        },
-      },
-      relations: [
-        'inscricao',
-        'inscricao.aluno',
-        'inscricao.aluno.usuario',
-        'pergunta',
-      ],
-    });
-
-    return {
-      sucesso: true,
-      dados: {
-        edital: {
-          id: edital.id,
-          titulo: edital.titulo_edital,
-          descricao: edital.descricao,
-          status: edital.status_edital,
-        },
-        pergunta: {
-          id: pergunta.id,
-          texto: pergunta.pergunta,
-          tipo: pergunta.tipo_Pergunta,
-          obrigatoriedade: pergunta.obrigatoriedade,
-        },
-        total_respostas: respostas.length,
-        respostas: respostas.map((resposta) => ({
-          id: resposta.id,
-          aluno: {
-            aluno_id: resposta.inscricao.aluno.aluno_id,
-            nome: resposta.inscricao.aluno.usuario.nome,
-            email: resposta.inscricao.aluno.usuario.email,
-            matricula: resposta.inscricao.aluno.matricula,
-          },
-          resposta_texto: resposta.texto,
-          valor_texto: resposta.valorTexto,
-          valor_opcoes: resposta.valorOpcoes,
-          url_arquivo: resposta.urlArquivo,
-          data_resposta: resposta.dataResposta,
-        })),
-      },
-    };
+    return this.findRespostasPerguntaEditalUseCase.execute(perguntaId, editalId);
   }
 
   async findPerguntasComRespostasAlunoStep(
@@ -380,206 +188,17 @@ export class RespostaService {
     editalId: number,
     stepId: number,
   ) {
-    // Validar edital
-    const edital = await this.editalRepository.findOne({
-      where: { id: editalId },
-    });
-    if (!edital) throw new NotFoundException('Edital não encontrado');
-
-    // Validar step e verificar se pertence ao edital
-    const step = await this.stepRepository.findOne({
-      where: { id: stepId, edital: { id: editalId } },
-      relations: ['edital'],
-    });
-    if (!step)
-      throw new NotFoundException('Step não encontrado no edital');
-
-    // Validar aluno
-    const aluno = await this.alunoRepository.findOne({
-      where: { aluno_id: alunoId },
-      relations: ['usuario'],
-    });
-    if (!aluno) throw new NotFoundException('Aluno não encontrado');
-
-    // Buscar todas as perguntas do step
-    const perguntas = await this.perguntaRepository.find({
-      where: { step: { id: stepId } },
-      relations: ['dado'],
-      order: { id: 'ASC' },
-    });
-
-    // Buscar vagas do edital
-    const vagas = await this.vagasRepository.find({
-      where: { edital: { id: editalId } },
-    });
-
-    if (!vagas || vagas.length === 0) {
-      return {
-        sucesso: true,
-        dados: {
-          edital: {
-            id: edital.id,
-            titulo: edital.titulo_edital,
-            descricao: edital.descricao,
-            status: edital.status_edital,
-          },
-          step: {
-            id: step.id,
-            texto: step.texto,
-          },
-          aluno: {
-            aluno_id: aluno.aluno_id,
-            nome: aluno.usuario.nome,
-            email: aluno.usuario.email,
-            matricula: aluno.matricula,
-          },
-          perguntas: perguntas.map((pergunta) => {
-            const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
-              excludeExtraneousValues: true,
-            });
-            perguntaDto.placeholder =
-              InputFormatPlaceholders[pergunta.tipo_formatacao];
-            return {
-              pergunta: perguntaDto,
-              resposta: null,
-            };
-          }),
-        },
-      };
-    }
-
-    // Buscar inscrição do aluno no edital
-    const vagaIds = vagas.map((vaga) => vaga.id);
-    const inscricoes = await this.inscricaoRepository.find({
-      where: {
-        aluno: { aluno_id: alunoId },
-        vagas: { id: vagaIds[0] },
-      },
-      relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
-    });
-
-    // Buscar todas as respostas do aluno para as perguntas deste step
-    const respostas = inscricoes.flatMap((inscricao) => inscricao.respostas);
-
-    // Criar um mapa de perguntaId -> resposta para facilitar a busca
-    const respostasMap = new Map<number, Resposta>();
-    respostas.forEach((resposta) => {
-      if (resposta.pergunta?.step?.id === stepId) {
-        respostasMap.set(resposta.pergunta.id, resposta);
-      }
-    });
-
-    // Combinar perguntas com respostas
-    const perguntasComRespostas = perguntas.map((pergunta) => {
-      const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
-        excludeExtraneousValues: true,
-      });
-      perguntaDto.placeholder =
-        InputFormatPlaceholders[pergunta.tipo_formatacao];
-
-      const resposta = respostasMap.get(pergunta.id);
-
-      return {
-        pergunta: perguntaDto,
-        resposta: resposta
-          ? {
-              id: resposta.id,
-              texto: resposta.texto,
-              valorTexto: resposta.valorTexto,
-              valorOpcoes: resposta.valorOpcoes,
-              urlArquivo: resposta.urlArquivo,
-              dataResposta: resposta.dataResposta,
-              validada: resposta.validada,
-              dataValidacao: resposta.dataValidacao,
-              dataValidade: resposta.dataValidade,
-            }
-          : null,
-      };
-    });
-
-    return {
-      sucesso: true,
-      dados: {
-        edital: {
-          id: edital.id,
-          titulo: edital.titulo_edital,
-          descricao: edital.descricao,
-          status: edital.status_edital,
-        },
-        step: {
-          id: step.id,
-          texto: step.texto,
-        },
-        aluno: {
-          aluno_id: aluno.aluno_id,
-          nome: aluno.usuario.nome,
-          email: aluno.usuario.email,
-          matricula: aluno.matricula,
-        },
-        perguntas: perguntasComRespostas,
-      },
-    };
+    return this.findPerguntasComRespostasAlunoStepUseCase.execute(
+      alunoId,
+      editalId,
+      stepId,
+    );
   }
 
   async validateResposta(respostaId: number, dto: ValidateRespostaDto) {
-    const resposta = await this.respostaRepository.findOne({
-      where: { id: respostaId },
-      relations: ['pergunta', 'pergunta.dado', 'inscricao', 'inscricao.aluno'],
+    return this.validateRespostaUseCase.execute(respostaId, {
+      validada: dto.validada,
+      dataValidade: dto.dataValidade,
     });
-
-    if (!resposta) {
-      throw new NotFoundException('Resposta não encontrada');
-    }
-
-    if (resposta.validada) {
-      throw new BadRequestException('Resposta já foi validada');
-    }
-
-    resposta.validada = dto.validada ?? true;
-    resposta.dataValidacao = new Date();
-    resposta.dataValidade = dto.dataValidade
-      ? new Date(dto.dataValidade)
-      : undefined;
-
-    const respostaAtualizada = await this.respostaRepository.save(resposta);
-
-    if (resposta.pergunta.dado && resposta.validada) {
-      const valorDadoExistente = await this.valorDadoRepository.findOne({
-        where: {
-          aluno: { aluno_id: resposta.inscricao.aluno.aluno_id },
-          dado: { id: resposta.pergunta.dado.id },
-        },
-      });
-
-      if (valorDadoExistente) {
-        valorDadoExistente.valorTexto =
-          resposta.texto || resposta.valorTexto || '';
-        valorDadoExistente.valorOpcoes = resposta.valorOpcoes || [];
-        valorDadoExistente.valorArquivo = resposta.urlArquivo || '';
-        await this.valorDadoRepository.save(valorDadoExistente);
-      } else {
-        const novoValorDado = this.valorDadoRepository.create({
-          valorTexto: resposta.texto || resposta.valorTexto || '',
-          valorOpcoes: resposta.valorOpcoes || [],
-          valorArquivo: resposta.urlArquivo || '',
-          aluno: resposta.inscricao.aluno,
-          dado: resposta.pergunta.dado,
-        });
-        await this.valorDadoRepository.save(novoValorDado);
-      }
-    }
-
-    return {
-      sucesso: true,
-      dados: {
-        resposta: {
-          id: respostaAtualizada.id,
-          validada: respostaAtualizada.validada,
-          dataValidacao: respostaAtualizada.dataValidacao,
-          dataValidade: respostaAtualizada.dataValidade,
-        },
-        mensagem: 'Resposta validada com sucesso',
-      },
-    };
   }
 }

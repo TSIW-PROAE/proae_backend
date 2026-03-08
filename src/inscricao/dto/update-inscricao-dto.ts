@@ -7,7 +7,7 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { StatusInscricao } from '../../enum/enumStatusInscricao';
+import { StatusInscricao } from '../../core/shared-kernel/enums/enumStatusInscricao';
 import { CreateInscricaoDto } from './create-inscricao-dto';
 import { UpdateRespostaDto } from '../../resposta/dto/update-resposta.dto';
 

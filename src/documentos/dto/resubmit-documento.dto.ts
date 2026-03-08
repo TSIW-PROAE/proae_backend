@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
-import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
+import { EnumTipoDocumento } from '../../core/shared-kernel/enums/enumTipoDocumento';
 
 export class ResubmitDocumentoDto {
   @IsOptional()

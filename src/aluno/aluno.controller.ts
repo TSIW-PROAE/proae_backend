@@ -1,25 +1,47 @@
-import { Body, Controller, Get, Patch, Req, UseGuards, Param, ParseIntPipe } from '@nestjs/common';
-import { 
-  ApiBearerAuth, 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Req,
+  UseGuards,
+  Param,
+  ParseIntPipe,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
   ApiParam,
   ApiOkResponse,
   ApiNotFoundResponse,
-  ApiBadRequestResponse
+  ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import AuthenticatedRequest from '../types/authenticated-request.interface';
+import AuthenticatedRequest from '../core/shared-kernel/types/authenticated-request.interface';
 import { AlunoService } from './aluno.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
+import {
+  FindAlunoByUserIdUseCase,
+  ListAlunosUseCase,
+  UpdateAlunoDataUseCase,
+  AlunoNaoEncontradoError,
+  NenhumAlunoEncontradoError,
+} from '../core/application/aluno';
 
 @ApiTags('Alunos')
 @ApiBearerAuth()
 @Controller('aluno')
 @UseGuards(JwtAuthGuard)
 export class AlunoController {
-  constructor(private readonly alunoService: AlunoService) {}
+  constructor(
+    private readonly findAlunoByUserId: FindAlunoByUserIdUseCase,
+    private readonly listAlunos: ListAlunosUseCase,
+    private readonly updateAlunoData: UpdateAlunoDataUseCase,
+    private readonly alunoService: AlunoService,
+  ) {}
 
   @Get('me')
   @ApiOperation({ 
@@ -60,7 +82,14 @@ export class AlunoController {
   })
   async findOne(@Req() request: AuthenticatedRequest) {
     const { userId } = request.user;
-    return this.alunoService.findByUserId(userId);
+    try {
+      return await this.findAlunoByUserId.execute(userId);
+    } catch (e) {
+      if (e instanceof AlunoNaoEncontradoError) {
+        throw new NotFoundException(e.message);
+      }
+      throw e;
+    }
   }
 
   @Get('all')
@@ -101,7 +130,14 @@ export class AlunoController {
     }
   })
   async findAll() {
-    return this.alunoService.findUsers();
+    try {
+      return await this.listAlunos.execute();
+    } catch (e) {
+      if (e instanceof NenhumAlunoEncontradoError) {
+        throw new NotFoundException(e.message);
+      }
+      throw e;
+    }
   }
 
   @Patch('/update')
@@ -143,7 +179,33 @@ export class AlunoController {
     @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
     const { userId } = request.user;
-    return this.alunoService.updateStudentData(userId, atualizaDadosAlunoDTO);
+    const hasAnyData = Object.values(atualizaDadosAlunoDTO).some(
+      (v) => v !== undefined && v !== null && v !== '',
+    );
+    if (!hasAnyData) {
+      throw new BadRequestException('Dados para atualização não fornecidos.');
+    }
+    try {
+      await this.updateAlunoData.execute(userId, {
+        nome: atualizaDadosAlunoDTO.nome,
+        email: atualizaDadosAlunoDTO.email,
+        matricula: atualizaDadosAlunoDTO.matricula,
+        dataNascimento: atualizaDadosAlunoDTO.data_nascimento,
+        curso: atualizaDadosAlunoDTO.curso,
+        campus: atualizaDadosAlunoDTO.campus,
+        dataIngresso: atualizaDadosAlunoDTO.data_ingresso,
+        celular: atualizaDadosAlunoDTO.celular,
+      });
+      return { success: true, message: 'Dados do aluno atualizados com sucesso!' };
+    } catch (e) {
+      if (e instanceof AlunoNaoEncontradoError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof Error && e.message === 'Email já está em uso.') {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
   }
 
   @Get('/inscricoes')

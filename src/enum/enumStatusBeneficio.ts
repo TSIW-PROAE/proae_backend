@@ -1,5 +1,1 @@
-export enum StatusBeneficio {
-  ATIVO = 'Benefício ativo',
-  INATIVO = 'Benefício inativo',
-  DEFERIDO = 'Benefício deferido',
-}
+export * from '../core/shared-kernel/enums/enumStatusBeneficio';

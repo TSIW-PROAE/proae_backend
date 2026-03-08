@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsDate, IsNotEmpty, IsOptional, IsString, IsNumber, IsEnum } from 'class-validator';
-import { StatusValidacao } from '../../enum/statusValidacao';
+import { StatusValidacao } from '../../core/shared-kernel/enums/statusValidacao';
 
 export class CreateValidacaoDto {
   @IsNotEmpty()

@@ -7,7 +7,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { UnidadeEnum } from '../../enum/enumCampus';
+import { UnidadeEnum } from '../../core/shared-kernel/enums/enumCampus';
 
 export class AtualizaDadosAlunoDTO {
   @ApiProperty({

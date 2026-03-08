@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  InternalServerErrorException,
   Param,
   Patch,
   Post,
@@ -10,6 +12,8 @@ import {
   ParseIntPipe,
   Res,
   Query,
+  NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -26,14 +30,79 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-request.interface';
 import { errorExamples } from '../common/swagger/error-examples';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { InscricaoService } from './inscricao.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PdfService } from '../pdf/pdf.service';
+import {
+  GetInscricoesComPendenciasUseCase,
+  CreateInscricaoUseCase,
+  UpdateInscricaoUseCase,
+} from '../core/application/inscricao';
+import {
+  PDF_RENDERER,
+  type PdfRendererPort,
+} from '../core/application/utilities';
+
+function mapInscricaoError(
+  e: unknown,
+  fallbackMessage: string,
+): never {
+  if (
+    e instanceof NotFoundException ||
+    e instanceof BadRequestException ||
+    e instanceof InternalServerErrorException
+  ) {
+    throw e;
+  }
+  if (e instanceof Error) {
+    if (
+      e.message.includes('não encontrado') ||
+      e.message.includes('não encontrada')
+    ) {
+      throw new NotFoundException(e.message);
+    }
+    if (
+      e.message.includes('não está aberto') ||
+      e.message.includes('não tem permissão') ||
+      e.message.includes('É necessário fornecer respostas') ||
+      e.message.includes('não pode estar vazia') ||
+      e.message.includes('deve ter pelo menos uma opção') ||
+      e.message.includes('deve incluir um arquivo')
+    ) {
+      throw new BadRequestException(e.message);
+    }
+    throw new InternalServerErrorException(fallbackMessage);
+  }
+  throw new InternalServerErrorException(fallbackMessage);
+}
+
+function mapInscricaoCreateError(e: unknown): never {
+  return mapInscricaoError(
+    e,
+    'Ocorreu um erro ao processar sua inscrição. Por favor, tente novamente mais tarde.',
+  );
+}
+
+function mapInscricaoUpdateError(e: unknown): never {
+  return mapInscricaoError(
+    e,
+    'Ocorreu um erro ao processar a atualização da inscrição. Por favor, tente novamente mais tarde.',
+  );
+}
+
+function mapInscricaoPendenciasError(e: unknown): never {
+  if (e instanceof NotFoundException) {
+    throw e;
+  }
+  if (e instanceof Error) {
+    throw new BadRequestException(e.message);
+  }
+  throw new BadRequestException('Falha ao buscar inscrições com pendências do aluno');
+}
 
 @ApiTags('Inscrições')
 @ApiBearerAuth()
@@ -41,8 +110,12 @@ import { PdfService } from '../pdf/pdf.service';
 @Controller('inscricoes')
 export class InscricaoController {
   constructor(
+    private readonly getInscricoesComPendencias: GetInscricoesComPendenciasUseCase,
+    private readonly createInscricaoUseCase: CreateInscricaoUseCase,
+    private readonly updateInscricaoUseCase: UpdateInscricaoUseCase,
     private readonly inscricaoService: InscricaoService,
-    private readonly pdfService: PdfService,
+    @Inject(PDF_RENDERER)
+    private readonly pdfService: PdfRendererPort,
   ) {}
 
   @Post()
@@ -75,11 +148,23 @@ export class InscricaoController {
   async createInscricao(
     @Body() createInscricaoDto: CreateInscricaoDto,
     @Req() request: AuthenticatedRequest,
-  ): Promise<InscricaoResponseDto> {
-    return await this.inscricaoService.createInscricao(
-      createInscricaoDto,
-      request.user.userId,
-    );
+  ) {
+    try {
+      return await this.createInscricaoUseCase.execute(
+        {
+          vaga_id: createInscricaoDto.vaga_id,
+          respostas: (createInscricaoDto.respostas ?? []).map((r) => ({
+            perguntaId: r.perguntaId,
+            valorTexto: r.valorTexto,
+            valorOpcoes: r.valorOpcoes,
+            urlArquivo: r.urlArquivo,
+          })),
+        },
+        request.user.userId,
+      );
+    } catch (e) {
+      mapInscricaoCreateError(e);
+    }
   }
 
   @Patch(':id')
@@ -114,11 +199,33 @@ export class InscricaoController {
     @Body() updateInscricaoDto: UpdateInscricaoDto,
     @Req() request: AuthenticatedRequest,
   ) {
-    return await this.inscricaoService.updateInscricao(
-      id,
-      updateInscricaoDto,
-      request.user.userId,
-    );
+    try {
+      return await this.updateInscricaoUseCase.execute(
+        id,
+        {
+          vaga_id: updateInscricaoDto.vaga_id,
+          respostas: updateInscricaoDto.respostas?.map((r) => ({
+            perguntaId: r.perguntaId,
+            valorTexto: r.valorTexto,
+            valorOpcoes: r.valorOpcoes,
+            urlArquivo: r.urlArquivo,
+          })),
+          respostas_editadas: updateInscricaoDto.respostas_editadas
+            ?.filter((r) => r.perguntaId !== undefined)
+            .map((r) => ({
+              perguntaId: r.perguntaId as number,
+              valorTexto: r.valorTexto,
+              valorOpcoes: r.valorOpcoes,
+              urlArquivo: r.urlArquivo,
+            })),
+          data_inscricao: updateInscricaoDto.data_inscricao,
+          status_inscricao: updateInscricaoDto.status_inscricao,
+        },
+        request.user.userId,
+      );
+    } catch (e) {
+      mapInscricaoUpdateError(e);
+    }
   }
 
   @Get()
@@ -160,9 +267,13 @@ export class InscricaoController {
     schema: { example: errorExamples.internalServerError },
   })
   async getInscricoesAluno(@Req() request: AuthenticatedRequest) {
-    return await this.inscricaoService.getInscricoesByAluno(
-      request.user.userId,
-    );
+    try {
+      return await this.getInscricoesComPendencias.execute(
+        request.user.userId,
+      );
+    } catch (e) {
+      mapInscricaoPendenciasError(e);
+    }
   }
 
   @Post('cache/save/respostas')

@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import AuthenticatedRequest from 'src/types/authenticated-request.interface';
+import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-request.interface';
 import { SignupDto } from './dto/signup.dto';
 import { SignupDtoAdmin } from './dto/siginupAdmin.dto';
 import { LoginDto } from './dto/login.dto';

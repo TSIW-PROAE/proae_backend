@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { StatusValidacao } from '../../enum/statusValidacao';
+import { StatusValidacao } from '../../core/shared-kernel/enums/statusValidacao';
 
 export class UsuarioResponseDto {
   @ApiProperty({ type: String, description: 'ID do usuário' })

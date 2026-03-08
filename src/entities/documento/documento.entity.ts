@@ -5,8 +5,8 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
-import { StatusDocumento } from '../../enum/statusDocumento';
+import { EnumTipoDocumento } from '../../core/shared-kernel/enums/enumTipoDocumento';
+import { StatusDocumento } from '../../core/shared-kernel/enums/statusDocumento';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { Validacao } from '../validacao/validacao.entity';
 

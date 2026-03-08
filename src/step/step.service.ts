@@ -3,55 +3,58 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
-import { EntityManager, Repository } from 'typeorm';
-import { Step } from '../entities/step/step.entity';
+import { Repository } from 'typeorm';
 import { Edital } from '../entities/edital/edital.entity';
-import { InputFormatPlaceholders } from '../enum/enumInputFormat';
+import { InputFormatPlaceholders } from '../core/shared-kernel/enums/enumInputFormat';
 import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
 import { PerguntaResponseDto } from './dto/response-pergunta.dto';
 import {AnswerStepResponseDto } from './dto/response-step.dto';
 import { StepSimpleResponseDto } from './dto/step-simple-response.dto';
+import {
+  CreateStepUseCase,
+  FindStepsByEditalUseCase,
+  FindStepsByEditalWithPerguntasUseCase,
+  RemoveStepUseCase,
+  UpdateStepUseCase,
+} from '../core/application/step';
+import type { StepData, StepWithPerguntasData } from '../core/domain/step';
 
 @Injectable()
 export class StepService {
   constructor(
-    @InjectRepository(Step) private readonly stepRepository: Repository<Step>,
     @InjectRepository(Edital)
     private readonly editalRepository: Repository<Edital>,
-    @InjectEntityManager() private readonly entityManager: EntityManager,
+    private readonly createStepUseCase: CreateStepUseCase,
+    private readonly findStepsByEditalUseCase: FindStepsByEditalUseCase,
+    private readonly findStepsByEditalWithPerguntasUseCase: FindStepsByEditalWithPerguntasUseCase,
+    private readonly updateStepUseCase: UpdateStepUseCase,
+    private readonly removeStepUseCase: RemoveStepUseCase,
   ) {}
 
   // Buscar steps com perguntas de um edital específico
   async findStepsByEditalWithPerguntas(id: number): Promise<AnswerStepResponseDto[]> {
     try {
-      const steps = await this.stepRepository.find({
-        where: { edital: { id } },
-        relations: {
-          perguntas: true,
-        },
-      });
-
-      // if (!steps || steps.length === 0) {
-      //   throw new NotFoundException('Nenhum step encontrado para este edital');
-      // }
-
-      // Transform steps and their perguntas
+      const steps = await this.findStepsByEditalWithPerguntasUseCase.execute(id);
       return steps.map((step) => {
-        const transformedStep = plainToInstance(AnswerStepResponseDto, step, {
+        const transformedStep = plainToInstance(AnswerStepResponseDto, {
+          id: step.id,
+          texto: step.texto,
+          perguntas: [],
+        }, {
           excludeExtraneousValues: true,
         });
-
-        // Transform perguntas separately to ensure placeholder is calculated
-        const transformedPerguntas = step.perguntas.map((pergunta) => {
+        const transformedPerguntas = (step.perguntas ?? []).map((pergunta) => {
           const perguntaDto = plainToInstance(PerguntaResponseDto, pergunta, {
             excludeExtraneousValues: true,
           });
 
           perguntaDto.placeholder =
-            InputFormatPlaceholders[pergunta.tipo_formatacao];
+            InputFormatPlaceholders[
+              (pergunta.tipo_formatacao ?? 'none') as keyof typeof InputFormatPlaceholders
+            ];
 
           return perguntaDto;
         });
@@ -73,15 +76,13 @@ export class StepService {
   // Buscar apenas steps (sem perguntas) de um edital específico
   async findStepsByEdital(id: number): Promise<StepSimpleResponseDto[]> {
     try {
-      const steps = await this.stepRepository.find({
-        where: { edital: { id } },
-      });
-
-      // if (!steps || steps.length === 0) {
-      //   throw new NotFoundException('Nenhum step encontrado para este edital');
-      // }
-
-      return plainToInstance(StepSimpleResponseDto, steps, {
+      const steps = await this.findStepsByEditalUseCase.execute(id);
+      return plainToInstance(StepSimpleResponseDto, steps.map((step) => ({
+        id: step.id,
+        texto: step.texto,
+        created_at: step.created_at,
+        updated_at: step.updated_at,
+      })), {
         excludeExtraneousValues: true,
       });
     } catch (error) {
@@ -96,7 +97,6 @@ export class StepService {
   // Criar um novo step
   async create(createStepDto: CreateStepDto): Promise<StepSimpleResponseDto> {
     try {
-      // Verificar se o edital existe
       const edital = await this.editalRepository.findOneBy({
         id: createStepDto.edital_id,
       });
@@ -105,14 +105,16 @@ export class StepService {
         throw new NotFoundException('Edital não encontrado');
       }
 
-      const step = new Step({
+      const savedStep = await this.createStepUseCase.execute({
+        editalId: createStepDto.edital_id,
         texto: createStepDto.texto,
-        edital: edital,
       });
-
-      const savedStep = await this.stepRepository.save(step);
-
-      return plainToInstance(StepSimpleResponseDto, savedStep, {
+      return plainToInstance(StepSimpleResponseDto, {
+        id: savedStep.id,
+        texto: savedStep.texto,
+        created_at: savedStep.created_at,
+        updated_at: savedStep.updated_at,
+      }, {
         excludeExtraneousValues: true,
       });
     } catch (error) {
@@ -130,26 +132,19 @@ export class StepService {
     updateStepDto: UpdateStepDto,
   ): Promise<StepSimpleResponseDto> {
     try {
-      const step = await this.stepRepository.findOneBy({ id });
-
-      if (!step) {
-        throw new NotFoundException('Step não encontrado');
-      }
-
-      await this.entityManager.transaction(
-        async (transactionalEntityManager) => {
-          Object.assign(step, updateStepDto);
-          await transactionalEntityManager.save(step);
-        },
-      );
-
-      // Busca os dados atualizados
-      const updatedStep = await this.stepRepository.findOneBy({ id });
-
-      return plainToInstance(StepSimpleResponseDto, updatedStep, {
+      const updatedStep = await this.updateStepUseCase.execute(id, updateStepDto.texto);
+      return plainToInstance(StepSimpleResponseDto, {
+        id: updatedStep.id,
+        texto: updatedStep.texto,
+        created_at: updatedStep.created_at,
+        updated_at: updatedStep.updated_at,
+      }, {
         excludeExtraneousValues: true,
       });
     } catch (error) {
+      if (error instanceof Error && error.message === 'Step não encontrado') {
+        throw new NotFoundException('Step não encontrado');
+      }
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -161,18 +156,13 @@ export class StepService {
   // Remover um step
   async remove(id: number): Promise<{ message: string }> {
     try {
-      const step = await this.stepRepository.findOne({
-        where: { id },
-      });
-
-      if (!step) {
-        throw new NotFoundException('Step não encontrado');
-      }
-
-      await this.stepRepository.delete({ id });
+      await this.removeStepUseCase.execute(id);
 
       return { message: 'Step removido com sucesso' };
     } catch (error) {
+      if (error instanceof Error && error.message === 'Step não encontrado') {
+        throw new NotFoundException('Step não encontrado');
+      }
       if (error instanceof NotFoundException) {
         throw error;
       }

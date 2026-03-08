@@ -1,6 +1,6 @@
-import { Documento } from "@/src/entities/documento/documento.entity";
+import type { DocumentoData } from '../../core/domain/documento/documento.types';
 export class PendentDocumentoDto {
-    inscricao_id: number;
-    titulo_edital: string;
-    documentos: Documento[];
+  inscricao_id: number;
+  titulo_edital: string;
+  documentos: DocumentoData[];
 }

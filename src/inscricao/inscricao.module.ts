@@ -1,16 +1,22 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
-import { Aluno } from 'src/entities/aluno/aluno.entity';
-import { Documento } from 'src/entities/documento/documento.entity';
-import { Edital } from 'src/entities/edital/edital.entity';
-import { Pergunta } from '@/src/entities/pergunta/pergunta.entity';
-import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
-import { Resposta } from 'src/entities/resposta/resposta.entity';
-import { Vagas } from 'src/entities/vagas/vagas.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { Documento } from '../entities/documento/documento.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Resposta } from '../entities/resposta/resposta.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
 import { InscricaoController } from './inscricao.controller';
 import { InscricaoService } from './inscricao.service';
-import { RedisService } from '../redis/redis.service';
+import { INSCRICAO_REPOSITORY } from '../core/application/inscricao';
+import { InscricaoTypeOrmRepository } from '../infrastructure/persistence/typeorm/repositories/inscricao.typeorm.repository';
+import {
+  GetInscricoesComPendenciasUseCase,
+  CreateInscricaoUseCase,
+  UpdateInscricaoUseCase,
+} from '../core/application/inscricao';
 import { PdfModule } from '../pdf/pdf.module';
 
 @Module({
@@ -28,7 +34,13 @@ import { PdfModule } from '../pdf/pdf.module';
     PdfModule,
   ],
   controllers: [InscricaoController],
-  providers: [InscricaoService],
+  providers: [
+    { provide: INSCRICAO_REPOSITORY, useClass: InscricaoTypeOrmRepository },
+    GetInscricoesComPendenciasUseCase,
+    CreateInscricaoUseCase,
+    UpdateInscricaoUseCase,
+    InscricaoService,
+  ],
   exports: [InscricaoService],
 })
 export class InscricaoModule {}

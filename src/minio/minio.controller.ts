@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import AuthenticatedRequest from '../types/authenticated-request.interface';
+import AuthenticatedRequest from '../core/shared-kernel/types/authenticated-request.interface';
 import { MinioClientService } from './minio.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 

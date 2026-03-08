@@ -1,5 +1,5 @@
 import { AbstractEntity } from '@/src/db/abstract.entity';
-import { EnumTipoInput } from '@/src/enum/enumTipoInput';
+import { EnumTipoInput } from '@/src/core/shared-kernel/enums/enumTipoInput';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { ValorDado } from '../valorDado/valorDado.entity';
 

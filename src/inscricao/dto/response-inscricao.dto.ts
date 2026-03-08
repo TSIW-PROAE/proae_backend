@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { StatusInscricao } from '../../enum/enumStatusInscricao';
+import { StatusInscricao } from '../../core/shared-kernel/enums/enumStatusInscricao';
 import { RespostaResponseDto } from '../../resposta/dto/response-resposta.dto';
 
 export class InscricaoResponseDto {

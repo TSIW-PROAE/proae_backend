@@ -11,7 +11,7 @@ import { UpdateStatusEditalDto } from './dto/update-status-edital.dto';
 import { Edital } from 'src/entities/edital/edital.entity';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { Aluno } from '../entities/aluno/aluno.entity';

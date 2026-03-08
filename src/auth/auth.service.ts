@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Inject,
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
@@ -16,9 +17,9 @@ import { Admin } from '../entities/admin/admin.entity';
 import { SignupDto } from './dto/signup.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { EmailService } from '../email/email.service';
-import { RolesEnum } from '../enum/enumRoles';
+import { RolesEnum } from '../core/shared-kernel/enums/enumRoles';
 import { SignupDtoAdmin } from './dto/siginupAdmin.dto';
+import { EMAIL_SENDER, type EmailSenderPort } from '../core/application/utilities';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +31,8 @@ export class AuthService {
     @InjectRepository(Admin)
     private adminRepository: Repository<Admin>,
     private jwtService: JwtService,
-    private emailService: EmailService,
+    @Inject(EMAIL_SENDER)
+    private emailService: EmailSenderPort,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -153,6 +155,9 @@ export class AuthService {
         dados: { aluno: result },
       };
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       console.log(error);
       throw new InternalServerErrorException('Erro ao cadastrar aluno');
     }
@@ -297,6 +302,9 @@ export class AuthService {
         },
       };
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       console.error('Erro ao cadastrar admin:', error);
       throw new BadRequestException(
         'Não foi possível cadastrar o admin. Verifique os dados e tente novamente.',

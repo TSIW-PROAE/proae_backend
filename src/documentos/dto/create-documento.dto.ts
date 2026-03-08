@@ -6,8 +6,8 @@ import {
   IsString,
   IsUrl,
 } from 'class-validator';
-import { EnumTipoDocumento } from '../../enum/enumTipoDocumento';
-import { StatusDocumento } from '../../enum/statusDocumento';
+import { EnumTipoDocumento } from '../../core/shared-kernel/enums/enumTipoDocumento';
+import { StatusDocumento } from '../../core/shared-kernel/enums/statusDocumento';
 import { Type } from 'class-transformer';
 
 export class CreateDocumentoDto {

@@ -6,9 +6,9 @@ import {
   IsPhoneNumber,
   IsString,
 } from 'class-validator';
-import { IsCPF } from '../../validators/isCpf.validator';
-import { IsStrongPassword } from '../../validators/strong-password.validator';
-import { IsUfbaEmail } from '../../validators/is-ufba-email.validator';
+import { IsCPF } from '../../core/shared-kernel/validators/isCpf.validator';
+import { IsStrongPassword } from '../../core/shared-kernel/validators/strong-password.validator';
+import { IsUfbaEmail } from '../../core/shared-kernel/validators/is-ufba-email.validator';
 
 export class SignupDtoAdmin {
   @ApiProperty({

@@ -1,5 +1,1 @@
-export enum StatusValidacao {
-  APROVADO = 'aprovado',
-  REPROVADO = 'reprovado',
-  PENDENTE = 'pendente',
-}
+export * from '../core/shared-kernel/enums/statusValidacao';

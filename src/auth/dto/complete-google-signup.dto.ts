@@ -6,10 +6,10 @@ import {
   IsNumberString,
   IsPhoneNumber,
 } from 'class-validator';
-import { UnidadeEnum } from '../../enum/enumCampus';
+import { UnidadeEnum } from '../../core/shared-kernel/enums/enumCampus';
 import { CursosEnum } from '../../enum/enumCursos';
-import { PronomesEnum } from '../../enum/enumPronomes';
-import { IsCPF } from '../../validators/isCpf.validator';
+import { PronomesEnum } from '../../core/shared-kernel/enums/enumPronomes';
+import { IsCPF } from '../../core/shared-kernel/validators/isCpf.validator';
 
 export class CompleteGoogleSignupDto {
   @ApiProperty({

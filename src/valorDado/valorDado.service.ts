@@ -1,52 +1,80 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { CreateValorDadoDto } from './dto/create-valor-dado.dto';
-import { Dado } from '../entities/tipoDado/tipoDado.entity';
 import { ValorDado } from '../entities/valorDado/valorDado.entity';
-import { Aluno } from '../entities/aluno/aluno.entity';
+import {
+  CreateValorDadoUseCase,
+  FindValoresByAlunoUseCase,
+  RemoveValorDadoUseCase,
+  UpdateValorDadoUseCase,
+} from '../core/application/valor-dado';
 
 @Injectable()
 export class ValorDadoService {
   constructor(
-    @InjectRepository(Dado)
-    private readonly dadoRepo: Repository<Dado>,
-
-    @InjectRepository(ValorDado)
-    private readonly valorDadoRepo: Repository<ValorDado>,
-
-    @InjectRepository(Aluno)
-    private readonly alunoRepo: Repository<Aluno>,
+    private readonly createValorDadoUseCase: CreateValorDadoUseCase,
+    private readonly findValoresByAlunoUseCase: FindValoresByAlunoUseCase,
+    private readonly updateValorDadoUseCase: UpdateValorDadoUseCase,
+    private readonly removeValorDadoUseCase: RemoveValorDadoUseCase,
   ) {}
 
   async createValor(dto: CreateValorDadoDto): Promise<ValorDado> {
-    const aluno = await this.alunoRepo.findOneBy({ aluno_id: dto.alunoId });
-    if (!aluno) throw new NotFoundException('Aluno não encontrado');
-
-    const dado = await this.dadoRepo.findOneBy({ id: dto.dadoId });
-    if (!dado) throw new NotFoundException('Dado não encontrado');
-
-    const valor = this.valorDadoRepo.create({ aluno, dado, ...dto });
-    return this.valorDadoRepo.save(valor);
+    try {
+      const valor = await this.createValorDadoUseCase.execute({
+        alunoId: dto.alunoId,
+        dadoId: dto.dadoId,
+        valorTexto: dto.valorTexto ?? null,
+        valorOpcoes: dto.valorOpcoes ?? [],
+        valorArquivo: dto.valorArquivo ?? null,
+      });
+      return valor as unknown as ValorDado;
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Aluno não encontrado') {
+        throw new NotFoundException('Aluno não encontrado');
+      }
+      if (error instanceof Error && error.message === 'Dado não encontrado') {
+        throw new NotFoundException('Dado não encontrado');
+      }
+      throw error;
+    }
   }
 
   async findValorByAluno(alunoId: number): Promise<ValorDado[]> {
-    return this.valorDadoRepo.find({
-      where: { aluno: { aluno_id: alunoId } },
-      relations: ['dado'],
-    });
+    const valores = await this.findValoresByAlunoUseCase.execute(alunoId);
+    return valores as unknown as ValorDado[];
   }
 
   async updateValor(id: number, dto: CreateValorDadoDto): Promise<ValorDado> {
-    const valor = await this.valorDadoRepo.findOne({ where: { id } });
-    if (!valor) throw new NotFoundException('ValorDado não encontrado');
-    Object.assign(valor, dto);
-    return this.valorDadoRepo.save(valor);
+    try {
+      const valor = await this.updateValorDadoUseCase.execute(id, {
+        alunoId: dto.alunoId,
+        dadoId: dto.dadoId,
+        valorTexto: dto.valorTexto ?? null,
+        valorOpcoes: dto.valorOpcoes ?? [],
+        valorArquivo: dto.valorArquivo ?? null,
+      });
+      return valor as unknown as ValorDado;
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ValorDado não encontrado') {
+        throw new NotFoundException('ValorDado não encontrado');
+      }
+      if (error instanceof Error && error.message === 'Aluno não encontrado') {
+        throw new NotFoundException('Aluno não encontrado');
+      }
+      if (error instanceof Error && error.message === 'Dado não encontrado') {
+        throw new NotFoundException('Dado não encontrado');
+      }
+      throw error;
+    }
   }
 
   async removeValor(id: number): Promise<void> {
-    const valor = await this.valorDadoRepo.findOne({ where: { id } });
-    if (!valor) throw new NotFoundException('ValorDado não encontrado');
-    await this.valorDadoRepo.remove(valor);
+    try {
+      await this.removeValorDadoUseCase.execute(id);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ValorDado não encontrado') {
+        throw new NotFoundException('ValorDado não encontrado');
+      }
+      throw error;
+    }
   }
 }

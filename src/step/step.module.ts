@@ -6,6 +6,15 @@ import { Step } from '../entities/step/step.entity';
 import { StepController } from './step.controller';
 import { StepService } from './step.service';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
+import { STEP_REPOSITORY } from '../core/application/step';
+import { StepTypeOrmRepository } from '../infrastructure/persistence/typeorm/repositories/step.typeorm.repository';
+import {
+  CreateStepUseCase,
+  FindStepsByEditalUseCase,
+  FindStepsByEditalWithPerguntasUseCase,
+  RemoveStepUseCase,
+  UpdateStepUseCase,
+} from '../core/application/step';
 
 @Module({
   imports: [
@@ -13,7 +22,15 @@ import { Pergunta } from '../entities/pergunta/pergunta.entity';
     forwardRef(() => AuthModule),
   ],
   controllers: [StepController],
-  providers: [StepService],
+  providers: [
+    { provide: STEP_REPOSITORY, useClass: StepTypeOrmRepository },
+    CreateStepUseCase,
+    FindStepsByEditalUseCase,
+    FindStepsByEditalWithPerguntasUseCase,
+    UpdateStepUseCase,
+    RemoveStepUseCase,
+    StepService,
+  ],
   exports: [StepService],
 })
 export class StepModule {}

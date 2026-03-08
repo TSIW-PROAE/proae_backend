@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  Inject,
+  Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,13 +14,14 @@ import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Resposta } from '../entities/resposta/resposta.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
-import { StatusEdital } from '../enum/enumStatusEdital';
-import { StatusDocumento } from '../enum/statusDocumento';
+import { StatusEdital } from '../core/shared-kernel/enums/enumStatusEdital';
+import { StatusDocumento } from '../core/shared-kernel/enums/statusDocumento';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
-import { RedisService } from '../redis/redis.service';
+import { CACHE_PORT, type CachePort } from '../core/application/utilities';
 
+@Injectable()
 export class InscricaoService {
   constructor(
     @InjectRepository(Inscricao)
@@ -35,7 +38,8 @@ export class InscricaoService {
     private readonly respostaRepository: Repository<Resposta>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-    private readonly redisService: RedisService,
+    @Inject(CACHE_PORT)
+    private readonly redisService: CachePort,
   ) {}
 
   async createInscricao(
@@ -430,10 +434,13 @@ export class InscricaoService {
     }
     
     try {
-        const respostas = JSON.parse(cachedData);
-        return { 
-            message: 'Respostas encontradas no cache', 
-            respostas,
+        const respostas =
+          typeof cachedData === 'string'
+            ? JSON.parse(cachedData)
+            : cachedData;
+        return {
+            message: 'Respostas encontradas no cache',
+            respostas: Array.isArray(respostas) ? respostas : [],
         };
     } catch (error) {
         console.error('[CACHE] Erro ao fazer parse dos dados do cache:', error);

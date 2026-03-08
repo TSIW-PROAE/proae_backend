@@ -1,8 +1,9 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Redis } from '@upstash/redis';
+import type { CachePort } from '../core/application/utilities';
 
 @Injectable()
-export class RedisService implements OnModuleInit {
+export class RedisService implements OnModuleInit, CachePort {
   private redis: Redis;
 
   onModuleInit() {

@@ -7,7 +7,21 @@ import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
 import { DocumentoController } from './documentos.controller';
 import { DocumentoService } from './documentos.service';
 import { MinioClientModule } from '../minio/minio-client.module';
-import { MinioClientService } from '../minio/minio.service';
+import { DOCUMENTO_REPOSITORY } from '../core/application/documento';
+import { DocumentoTypeOrmRepository } from '../infrastructure/persistence/typeorm/repositories/documento.typeorm.repository';
+import {
+  GetReprovadoDocumentsByStudentUseCase,
+  GetDocumentsWithProblemsByStudentUseCase,
+  CheckResubmissionPermissionUseCase,
+  CreateDocumentoUseCase,
+  FindDocumentosByInscricaoUseCase,
+  FindDocumentoByIdUseCase,
+  UpdateDocumentoUseCase,
+  RemoveDocumentoUseCase,
+  FindInscricaoOwnerUserIdUseCase,
+  FindDocumentoWithOwnerByIdUseCase,
+  HasReprovadoDocumentsByStudentUseCase,
+} from '../core/application/documento';
 
 @Module({
   imports: [
@@ -16,6 +30,20 @@ import { MinioClientService } from '../minio/minio.service';
     MinioClientModule,
   ],
   controllers: [DocumentoController],
-  providers: [DocumentoService, MinioClientService],
+  providers: [
+    { provide: DOCUMENTO_REPOSITORY, useClass: DocumentoTypeOrmRepository },
+    GetReprovadoDocumentsByStudentUseCase,
+    GetDocumentsWithProblemsByStudentUseCase,
+    CheckResubmissionPermissionUseCase,
+    CreateDocumentoUseCase,
+    FindDocumentosByInscricaoUseCase,
+    FindDocumentoByIdUseCase,
+    UpdateDocumentoUseCase,
+    RemoveDocumentoUseCase,
+    FindInscricaoOwnerUserIdUseCase,
+    FindDocumentoWithOwnerByIdUseCase,
+    HasReprovadoDocumentsByStudentUseCase,
+    DocumentoService,
+  ],
 })
 export class DocumentoModule {}

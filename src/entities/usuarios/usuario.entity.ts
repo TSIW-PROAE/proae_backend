@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne } from 'typeorm';
 import { Aluno } from '../aluno/aluno.entity';
 import { Admin } from '../admin/admin.entity';
-import { RolesEnum } from '@/src/enum/enumRoles';
+import { RolesEnum } from '@/src/core/shared-kernel/enums/enumRoles';
 
 @Entity()
 export class Usuario {

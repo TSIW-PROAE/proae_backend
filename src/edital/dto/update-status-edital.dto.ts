@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
 
 export class UpdateStatusEditalDto {
   @ApiProperty({

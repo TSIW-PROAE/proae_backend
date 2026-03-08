@@ -1,7 +1,7 @@
 import { AbstractEntity } from 'src/db/abstract.entity';
 import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
-import { EnumInputFormat } from '../../enum/enumInputFormat';
-import { EnumTipoInput } from '../../enum/enumTipoInput';
+import { EnumInputFormat } from '../../core/shared-kernel/enums/enumInputFormat';
+import { EnumTipoInput } from '../../core/shared-kernel/enums/enumTipoInput';
 import { Step } from '../step/step.entity';
 import { Dado } from '../tipoDado/tipoDado.entity';
 import { Resposta } from '../resposta/resposta.entity';

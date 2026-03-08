@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { EnumInputFormat } from 'src/enum/enumInputFormat';
-import { EnumTipoInput } from 'src/enum/enumTipoInput';
+import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
+import { EnumTipoInput } from 'src/core/shared-kernel/enums/enumTipoInput';
 
 // DTO simples para o Dado
 export class DadoResponseDto {

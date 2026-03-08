@@ -1,4 +1,1 @@
-export enum UnidadeEnum {
-  VITORIA_CONQUISTA = 'Vitória da Conquista',
-  SALVADOR = 'Salvador',
-}
+export * from '../core/shared-kernel/enums/enumCampus';

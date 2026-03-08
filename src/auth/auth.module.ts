@@ -13,6 +13,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { EmailService } from '../email/email.service';
 import { Admin } from '../entities/admin/admin.entity';
 import { Usuario } from '../entities/usuarios/usuario.entity';
+import { EMAIL_SENDER } from '../core/application/utilities';
 
 @Module({
   imports: [
@@ -25,7 +26,14 @@ import { Usuario } from '../entities/usuarios/usuario.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, AuthGuard, RolesGuard, EmailService],
+  providers: [
+    { provide: EMAIL_SENDER, useClass: EmailService },
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    AuthGuard,
+    RolesGuard,
+  ],
   exports: [AuthGuard, RolesGuard, JwtModule, AuthService],
 })
 export class AuthModule {}

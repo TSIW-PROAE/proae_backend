@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { UnidadeEnum } from '../../enum/enumCampus';
+import { UnidadeEnum } from '../../core/shared-kernel/enums/enumCampus';
 
 export class AlunoResponseDto {
   @ApiProperty({ type: Number, description: 'ID do aluno' })

@@ -1,4 +1,1 @@
-export enum RolesEnum {
-  ALUNO = 'aluno',
-  ADMIN = 'admin',
-}
+export * from '../core/shared-kernel/enums/enumRoles';

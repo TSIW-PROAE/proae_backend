@@ -1,5 +1,5 @@
 import { IsArray, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
-import { StatusInscricao } from '../../enum/enumStatusInscricao';
+import { StatusInscricao } from '../../core/shared-kernel/enums/enumStatusInscricao';
 
 export class UpdateIndeferidoInscricaoDto {
   @IsOptional()

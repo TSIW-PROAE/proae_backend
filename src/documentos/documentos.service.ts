@@ -5,28 +5,44 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Aluno } from 'src/entities/aluno/aluno.entity';
-import { Documento } from 'src/entities/documento/documento.entity';
-import { Inscricao } from 'src/entities/inscricao/inscricao.entity';
-import { StatusDocumento } from 'src/enum/statusDocumento';
-import { Repository } from 'typeorm';
+import { StatusDocumento } from 'src/core/shared-kernel/enums/statusDocumento';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { PendentDocumentoDto } from './dto/pendent-documento.dto';
-import { MinioClientService } from '../minio/minio.service';
+import {
+  FILE_STORAGE,
+  type FileStoragePort,
+} from '../core/application/utilities';
+import {
+  CheckResubmissionPermissionUseCase,
+  CreateDocumentoUseCase,
+  FindDocumentoByIdUseCase,
+  FindDocumentoWithOwnerByIdUseCase,
+  FindDocumentosByInscricaoUseCase,
+  FindInscricaoOwnerUserIdUseCase,
+  GetDocumentsWithProblemsByStudentUseCase,
+  GetReprovadoDocumentsByStudentUseCase,
+  HasReprovadoDocumentsByStudentUseCase,
+  RemoveDocumentoUseCase,
+  UpdateDocumentoUseCase,
+} from '../core/application/documento';
 
 @Injectable()
 export class DocumentoService {
   constructor(
-    @InjectRepository(Documento)
-    private readonly documentoRepository: Repository<Documento>,
-    @InjectRepository(Inscricao)
-    private inscricaoRepository: Repository<Inscricao>,
-    @InjectRepository(Aluno)
-    private alunoRepository: Repository<Aluno>,
-    @Inject()
-    private storageService: MinioClientService,
+    @Inject(FILE_STORAGE)
+    private readonly storageService: FileStoragePort,
+    private readonly createDocumentoUseCase: CreateDocumentoUseCase,
+    private readonly findDocumentosByInscricaoUseCase: FindDocumentosByInscricaoUseCase,
+    private readonly findDocumentoByIdUseCase: FindDocumentoByIdUseCase,
+    private readonly updateDocumentoUseCase: UpdateDocumentoUseCase,
+    private readonly removeDocumentoUseCase: RemoveDocumentoUseCase,
+    private readonly getReprovadoDocumentsByStudentUseCase: GetReprovadoDocumentsByStudentUseCase,
+    private readonly hasReprovadoDocumentsByStudentUseCase: HasReprovadoDocumentsByStudentUseCase,
+    private readonly getDocumentsWithProblemsByStudentUseCase: GetDocumentsWithProblemsByStudentUseCase,
+    private readonly checkResubmissionPermissionUseCase: CheckResubmissionPermissionUseCase,
+    private readonly findInscricaoOwnerUserIdUseCase: FindInscricaoOwnerUserIdUseCase,
+    private readonly findDocumentoWithOwnerByIdUseCase: FindDocumentoWithOwnerByIdUseCase,
   ) {}
 
   async createDocumento(
@@ -34,33 +50,30 @@ export class DocumentoService {
     files: Express.Multer.File[],
   ) {
     try {
-      const inscricao = await this.inscricaoRepository.findOne({
-        where: { id: createDocumentoDto.inscricao },
-        relations: ['aluno', 'aluno.usuario'],
-      });
-
-      if (!inscricao) {
-        throw new BadRequestException('Inscrição não encontrada');
-      }
-
       if (!files || files.length === 0) {
         throw new BadRequestException('Nenhum arquivo foi enviado');
       }
 
+      const ownerUserId = await this.findInscricaoOwnerUserIdUseCase.execute(
+        createDocumentoDto.inscricao,
+      );
+      if (!ownerUserId) {
+        throw new BadRequestException('Inscrição não encontrada');
+      }
+
       const documentUrl = (
         await this.storageService.uploadDocuments(
-          inscricao.aluno.usuario.usuario_id,
+          ownerUserId,
           files,
         )
       ).arquivos[0].nome_do_arquivo;
 
-      const documento = this.documentoRepository.create({
-        ...createDocumentoDto,
-        inscricao,
+      const novoDocumento = await this.createDocumentoUseCase.execute({
+        inscricao_id: createDocumentoDto.inscricao,
+        tipo_documento: createDocumentoDto.tipo_documento as any,
         documento_url: documentUrl,
+        status_documento: (createDocumentoDto.status_documento as any) ?? undefined,
       });
-
-      const novoDocumento = await this.documentoRepository.save(documento);
       return {
         sucess: true,
         documento: novoDocumento,
@@ -74,9 +87,7 @@ export class DocumentoService {
 
   async findAllDocumentoByInscricao(inscricaoId: number) {
     try {
-      const documentos = await this.documentoRepository.find({
-        where: { inscricao: { id: inscricaoId } },
-      });
+      const documentos = await this.findDocumentosByInscricaoUseCase.execute(inscricaoId);
 
       if (!documentos.length) {
         throw new NotFoundException(
@@ -89,6 +100,9 @@ export class DocumentoService {
         documentos: documentos,
       };
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       const e = error as Error;
       console.error('Erro buscar documentos', error);
       throw new BadRequestException(
@@ -99,9 +113,7 @@ export class DocumentoService {
 
   async findOneDocumento(id: number) {
     try {
-      const documento = await this.documentoRepository.findOne({
-        where: { documento_id: id },
-      });
+      const documento = await this.findDocumentoByIdUseCase.execute(id);
 
       if (!documento) {
         throw new NotFoundException('Documento não encontrado');
@@ -111,6 +123,9 @@ export class DocumentoService {
         documentos: documento,
       };
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       const e = error as Error;
       console.error('Erro buscar documentos', error);
       throw new BadRequestException(
@@ -121,19 +136,24 @@ export class DocumentoService {
 
   async updateDocumento(id: number, updateDocumentoDto: UpdateDocumentoDto) {
     try {
-      const documento = await this.documentoRepository.findOne({
-        where: { documento_id: id },
-      });
-      if (!documento) {
-        throw new NotFoundException('Documento não encontrado');
-      }
-      Object.assign(documento, updateDocumentoDto);
-      const doc_atualizado = await this.documentoRepository.save(documento);
+      const doc_atualizado = await this.updateDocumentoUseCase.execute(
+        id,
+        updateDocumentoDto as any,
+      );
       return {
         sucess: true,
         documento: doc_atualizado,
       };
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Documento não encontrado'
+      ) {
+        throw new NotFoundException('Documento não encontrado');
+      }
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       const e = error as Error;
       console.error('Erro atualizar documento', error);
       throw new BadRequestException(
@@ -144,14 +164,17 @@ export class DocumentoService {
 
   async removeDocumento(id: number) {
     try {
-      const documento = await this.documentoRepository.findOne({
-        where: { documento_id: id },
-      });
-      if (!documento) {
+      await this.removeDocumentoUseCase.execute(id);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Documento não encontrado'
+      ) {
         throw new NotFoundException('Documento não encontrado');
       }
-      await this.documentoRepository.remove(documento);
-    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       const e = error as Error;
       console.error('Erro ao remover documento', error);
       throw new BadRequestException(
@@ -165,25 +188,7 @@ export class DocumentoService {
    */
   async hasReprovadoDocuments(userId: string): Promise<boolean> {
     try {
-      const aluno = await this.alunoRepository.findOne({
-        where: { usuario: { usuario_id: userId } },
-        relations: ['inscricoes', 'inscricoes.documentos'],
-      });
-
-      if (!aluno) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      for (const inscricao of aluno.inscricoes) {
-        const hasReprovado = inscricao.documentos.some(
-          (doc) => doc.status_documento === StatusDocumento.REPROVADO,
-        );
-        if (hasReprovado) {
-          return true;
-        }
-      }
-
-      return false;
+      return this.hasReprovadoDocumentsByStudentUseCase.execute(userId);
     } catch (error) {
       const e = error as Error;
       console.error('Erro ao verificar documentos reprovados', error);
@@ -198,22 +203,8 @@ export class DocumentoService {
    */
   async getReprovadoDocumentsByStudent(userId: string) {
     try {
-      const aluno = await this.alunoRepository.findOne({
-        where: { usuario: { usuario_id: userId } },
-        relations: ['inscricoes', 'inscricoes.documentos'],
-      });
-
-      if (!aluno) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      const reprovadoDocuments: Documento[] = [];
-      for (const inscricao of aluno.inscricoes) {
-        const documentosReprovados = inscricao.documentos.filter(
-          (doc) => doc.status_documento === StatusDocumento.REPROVADO,
-        );
-        reprovadoDocuments.push(...documentosReprovados);
-      }
+      const reprovadoDocuments =
+        await this.getReprovadoDocumentsByStudentUseCase.execute(userId);
 
       return {
         success: true,
@@ -233,50 +224,9 @@ export class DocumentoService {
    */
   async getDocumentsWithProblemsByStudent(userId: string) {
     try {
-      const aluno = await this.alunoRepository
-        .createQueryBuilder('aluno')
-        .select('aluno.aluno_id')
-        .where('aluno.usuario.usuario_id = :usuarioId', { usuarioId: userId })
-        .leftJoin('aluno.inscricoes', 'inscricao')
-        .addSelect('inscricao.id')
-        .leftJoinAndSelect('inscricao.documentos', 'documento')
-        .andWhere(
-          '(documento.status_documento != :status OR documento.status_documento IS NULL)',
-          { status: StatusDocumento.APROVADO },
-        )
-        .leftJoin('documento.validacoes', 'validacao')
-        .addSelect(['validacao.parecer', 'validacao.data_validacao'])
-        .leftJoin('inscricao.vagas', 'vagas')
-        .addSelect('vagas.id')
-        .leftJoin('vagas.edital', 'edital')
-        .addSelect('edital.titulo_edital')
-        .getOne();
-
-      if (!aluno) {
-        throw new NotFoundException('Aluno não encontrado');
-      }
-
-      // Se não houver inscrições, retorna array vazio
-      if (!aluno.inscricoes || aluno.inscricoes.length === 0) {
-        return {
-          success: true,
-          pendencias: [],
-        };
-      }
-
-      const pendencias: PendentDocumentoDto[] = [];
-      for (const inscricao of aluno.inscricoes) {
-        // Pula inscrições sem documentos pendentes
-        if (!inscricao.documentos || inscricao.documentos.length === 0) {
-          continue;
-        }
-
-        const pendencia = new PendentDocumentoDto();
-        pendencia.inscricao_id = inscricao.id;
-        pendencia.titulo_edital = inscricao.vagas.edital.titulo_edital;
-        pendencia.documentos = inscricao.documentos;
-        pendencias.push(pendencia);
-      }
+      const pendencias = await this.getDocumentsWithProblemsByStudentUseCase.execute(
+        userId,
+      );
 
       return {
         success: true,
@@ -315,17 +265,14 @@ export class DocumentoService {
         );
       }
 
-      const documento = await this.documentoRepository.findOne({
-        where: { documento_id: documentoId },
-        relations: ['inscricao', 'inscricao.aluno', 'inscricao.aluno.usuario'],
-      });
-
-      if (!documento) {
+      const documentoWithOwner =
+        await this.findDocumentoWithOwnerByIdUseCase.execute(documentoId);
+      if (!documentoWithOwner) {
         throw new NotFoundException('Documento não encontrado');
       }
 
       // Verify the document belongs to the requesting student
-      if (documento.inscricao.aluno.usuario.usuario_id !== userId) {
+      if (documentoWithOwner.owner_user_id !== userId) {
         throw new ForbiddenException(
           'Você não tem permissão para editar este documento',
         );
@@ -333,20 +280,16 @@ export class DocumentoService {
 
       const documentUrl = (
         await this.storageService.uploadDocuments(
-          documento.inscricao.aluno.usuario.usuario_id,
+          userId,
           file,
         )
       ).arquivos[0].nome_do_arquivo;
 
-      // Update the document and reset status to PENDENTE for reanalysis
-      Object.assign(documento, {
+      const documentoAtualizado = await this.updateDocumentoUseCase.execute(documentoId, {
         ...updateData,
         documento_url: documentUrl,
-        status_documento: StatusDocumento.PENDENTE, // Reset to pending for reanalysis
+        status_documento: StatusDocumento.PENDENTE,
       });
-
-      const documentoAtualizado =
-        await this.documentoRepository.save(documento);
 
       return {
         success: true,
@@ -371,17 +314,12 @@ export class DocumentoService {
    */
   async checkResubmissionPermission(userId: string) {
     try {
-      const hasPermission = await this.hasReprovadoDocuments(userId);
-      const reprovadoDocsData =
-        await this.getReprovadoDocumentsByStudent(userId);
+      const result =
+        await this.checkResubmissionPermissionUseCase.execute(userId);
 
       return {
         success: true,
-        canResubmit: hasPermission,
-        reprovadoDocuments: reprovadoDocsData.documentos,
-        message: hasPermission
-          ? 'Você pode editar seus documentos e dados para reenvio'
-          : 'Você não possui documentos reprovados. Edição não permitida.',
+        ...result,
       };
     } catch (error) {
       const e = error as Error;

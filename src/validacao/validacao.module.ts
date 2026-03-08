@@ -7,6 +7,18 @@ import { Step } from '../entities/step/step.entity';
 import { Documento } from '../entities/documento/documento.entity';
 import { ValidacaoController } from './validacao.controller';
 import { ValidacaoService } from './validacao.service';
+import { VALIDACAO_REPOSITORY } from '../core/application/validacao';
+import { ValidacaoTypeOrmRepository } from '../infrastructure/persistence/typeorm/repositories/validacao.typeorm.repository';
+import {
+  CreateValidacaoUseCase,
+  FindAllValidacoesUseCase,
+  FindValidacaoByIdUseCase,
+  UpdateValidacaoUseCase,
+  RemoveValidacaoUseCase,
+  AprovarValidacaoUseCase,
+  ReprovarValidacaoUseCase,
+  FindValidacoesByStatusUseCase,
+} from '../core/application/validacao';
 
 @Module({
   imports: [
@@ -14,7 +26,18 @@ import { ValidacaoService } from './validacao.service';
     forwardRef(() => AuthModule),
   ],
   controllers: [ValidacaoController],
-  providers: [ValidacaoService],
+  providers: [
+    { provide: VALIDACAO_REPOSITORY, useClass: ValidacaoTypeOrmRepository },
+    CreateValidacaoUseCase,
+    FindAllValidacoesUseCase,
+    FindValidacaoByIdUseCase,
+    UpdateValidacaoUseCase,
+    RemoveValidacaoUseCase,
+    AprovarValidacaoUseCase,
+    ReprovarValidacaoUseCase,
+    FindValidacoesByStatusUseCase,
+    ValidacaoService,
+  ],
   exports: [ValidacaoService],
 })
 export class ValidacaoModule {}

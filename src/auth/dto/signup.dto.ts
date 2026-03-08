@@ -7,10 +7,10 @@ import {
   IsPhoneNumber,
   IsString,
 } from 'class-validator';
-import { UnidadeEnum } from '../../enum/enumCampus';
-import { IsCPF } from '../../validators/isCpf.validator';
-import { IsStrongPassword } from '../../validators/strong-password.validator';
-import { IsUfbaEmail } from '../../validators/is-ufba-email.validator';
+import { UnidadeEnum } from '../../core/shared-kernel/enums/enumCampus';
+import { IsCPF } from '../../core/shared-kernel/validators/isCpf.validator';
+import { IsStrongPassword } from '../../core/shared-kernel/validators/strong-password.validator';
+import { IsUfbaEmail } from '../../core/shared-kernel/validators/is-ufba-email.validator';
 
 export class SignupDto {
   @ApiProperty({

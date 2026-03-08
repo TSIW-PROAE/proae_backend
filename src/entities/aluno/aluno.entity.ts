@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { UnidadeEnum } from '../../enum/enumCampus';
+import { UnidadeEnum } from '../../core/shared-kernel/enums/enumCampus';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { ValorDado } from '../valorDado/valorDado.entity';
 import { Usuario } from '../usuarios/usuario.entity';

@@ -1,5 +1,5 @@
 import { AbstractEntity } from 'src/db/abstract.entity';
-import { StatusEdital } from 'src/enum/enumStatusEdital';
+import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { Step } from '../step/step.entity';
 import { Vagas } from '../vagas/vagas.entity';

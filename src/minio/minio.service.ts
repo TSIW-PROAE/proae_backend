@@ -1,9 +1,10 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { Client } from 'minio';
 import { MINIO_CONNECTION } from 'nestjs-minio';
+import type { FileStoragePort } from '../core/application/utilities';
 
 @Injectable()
-export class MinioClientService {
+export class MinioClientService implements FileStoragePort {
   constructor(@Inject(MINIO_CONNECTION) private readonly minioClient: Client) {}
 
   async uploadDocuments(userId, files: Express.Multer.File[]) {

@@ -8,7 +8,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { EnumInputFormat } from '../../enum/enumInputFormat';
+import { EnumInputFormat } from '../../core/shared-kernel/enums/enumInputFormat';
 
 export class UpdatePerguntaDto {
   @ApiProperty({

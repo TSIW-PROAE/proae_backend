@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
-import { StatusDocumento } from '../enum/statusDocumento';
+import { StatusDocumento } from '../core/shared-kernel/enums/statusDocumento';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { Usuario } from '../entities/usuarios/usuario.entity';
 import { Step } from '../entities/step/step.entity';

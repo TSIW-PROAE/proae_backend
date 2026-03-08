@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { IsUfbaEmail } from '../../validators/is-ufba-email.validator';
+import { IsUfbaEmail } from '../../core/shared-kernel/validators/is-ufba-email.validator';
 
 export class LoginDto {
   @ApiProperty({

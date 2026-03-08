@@ -3,6 +3,7 @@ import { NestMinioModule } from 'nestjs-minio';
 import { AuthModule } from '../auth/auth.module';
 import { MinioClientController } from './minio.controller';
 import { MinioClientService } from './minio.service';
+import { FILE_STORAGE } from '../core/application/utilities';
 
 @Module({
   imports: [
@@ -16,7 +17,11 @@ import { MinioClientService } from './minio.service';
     }),
     forwardRef(() => AuthModule),
   ],
-  providers: [MinioClientService],
+  providers: [
+    MinioClientService,
+    { provide: FILE_STORAGE, useExisting: MinioClientService },
+  ],
   controllers: [MinioClientController],
+  exports: [FILE_STORAGE, MinioClientService],
 })
 export class MinioClientModule {}

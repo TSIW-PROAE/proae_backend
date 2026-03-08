@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { recuperacaoSenhaTemplate } from './templates/recuperacao_senha.template';
 import { adminApprovalTemplate } from './templates/aprovacao_cadastro.template';
+import type { EmailSenderPort } from '../core/application/utilities';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements EmailSenderPort {
   private transporter: nodemailer.Transporter;
 
   constructor() {

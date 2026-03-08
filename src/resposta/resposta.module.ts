@@ -12,7 +12,21 @@ import { Edital } from '../entities/edital/edital.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
 import { ValorDado } from '../entities/valorDado/valorDado.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
-import { MinioClientService } from '../minio/minio.service';
+import { MinioClientModule } from '../minio/minio-client.module';
+import { RESPOSTA_REPOSITORY } from '../core/application/resposta';
+import { RespostaTypeOrmRepository } from '../infrastructure/persistence/typeorm/repositories/resposta.typeorm.repository';
+import {
+  CreateRespostaUseCase,
+  FindAllRespostasUseCase,
+  FindRespostaByIdUseCase,
+  UpdateRespostaUseCase,
+  RemoveRespostaUseCase,
+  FindRespostasAlunoEditalUseCase,
+  FindRespostasAlunoStepUseCase,
+  FindPerguntasComRespostasAlunoStepUseCase,
+  FindRespostasPerguntaEditalUseCase,
+  ValidateRespostaUseCase,
+} from '../core/application/resposta';
 
 @Module({
   imports: [
@@ -28,8 +42,22 @@ import { MinioClientService } from '../minio/minio.service';
       ValorDado,
       Dado,
     ]),
+    MinioClientModule,
   ],
-  providers: [RespostaService, MinioClientService],
+  providers: [
+    { provide: RESPOSTA_REPOSITORY, useClass: RespostaTypeOrmRepository },
+    CreateRespostaUseCase,
+    FindAllRespostasUseCase,
+    FindRespostaByIdUseCase,
+    UpdateRespostaUseCase,
+    RemoveRespostaUseCase,
+    FindRespostasAlunoEditalUseCase,
+    FindRespostasAlunoStepUseCase,
+    FindPerguntasComRespostasAlunoStepUseCase,
+    FindRespostasPerguntaEditalUseCase,
+    ValidateRespostaUseCase,
+    RespostaService,
+  ],
   controllers: [RespostaController],
   exports: [RespostaService],
 })

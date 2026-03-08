@@ -1,0 +1,196 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Documento } from '../../../../entities/documento/documento.entity';
+import { Aluno } from '../../../../entities/aluno/aluno.entity';
+import { Inscricao } from '../../../../entities/inscricao/inscricao.entity';
+import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
+import type {
+  IDocumentoRepository,
+  CreateDocumentoData,
+  DocumentoData,
+  DocumentoOwnerData,
+  DocumentosComProblemasPorInscricao,
+  DocumentoValidacaoResumo,
+  UpdateDocumentoData,
+} from '../../../../core/domain/documento';
+
+@Injectable()
+export class DocumentoTypeOrmRepository implements IDocumentoRepository {
+  constructor(
+    @InjectRepository(Documento)
+    private readonly documentoRepository: Repository<Documento>,
+    @InjectRepository(Aluno)
+    private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(Inscricao)
+    private readonly inscricaoRepository: Repository<Inscricao>,
+  ) {}
+
+  async create(data: CreateDocumentoData): Promise<DocumentoData> {
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: data.inscricao_id },
+    });
+    if (!inscricao) {
+      throw new Error('Inscrição não encontrada');
+    }
+
+    const documento = this.documentoRepository.create({
+      inscricao,
+      tipo_documento: data.tipo_documento as any,
+      documento_url: data.documento_url,
+      status_documento: (data.status_documento as any) ?? StatusDocumento.NAO_ENVIADO,
+    });
+    const saved = await this.documentoRepository.save(documento);
+    return this.toDocumentoData(saved);
+  }
+
+  async findAllByInscricao(inscricaoId: number): Promise<DocumentoData[]> {
+    const documentos = await this.documentoRepository.find({
+      where: { inscricao: { id: inscricaoId } },
+      relations: ['inscricao', 'validacoes'],
+    });
+    return documentos.map((d) => this.toDocumentoData(d));
+  }
+
+  async findOneById(id: number): Promise<DocumentoData | null> {
+    const documento = await this.documentoRepository.findOne({
+      where: { documento_id: id },
+      relations: ['inscricao', 'validacoes'],
+    });
+    if (!documento) return null;
+    return this.toDocumentoData(documento);
+  }
+
+  async findOneByIdWithOwner(id: number): Promise<DocumentoOwnerData | null> {
+    const documento = await this.documentoRepository.findOne({
+      where: { documento_id: id },
+      relations: ['inscricao', 'inscricao.aluno', 'inscricao.aluno.usuario', 'validacoes'],
+    });
+    if (!documento?.inscricao?.aluno?.usuario?.usuario_id) return null;
+
+    return {
+      documento: this.toDocumentoData(documento),
+      owner_user_id: documento.inscricao.aluno.usuario.usuario_id,
+    };
+  }
+
+  async update(id: number, data: UpdateDocumentoData): Promise<DocumentoData> {
+    const documento = await this.documentoRepository.findOne({
+      where: { documento_id: id },
+      relations: ['inscricao', 'validacoes'],
+    });
+    if (!documento) throw new Error('Documento não encontrado');
+
+    if (data.tipo_documento !== undefined) {
+      documento.tipo_documento = data.tipo_documento as any;
+    }
+    if (data.documento_url !== undefined) {
+      documento.documento_url = data.documento_url;
+    }
+    if (data.status_documento !== undefined) {
+      documento.status_documento = data.status_documento as any;
+    }
+
+    const saved = await this.documentoRepository.save(documento);
+    return this.toDocumentoData(saved);
+  }
+
+  async remove(id: number): Promise<void> {
+    const documento = await this.documentoRepository.findOne({
+      where: { documento_id: id },
+    });
+    if (!documento) throw new Error('Documento não encontrado');
+    await this.documentoRepository.remove(documento);
+  }
+
+  async findInscricaoOwnerUserId(inscricaoId: number): Promise<string | null> {
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: ['aluno', 'aluno.usuario'],
+    });
+    return inscricao?.aluno?.usuario?.usuario_id ?? null;
+  }
+
+  async hasReprovadoDocumentsByStudent(userId: string): Promise<boolean> {
+    const docs = await this.getReprovadoDocumentsByStudent(userId);
+    return docs.length > 0;
+  }
+
+  async getReprovadoDocumentsByStudent(userId: string): Promise<DocumentoData[]> {
+    const aluno = await this.alunoRepository.findOne({
+      where: { usuario: { usuario_id: userId } },
+      relations: ['inscricoes', 'inscricoes.documentos', 'inscricoes.documentos.validacoes'],
+    });
+    if (!aluno) {
+      return [];
+    }
+
+    const reprovados: Documento[] = [];
+    for (const inscricao of aluno.inscricoes ?? []) {
+      const docs = inscricao.documentos ?? [];
+      reprovados.push(
+        ...docs.filter((doc) => doc.status_documento === StatusDocumento.REPROVADO),
+      );
+    }
+    return reprovados.map((d) => this.toDocumentoData(d));
+  }
+
+  async getDocumentsWithProblemsByStudent(
+    userId: string,
+  ): Promise<DocumentosComProblemasPorInscricao[]> {
+    const aluno = await this.alunoRepository
+      .createQueryBuilder('aluno')
+      .select('aluno.aluno_id')
+      .where('aluno.usuario.usuario_id = :usuarioId', { usuarioId: userId })
+      .leftJoin('aluno.inscricoes', 'inscricao')
+      .addSelect('inscricao.id')
+      .leftJoinAndSelect('inscricao.documentos', 'documento')
+      .andWhere(
+        '(documento.status_documento != :status OR documento.status_documento IS NULL)',
+        { status: StatusDocumento.APROVADO },
+      )
+      .leftJoin('documento.validacoes', 'validacao')
+      .addSelect(['validacao.parecer', 'validacao.data_validacao'])
+      .leftJoin('inscricao.vagas', 'vagas')
+      .addSelect('vagas.id')
+      .leftJoin('vagas.edital', 'edital')
+      .addSelect('edital.titulo_edital')
+      .getOne();
+
+    if (!aluno || !aluno.inscricoes?.length) {
+      return [];
+    }
+
+    const result: DocumentosComProblemasPorInscricao[] = [];
+    for (const inscricao of aluno.inscricoes) {
+      if (!inscricao.documentos || inscricao.documentos.length === 0) continue;
+
+      result.push({
+        inscricao_id: inscricao.id,
+        titulo_edital: inscricao.vagas.edital.titulo_edital,
+        documentos: (inscricao.documentos ?? []).map((d) => this.toDocumentoData(d)),
+      });
+    }
+    return result;
+  }
+
+  private toDocumentoData(entity: Documento): DocumentoData {
+    const validacoes: DocumentoValidacaoResumo[] =
+      entity.validacoes?.map((v) => ({
+        parecer: v.parecer ?? null,
+        data_validacao: v.data_validacao ?? null,
+      })) ?? [];
+
+    return {
+      id: entity.documento_id,
+      inscricao_id: entity.inscricao?.id ?? 0,
+      tipo_documento: (entity.tipo_documento as unknown as string) ?? '',
+      documento_url: entity.documento_url ?? null,
+      status_documento: (entity.status_documento as unknown as string) ?? '',
+      validacoes,
+      created_at: undefined,
+      updated_at: undefined,
+    };
+  }
+}
+

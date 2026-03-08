@@ -7,7 +7,7 @@ import {
   IsArray,
   MaxLength,
 } from 'class-validator';
-import { EnumTipoInput } from '@/src/enum/enumTipoInput';
+import { EnumTipoInput } from '@/src/core/shared-kernel/enums/enumTipoInput';
 
 export class CreateDadoDto {
   @ApiProperty({ description: 'Nome do dado', example: 'CPF' })

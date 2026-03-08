@@ -3,11 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import PDFDocument from 'pdfkit';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
-import { StatusInscricao } from '../enum/enumStatusInscricao';
+import { StatusInscricao } from '../core/shared-kernel/enums/enumStatusInscricao';
 import { Edital } from '../entities/edital/edital.entity';
+import type { PdfRendererPort } from '../core/application/utilities';
 
 @Injectable()
-export class PdfService {
+export class PdfService implements PdfRendererPort {
   constructor(
     @InjectRepository(Inscricao)
     private readonly inscricaoRepository: Repository<Inscricao>,

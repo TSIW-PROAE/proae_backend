@@ -3,7 +3,7 @@ import { AbstractEntity } from '../../db/abstract.entity';
 import { Documento } from '../documento/documento.entity';
 import { Usuario } from '../usuarios/usuario.entity';
 import { Step } from '../step/step.entity';
-import { StatusValidacao } from '../../enum/statusValidacao';
+import { StatusValidacao } from '../../core/shared-kernel/enums/statusValidacao';
 
 @Entity()
 export class Validacao extends AbstractEntity<Validacao> {
