@@ -20,7 +20,7 @@ import { CreateVagaDto } from './dto/create-vaga.dto';
 import { UpdateVagaDto } from './dto/update-vaga.dto';
 import { VagaResponseDto } from './dto/vaga-response.dto';
 import { VagasService } from './vagas.service';
-import { errorExamples } from 'src/presentation/http/modules/common/swagger/error-examples';
+import { errorExamples } from 'src/common/swagger/error-examples';
 
 @ApiTags('Vagas')
 @Controller('vagas')

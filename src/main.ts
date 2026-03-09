@@ -7,14 +7,39 @@ import { HttpExceptionFilter } from './presentation/http/filters/http-exception.
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const defaultAllowedOrigins = [
+    'https://proae-frontend.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ];
+  const allowedOrigins = (
+    process.env.CORS_ORIGINS?.split(',').map((origin) => origin.trim()) ??
+    defaultAllowedOrigins
+  ).filter(Boolean);
 
   // Configuração do cookie parser
   app.use(cookieParser());
 
   // Configuração do CORS
   app.enableCors({
-    origin: true, // Permite todas as origens ou configure com um array de origens específicas
+    origin: (origin, callback) => {
+      // Permite chamadas sem Origin (health checks/server-to-server)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin não permitida por CORS: ${origin}`), false);
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+    optionsSuccessStatus: 204,
+    preflightContinue: false,
     credentials: true,
   });
 

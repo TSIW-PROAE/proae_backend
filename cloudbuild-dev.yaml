@@ -40,7 +40,7 @@ steps:
       - '--add-cloudsql-instances'
       - '${_CLOUD_SQL_CONNECTION_NAME}'
       - '--set-env-vars'
-      - 'NODE_ENV=${_NODE_ENV},PORT=8080,USE_CLOUD_SQL=true,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME}'
+      - 'NODE_ENV=${_NODE_ENV},PORT=8080,USE_CLOUD_SQL=true,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME},CORS_ORIGINS=${_CORS_ORIGINS}'
       - '--set-secrets'
       - 'DB_USERNAME=db-username-dev:latest,DB_PASSWORD=db-password-dev:latest,DB_NAME=db-name-dev:latest,JWT_SECRET=jwt-secret-dev:latest'
     id: 'deploy-cloud-run'
@@ -54,6 +54,7 @@ substitutions:
   _NODE_ENV: 'development'
   _SERVICE_ACCOUNT: 'proae-backend-dev@${PROJECT_ID}.iam.gserviceaccount.com'
   _CLOUD_SQL_CONNECTION_NAME: '${PROJECT_ID}:${_REGION}:proae-db-dev'
+  _CORS_ORIGINS: 'https://proae-frontend.vercel.app,http://localhost:5173'
 
 images:
   - 'gcr.io/$PROJECT_ID/proae-backend-dev:$SHORT_SHA'

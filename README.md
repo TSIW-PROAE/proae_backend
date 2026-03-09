@@ -38,6 +38,12 @@ docker-compose up -d
 
 > **Nota:** Configure o arquivo `.env` baseado no `.env.example` antes de rodar.
 
+## ☁️ Deploy GCP
+
+Guia completo para Cloud Run + Cloud SQL:
+
+- `README-CLOUD-RUN-CLOUD-SQL.md`
+
 ## 📊 Estrutura Principal
 
 ```
