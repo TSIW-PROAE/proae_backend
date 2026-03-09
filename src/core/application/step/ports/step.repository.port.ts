@@ -1,2 +1,2 @@
-export type { IStepRepository } from '../../../domain/step';
+export type { IStepRepository } from '../../../domain/step/ports/step.repository.port';
 

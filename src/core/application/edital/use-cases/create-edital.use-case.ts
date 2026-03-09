@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IEditalRepository } from '../ports/edital.repository.port';
-import type { CreateEditalData } from '../../../domain/edital';
+import type { CreateEditalData } from '../../../domain/edital/edital.types';
 import { EDITAL_REPOSITORY } from '../edital.tokens';
 
 @Injectable()

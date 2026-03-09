@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IDocumentoRepository } from '../ports/documento.repository.port';
 import { DOCUMENTO_REPOSITORY } from '../documento.tokens';
-import type { DocumentoData } from '../../../domain/documento';
+import type { DocumentoData } from '../../../domain/documento/documento.types';
 
 export interface CheckResubmissionPermissionResult {
   canResubmit: boolean;

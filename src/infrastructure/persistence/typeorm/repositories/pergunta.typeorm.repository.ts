@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Pergunta } from '../../../../entities/pergunta/pergunta.entity';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import type {
-  IPerguntaRepository,
   PerguntaData,
-} from '../../../../core/domain/pergunta';
+} from '../../../../core/domain/pergunta/pergunta.types';
+import type { IPerguntaRepository } from '../../../../core/domain/pergunta/ports/pergunta.repository.port';
 
 @Injectable()
 export class PerguntaTypeOrmRepository implements IPerguntaRepository {

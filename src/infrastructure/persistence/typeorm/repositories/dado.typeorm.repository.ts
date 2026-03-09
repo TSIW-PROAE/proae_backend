@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Dado } from '../../../../entities/tipoDado/tipoDado.entity';
-import type { DadoData, IDadoRepository } from '../../../../core/domain/dado';
+import { Dado } from '../entities/tipoDado/tipoDado.entity';
+import type { DadoData } from '../../../../core/domain/dado/dado.types';
+import type { IDadoRepository } from '../../../../core/domain/dado/ports/dado.repository.port';
 
 @Injectable()
 export class DadoTypeOrmRepository implements IDadoRepository {

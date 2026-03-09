@@ -1,2 +1,2 @@
-export type { IDadoRepository } from '../../../domain/dado';
+export type { IDadoRepository } from '../../../domain/dado/ports/dado.repository.port';
 

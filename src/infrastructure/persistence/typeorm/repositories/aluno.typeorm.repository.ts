@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Usuario } from '../../../../entities/usuarios/usuario.entity';
+import { Usuario } from '../entities/usuarios/usuario.entity';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
-import type { IAlunoRepository } from '../../../../core/domain/aluno';
-import type { AlunoData, AtualizaAlunoData } from '../../../../core/domain/aluno';
+import type { AlunoData, AtualizaAlunoData } from '../../../../core/domain/aluno/aluno.types';
+import type { IAlunoRepository } from '../../../../core/domain/aluno/ports/aluno.repository.port';
 
 /**
  * Implementação do repositório de Aluno usando TypeORM (Adapter).

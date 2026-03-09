@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IPerguntaRepository } from '../ports/pergunta.repository.port';
 import { PERGUNTA_REPOSITORY } from '../pergunta.tokens';
-import type { PerguntaData } from '../../../domain/pergunta';
+import type { PerguntaData } from '../../../domain/pergunta/pergunta.types';
 
 @Injectable()
 export class FindPerguntasByStepUseCase {

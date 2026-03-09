@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IEditalRepository } from '../ports/edital.repository.port';
-import type { StatusEditalDomain } from '../../../domain/edital';
+import type { StatusEditalDomain } from '../../../domain/edital/edital.types';
 import { EDITAL_REPOSITORY } from '../edital.tokens';
 import { EditalNaoEncontradoError } from './find-edital-by-id.use-case';
 

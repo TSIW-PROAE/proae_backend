@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Vagas } from '../../../../entities/vagas/vagas.entity';
-import type { IVagaRepository, VagaData } from '../../../../core/domain/vaga';
+import { Vagas } from '../entities/vagas/vagas.entity';
+import type { VagaData } from '../../../../core/domain/vaga/vaga.types';
+import type { IVagaRepository } from '../../../../core/domain/vaga/ports/vaga.repository.port';
 
 @Injectable()
 export class VagaTypeOrmRepository implements IVagaRepository {

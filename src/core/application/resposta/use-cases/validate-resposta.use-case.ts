@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { RESPOSTA_REPOSITORY } from '../resposta.tokens';
 import type { IRespostaRepository } from '../ports/resposta.repository.port';
-import type { ValidateRespostaCommand } from '../../../domain/resposta';
+import type { ValidateRespostaCommand } from '../../../domain/resposta/resposta.types';
 
 @Injectable()
 export class ValidateRespostaUseCase {

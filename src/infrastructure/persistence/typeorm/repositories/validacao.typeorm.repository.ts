@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Validacao } from '../../../../entities/validacao/validacao.entity';
-import { Usuario } from '../../../../entities/usuarios/usuario.entity';
-import { Step } from '../../../../entities/step/step.entity';
-import { Documento } from '../../../../entities/documento/documento.entity';
+import { Validacao } from '../entities/validacao/validacao.entity';
+import { Usuario } from '../entities/usuarios/usuario.entity';
+import { Step } from '../entities/step/step.entity';
+import { Documento } from '../entities/documento/documento.entity';
 import { StatusValidacao } from '../../../../core/shared-kernel/enums/statusValidacao';
 import type {
-  IValidacaoRepository,
   ValidacaoData,
-} from '../../../../core/domain/validacao';
+} from '../../../../core/domain/validacao/validacao.types';
+import type { IValidacaoRepository } from '../../../../core/domain/validacao/ports/validacao.repository.port';
 
 @Injectable()
 export class ValidacaoTypeOrmRepository implements IValidacaoRepository {

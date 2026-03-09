@@ -1,2 +1,2 @@
-export type { IVagaRepository } from '../../../domain/vaga';
+export type { IVagaRepository } from '../../../domain/vaga/ports/vaga.repository.port';
 

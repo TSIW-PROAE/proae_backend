@@ -1,1 +1,1 @@
-export type { IInscricaoRepository } from '../../../domain/inscricao';
+export type { IInscricaoRepository } from '../../../domain/inscricao/ports/inscricao.repository.port';

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Step } from '../../../../entities/step/step.entity';
+import { Step } from '../entities/step/step.entity';
 import type {
-  IStepRepository,
   StepData,
   StepWithPerguntasData,
-} from '../../../../core/domain/step';
+} from '../../../../core/domain/step/step.types';
+import type { IStepRepository } from '../../../../core/domain/step/ports/step.repository.port';
 
 @Injectable()
 export class StepTypeOrmRepository implements IStepRepository {

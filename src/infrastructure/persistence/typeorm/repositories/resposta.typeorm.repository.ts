@@ -1,24 +1,24 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Resposta } from '../../../../entities/resposta/resposta.entity';
-import { Pergunta } from '../../../../entities/pergunta/pergunta.entity';
-import { Inscricao } from '../../../../entities/inscricao/inscricao.entity';
-import { Aluno } from '../../../../entities/aluno/aluno.entity';
-import { Usuario } from '../../../../entities/usuarios/usuario.entity';
-import { Step } from '../../../../entities/step/step.entity';
-import { Edital } from '../../../../entities/edital/edital.entity';
-import { Vagas } from '../../../../entities/vagas/vagas.entity';
-import { ValorDado } from '../../../../entities/valorDado/valorDado.entity';
+import { Resposta } from '../entities/resposta/resposta.entity';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { Usuario } from '../entities/usuarios/usuario.entity';
+import { Step } from '../entities/step/step.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
+import { ValorDado } from '../entities/valorDado/valorDado.entity';
 import { InputFormatPlaceholders } from '../../../../core/shared-kernel/enums/enumInputFormat';
 import type {
-  IRespostaRepository,
   RespostaConsultaResultado,
   RespostaData,
   ValidateRespostaCommand,
-} from '../../../../core/domain/resposta';
+} from '../../../../core/domain/resposta/resposta.types';
+import type { IRespostaRepository } from '../../../../core/domain/resposta/ports/resposta.repository.port';
 import { plainToInstance } from 'class-transformer';
-import { PerguntaResponseDto } from '../../../../step/dto/response-pergunta.dto';
+import { PerguntaResponseDto } from '../../../../presentation/http/modules/step/dto/response-pergunta.dto';
 
 @Injectable()
 export class RespostaTypeOrmRepository implements IRespostaRepository {

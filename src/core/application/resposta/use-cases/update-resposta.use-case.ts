@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IRespostaRepository } from '../ports/resposta.repository.port';
 import { RESPOSTA_REPOSITORY } from '../resposta.tokens';
-import type { RespostaData } from '../../../domain/resposta';
+import type { RespostaData } from '../../../domain/resposta/resposta.types';
 
 export interface UpdateRespostaCommand {
   valorTexto?: string | null;

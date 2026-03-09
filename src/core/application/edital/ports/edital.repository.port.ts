@@ -1,4 +1,4 @@
 export type {
-  IEditalRepository,
   AlunoInscritoData,
-} from '../../../domain/edital';
+} from '../../../domain/edital/ports/edital.repository.port';
+export type { IEditalRepository } from '../../../domain/edital/ports/edital.repository.port';

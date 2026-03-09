@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DADO_REPOSITORY } from '../dado.tokens';
 import type { IDadoRepository } from '../ports/dado.repository.port';
-import type { DadoData } from '../../../domain/dado';
+import type { DadoData } from '../../../domain/dado/dado.types';
 
 @Injectable()
 export class UpdateDadoUseCase {

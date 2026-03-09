@@ -1,23 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
-import { Inscricao } from '../../../../entities/inscricao/inscricao.entity';
-import { Aluno } from '../../../../entities/aluno/aluno.entity';
-import { Vagas } from '../../../../entities/vagas/vagas.entity';
-import { Edital } from '../../../../entities/edital/edital.entity';
-import { Pergunta } from '../../../../entities/pergunta/pergunta.entity';
-import { Resposta } from '../../../../entities/resposta/resposta.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Pergunta } from '../entities/pergunta/pergunta.entity';
+import { Resposta } from '../entities/resposta/resposta.entity';
 import { StatusEdital } from '../../../../core/shared-kernel/enums/enumStatusEdital';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
 import { StatusInscricao } from '../../../../core/shared-kernel/enums/enumStatusInscricao';
-import type { IInscricaoRepository } from '../../../../core/domain/inscricao';
 import type {
   InscricaoComPendenciasItem,
   CreateInscricaoCommand,
   UpdateInscricaoCommand,
   InscricaoData,
-} from '../../../../core/domain/inscricao';
-import { CACHE_PORT, type CachePort } from '../../../../core/application/utilities';
+} from '../../../../core/domain/inscricao/inscricao.types';
+import type { IInscricaoRepository } from '../../../../core/domain/inscricao/ports/inscricao.repository.port';
+import type { CachePort } from '../../../../core/application/utilities/ports/cache.port';
+import { CACHE_PORT } from '../../../../core/application/utilities/utility.tokens';
 
 @Injectable()
 export class InscricaoTypeOrmRepository implements IInscricaoRepository {

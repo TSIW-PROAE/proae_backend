@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { ValorDado } from '../../../../entities/valorDado/valorDado.entity';
-import { Dado } from '../../../../entities/tipoDado/tipoDado.entity';
-import { Aluno } from '../../../../entities/aluno/aluno.entity';
+import { ValorDado } from '../entities/valorDado/valorDado.entity';
+import { Dado } from '../entities/tipoDado/tipoDado.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
 import type {
-  IValorDadoRepository,
   ValorDadoData,
-} from '../../../../core/domain/valor-dado';
+} from '../../../../core/domain/valor-dado/valor-dado.types';
+import type { IValorDadoRepository } from '../../../../core/domain/valor-dado/ports/valor-dado.repository.port';
 
 @Injectable()
 export class ValorDadoTypeOrmRepository implements IValorDadoRepository {

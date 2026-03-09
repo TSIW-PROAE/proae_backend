@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IInscricaoRepository } from '../ports/inscricao.repository.port';
-import type { CreateInscricaoCommand } from '../../../domain/inscricao';
+import type { CreateInscricaoCommand } from '../../../domain/inscricao/inscricao.types';
 import { INSCRICAO_REPOSITORY } from '../inscricao.tokens';
 
 @Injectable()

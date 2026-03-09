@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
-import { Edital } from '../../../../entities/edital/edital.entity';
-import { Aluno } from '../../../../entities/aluno/aluno.entity';
+import { Edital } from '../entities/edital/edital.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
 import { StatusEdital } from '../../../../core/shared-kernel/enums/enumStatusEdital';
 import type {
-  IEditalRepository,
   AlunoInscritoData,
-} from '../../../../core/domain/edital';
+} from '../../../../core/domain/edital/ports/edital.repository.port';
 import type {
   EditalData,
   CreateEditalData,
   UpdateEditalData,
   StatusEditalDomain,
-} from '../../../../core/domain/edital';
+} from '../../../../core/domain/edital/edital.types';
+import type { IEditalRepository } from '../../../../core/domain/edital/ports/edital.repository.port';
 
 const STATUS_TO_ENUM: Record<StatusEditalDomain, StatusEdital> = {
   RASCUNHO: StatusEdital.RASCUNHO,

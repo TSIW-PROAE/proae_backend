@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IAlunoRepository } from '../ports/aluno.repository.port';
-import type { AtualizaAlunoData } from '../../../domain/aluno';
+import type { AtualizaAlunoData } from '../../../domain/aluno/aluno.types';
 import { ALUNO_REPOSITORY } from '../aluno.tokens';
 import { AlunoNaoEncontradoError } from './find-aluno-by-user-id.use-case';
 

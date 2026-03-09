@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Documento } from '../../../../entities/documento/documento.entity';
-import { Aluno } from '../../../../entities/aluno/aluno.entity';
-import { Inscricao } from '../../../../entities/inscricao/inscricao.entity';
+import { Documento } from '../entities/documento/documento.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
 import type {
-  IDocumentoRepository,
   CreateDocumentoData,
   DocumentoData,
   DocumentoOwnerData,
   DocumentosComProblemasPorInscricao,
   DocumentoValidacaoResumo,
   UpdateDocumentoData,
-} from '../../../../core/domain/documento';
+} from '../../../../core/domain/documento/documento.types';
+import type { IDocumentoRepository } from '../../../../core/domain/documento/ports/documento.repository.port';
 
 @Injectable()
 export class DocumentoTypeOrmRepository implements IDocumentoRepository {
