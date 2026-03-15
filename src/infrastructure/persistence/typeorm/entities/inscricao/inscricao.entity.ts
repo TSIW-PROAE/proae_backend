@@ -33,6 +33,9 @@ export class Inscricao extends AbstractEntity<Inscricao> {
   })
   respostas: Resposta[];
 
+  @Column({ type: 'text', nullable: true })
+  observacao_admin?: string;
+
   @ManyToOne(() => Aluno, (aluno) => aluno.inscricoes)
   aluno: Aluno;
 

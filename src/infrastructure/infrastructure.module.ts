@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { RedisModule } from './adapters/cache/redis/redis.module';
 import { PdfModule } from './adapters/pdf/pdf.module';
-import { MinioClientModule } from './adapters/storage/minio/minio-client.module';
+import { R2StorageModule } from './adapters/storage/r2/r2-storage.module';
 
 @Module({
-  imports: [RedisModule, MinioClientModule, PdfModule],
-  exports: [RedisModule, MinioClientModule, PdfModule],
+  imports: [RedisModule, R2StorageModule.forRoot(), PdfModule],
+  exports: [RedisModule, R2StorageModule, PdfModule],
 })
 export class InfrastructureModule {}

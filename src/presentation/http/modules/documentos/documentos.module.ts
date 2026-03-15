@@ -15,7 +15,6 @@ import { UpdateDocumentoUseCase } from 'src/core/application/documento/use-cases
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
 import { Documento } from 'src/infrastructure/persistence/typeorm/entities/documento/documento.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
-import { MinioClientModule } from 'src/infrastructure/adapters/storage/minio/minio-client.module';
 import { DocumentoTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/documento.typeorm.repository';
 import { AuthModule } from 'src/presentation/http/modules/auth/auth.module';
 import { DocumentoController } from './documentos.controller';
@@ -25,7 +24,6 @@ import { DocumentoService } from './documentos.service';
   imports: [
     TypeOrmModule.forFeature([Documento, Inscricao, Aluno]),
     forwardRef(() => AuthModule),
-    MinioClientModule,
   ],
   controllers: [DocumentoController],
   providers: [

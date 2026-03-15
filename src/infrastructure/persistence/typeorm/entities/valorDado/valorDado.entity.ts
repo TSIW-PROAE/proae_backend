@@ -11,7 +11,7 @@ export class ValorDado extends AbstractEntity<ValorDado> {
   @Column({ type: 'simple-array', nullable: true })
   valorOpcoes: string[];
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   valorArquivo: string;
 
   @ManyToOne(() => Dado, (dado) => dado.valores, {

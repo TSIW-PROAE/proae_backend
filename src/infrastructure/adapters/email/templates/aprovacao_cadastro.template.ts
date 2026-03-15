@@ -1,5 +1,5 @@
 export function adminApprovalTemplate(emailNovoAdmin: string, token: string) {
-  let baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+  let baseUrl = (process.env.BACKEND_URL || 'http://localhost:3000').trim().replace(/\/+$/, '');
   // Em localhost, usar sempre HTTP (backend não tem SSL em dev) para evitar ERR_SSL_PROTOCOL_ERROR
   try {
     const u = new URL(baseUrl);

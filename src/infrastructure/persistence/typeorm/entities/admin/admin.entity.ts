@@ -18,9 +18,9 @@ export class Admin {
   @Column({ nullable: true })
   approvalTokenExpires?: Date;
 
+  /** Uma conta (Usuario) pode ter no máximo um Admin. UNIQUE garantido pela migration. */
   @OneToOne(() => Usuario, (usuario: Usuario) => usuario.admin, {
     onDelete: 'CASCADE',
-    eager: true,
   })
   @JoinColumn()
   usuario!: Usuario;

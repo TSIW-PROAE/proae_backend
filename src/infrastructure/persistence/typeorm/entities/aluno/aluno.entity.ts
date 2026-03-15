@@ -34,9 +34,9 @@ export class Aluno {
   @OneToMany(() => ValorDado, (valor) => valor.aluno)
   valoresDado: ValorDado[];
 
+  /** Uma conta (Usuario) pode ter no máximo um Aluno. UNIQUE garantido pela migration. */
   @OneToOne(() => Usuario, (usuario: Usuario) => usuario.aluno, {
     onDelete: 'CASCADE',
-    eager: true,
   })
   @JoinColumn()
   usuario!: Usuario;

@@ -3,6 +3,8 @@ export interface UploadDocumentsResult {
   arquivos: Array<{
     nome_do_arquivo: string;
     tipo: string;
+    /** URL assinada para acesso ao arquivo (preenchida quando o storage suporta). */
+    url?: string;
   }>;
 }
 

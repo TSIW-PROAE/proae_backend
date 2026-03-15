@@ -51,7 +51,9 @@ export class EditalTypeOrmRepository implements IEditalRepository {
   }
 
   async findAll(): Promise<EditalData[]> {
-    const list = await this.editalRepository.find();
+    const list = await this.editalRepository.find({
+      where: { is_formulario_geral: false },
+    });
     return list.map((e) => this.toEditalData(e));
   }
 
@@ -100,7 +102,7 @@ export class EditalTypeOrmRepository implements IEditalRepository {
 
   async findOpened(): Promise<EditalData[]> {
     const list = await this.editalRepository.find({
-      where: { status_edital: StatusEdital.ABERTO },
+      where: { status_edital: StatusEdital.ABERTO, is_formulario_geral: false },
     });
     return list.map((e) => this.toEditalData(e));
   }

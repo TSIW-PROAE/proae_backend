@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -32,6 +33,7 @@ import { UpdateAlunoDataUseCase } from 'src/core/application/aluno/use-cases/upd
 import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-request.interface';
 import { AlunoService } from './aluno.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
+import { CompleteCadastroAlunoDto } from './dto/complete-cadastro-aluno.dto';
 
 @ApiTags('Alunos')
 @ApiBearerAuth()
@@ -44,6 +46,24 @@ export class AlunoController {
     private readonly updateAlunoData: UpdateAlunoDataUseCase,
     private readonly alunoService: AlunoService,
   ) {}
+
+  @Post('complete-cadastro')
+  @ApiOperation({
+    summary: 'Completar cadastro de aluno',
+    description:
+      'Vincula o perfil de estudante à sua conta quando você está logado mas ainda não tem cadastro de aluno (ex.: entrou como admin antes). Depois disso você pode se inscrever em editais.',
+  })
+  @ApiOkResponse({ description: 'Cadastro de aluno vinculado com sucesso' })
+  @ApiBadRequestResponse({
+    description: 'Já possui aluno ou matrícula em uso',
+  })
+  @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
+  async completeCadastro(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: CompleteCadastroAlunoDto,
+  ) {
+    return this.alunoService.completeCadastro(request.user.userId, dto);
+  }
 
   @Get('me')
   @ApiOperation({

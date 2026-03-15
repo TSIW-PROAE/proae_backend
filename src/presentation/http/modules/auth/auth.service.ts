@@ -69,26 +69,40 @@ export class AuthService {
   }
 
   async login(user: Usuario) {
-    const userWithAdmin = await this.usuarioRepository.findOne({
+    const userFull = await this.usuarioRepository.findOne({
       where: { usuario_id: user.usuario_id },
-      relations: ['admin'],
+      relations: ['admin', 'aluno'],
     });
 
     if (
-      userWithAdmin?.roles?.includes(RolesEnum.ADMIN) &&
-      userWithAdmin.admin
+      userFull?.roles?.includes(RolesEnum.ADMIN) &&
+      userFull.admin
     ) {
-      if (!userWithAdmin.admin.aprovado) {
+      if (!userFull.admin.aprovado) {
         throw new UnauthorizedException(
           'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
         );
       }
     }
 
+    // Sincroniza roles com a realidade do banco antes de emitir o JWT
+    const rolesReais: RolesEnum[] = [];
+    if (userFull?.aluno) rolesReais.push(RolesEnum.ALUNO);
+    if (userFull?.admin) rolesReais.push(RolesEnum.ADMIN);
+    const rolesBanco = userFull?.roles ?? [];
+    const rolesSincronizados = rolesBanco.length !== rolesReais.length ||
+      !rolesBanco.every((r) => rolesReais.includes(r))
+      ? rolesReais
+      : rolesBanco;
+    if (rolesSincronizados !== rolesBanco && userFull) {
+      userFull.roles = rolesSincronizados;
+      await this.usuarioRepository.update(userFull.usuario_id, { roles: rolesSincronizados });
+    }
+
     const payload = {
       sub: user.usuario_id,
       email: user.email,
-      roles: user.roles,
+      roles: rolesSincronizados,
     };
 
     return {
@@ -100,9 +114,9 @@ export class AuthService {
         usuario_id: user.usuario_id,
         email: user.email,
         nome: user.nome,
-        roles: user.roles,
-        adminAprovado:
-          userWithAdmin?.admin?.aprovado ?? null,
+        roles: rolesSincronizados,
+        adminAprovado: userFull?.admin?.aprovado ?? null,
+        hasAluno: !!userFull?.aluno,
       },
     };
   }
@@ -113,15 +127,98 @@ export class AuthService {
 
   async signupAluno(dto: SignupDto) {
     try {
-      const existingEmail = await this.usuarioRepository.findOne({
+      const existingUsuario = await this.usuarioRepository.findOne({
         where: { email: dto.email },
+        select: ['usuario_id', 'email', 'senha_hash', 'nome', 'cpf', 'celular', 'roles', 'data_nascimento'],
+        relations: ['aluno', 'admin'],
       });
-      if (existingEmail) throw new BadRequestException('Email já cadastrado');
+
+      if (existingUsuario) {
+        if (existingUsuario.aluno) {
+          throw new BadRequestException(
+            'Uma conta só pode ter um cadastro de aluno. Você já possui perfil de estudante nesta conta.',
+          );
+        }
+        const senhaOk = await bcrypt.compare(dto.senha, existingUsuario.senha_hash);
+        if (!senhaOk) {
+          throw new BadRequestException(
+            'Senha incorreta. Use a senha da sua conta para vincular o cadastro de aluno.',
+          );
+        }
+        const matriculaEmUso = await this.alunoRepository.findOne({
+          where: { matricula: dto.matricula },
+          relations: ['usuario'],
+        });
+        if (matriculaEmUso) {
+          // Matrícula já existe. O usuário autenticado está reivindicando-a.
+          // Transfere o perfil de aluno para a conta atual.
+          const usuarioAnterior = matriculaEmUso.usuario;
+          matriculaEmUso.usuario = existingUsuario;
+          matriculaEmUso.curso = dto.curso;
+          matriculaEmUso.campus = dto.campus;
+          matriculaEmUso.data_ingresso = dto.data_ingresso;
+          await this.alunoRepository.save(matriculaEmUso);
+          const rolesAtualizados = existingUsuario.roles?.includes(RolesEnum.ALUNO)
+            ? existingUsuario.roles
+            : [...(existingUsuario.roles || []), RolesEnum.ALUNO];
+          existingUsuario.roles = rolesAtualizados;
+          await this.usuarioRepository.save(existingUsuario);
+          // Limpa role ALUNO da conta antiga
+          if (usuarioAnterior?.usuario_id && usuarioAnterior.usuario_id !== existingUsuario.usuario_id) {
+            const rolesAntigo = (usuarioAnterior.roles ?? []) as RolesEnum[];
+            const novoRoles = rolesAntigo.filter((r): r is RolesEnum => r !== RolesEnum.ALUNO);
+            await this.usuarioRepository.update(usuarioAnterior.usuario_id, {
+              roles: novoRoles as RolesEnum[],
+            });
+          }
+          return {
+            sucesso: true,
+            mensagem: 'Cadastro de aluno vinculado à sua conta com sucesso.',
+            dados: {
+              aluno: {
+                usuario_id: existingUsuario.usuario_id,
+                aluno_id: matriculaEmUso.aluno_id,
+                matricula: matriculaEmUso.matricula,
+                curso: matriculaEmUso.curso,
+                campus: matriculaEmUso.campus,
+                data_ingresso: matriculaEmUso.data_ingresso,
+              },
+            },
+          };
+        }
+        const novoAluno = this.alunoRepository.create({
+          matricula: dto.matricula,
+          curso: dto.curso,
+          campus: dto.campus,
+          data_ingresso: dto.data_ingresso,
+          usuario: existingUsuario,
+        });
+        await this.alunoRepository.save(novoAluno);
+        const rolesAtualizados = existingUsuario.roles?.includes(RolesEnum.ALUNO)
+          ? existingUsuario.roles
+          : [...(existingUsuario.roles || []), RolesEnum.ALUNO];
+        existingUsuario.roles = rolesAtualizados;
+        await this.usuarioRepository.save(existingUsuario);
+        return {
+          sucesso: true,
+          mensagem: 'Cadastro de aluno vinculado à sua conta com sucesso.',
+          dados: { aluno: { usuario_id: existingUsuario.usuario_id, ...novoAluno } },
+        };
+      }
 
       const existingCpf = await this.usuarioRepository.findOne({
         where: { cpf: cpf.mask(dto.cpf) },
       });
       if (existingCpf) throw new BadRequestException('CPF já cadastrado');
+
+      const matriculaEmUso = await this.alunoRepository.findOne({
+        where: { matricula: dto.matricula },
+      });
+      if (matriculaEmUso) {
+        throw new BadRequestException(
+          'Esta matrícula já está cadastrada. Se você já tem conta, faça login e use a opção de completar cadastro de aluno.',
+        );
+      }
 
       const senhaHash = await bcrypt.hash(dto.senha, 12);
 
@@ -152,11 +249,33 @@ export class AuthService {
         mensagem: 'Aluno cadastrado',
         dados: { aluno: result },
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.log(error);
+      if (error?.code === '23505') {
+        const detail = String(error.detail ?? '').toLowerCase();
+        const constraint = String(error.constraint ?? '').toLowerCase();
+        if (constraint.includes('matricula') || detail.includes('matricula')) {
+          throw new BadRequestException(
+            'Esta matrícula já está cadastrada. Se você já tem conta, faça login e use a opção de completar cadastro de aluno.',
+          );
+        }
+        if (constraint.includes('email') || detail.includes('email')) {
+          throw new BadRequestException(
+            'Este email já está cadastrado. Se você já tem conta, faça login para vincular o cadastro de aluno.',
+          );
+        }
+        if (constraint.includes('cpf') || detail.includes('cpf')) {
+          throw new BadRequestException(
+            'Este CPF já está cadastrado. Se você já tem conta, faça login com o email associado a esse CPF.',
+          );
+        }
+        throw new BadRequestException(
+          'Dados duplicados. Verifique se email, CPF ou matrícula já estão em uso.',
+        );
+      }
+      console.error('[signupAluno]', error);
       throw new InternalServerErrorException('Erro ao cadastrar aluno');
     }
   }
@@ -226,11 +345,30 @@ export class AuthService {
 
       if (!user) throw new NotFoundException('Usuário não encontrado');
 
+      // Sincroniza roles com a realidade do banco
+      const rolesReais: RolesEnum[] = [];
+      if (user.aluno) rolesReais.push(RolesEnum.ALUNO);
+      if (user.admin) rolesReais.push(RolesEnum.ADMIN);
+      if (
+        user.roles.length !== rolesReais.length ||
+        !user.roles.every((r) => rolesReais.includes(r))
+      ) {
+        user.roles = rolesReais;
+        await this.usuarioRepository.update(user.usuario_id, { roles: rolesReais });
+      }
+
       return {
         valid: true,
         user: {
-          ...user,
+          usuario_id: user.usuario_id,
+          email: user.email,
+          nome: user.nome,
+          cpf: user.cpf,
+          celular: user.celular,
+          data_nascimento: user.data_nascimento,
+          roles: user.roles,
           adminAprovado: user.admin?.aprovado ?? null,
+          hasAluno: !!user.aluno,
         },
         roles: user.roles,
         payload,
@@ -242,17 +380,72 @@ export class AuthService {
 
   async signupAdmin(dto: SignupDtoAdmin) {
     try {
-      const emailExistente = await this.usuarioRepository.findOne({
+      const existingUsuario = await this.usuarioRepository.findOne({
         where: { email: dto.email },
+        select: ['usuario_id', 'email', 'senha_hash', 'nome', 'cpf', 'celular', 'roles', 'data_nascimento'],
+        relations: ['aluno', 'admin'],
       });
-      if (emailExistente) throw new BadRequestException('Email já cadastrado');
+
+      if (existingUsuario) {
+        if (existingUsuario.admin) {
+          throw new BadRequestException(
+            'Uma conta só pode ter um cadastro de admin. Você já possui perfil de admin nesta conta.',
+          );
+        }
+        const senhaOk = await bcrypt.compare(dto.senha, existingUsuario.senha_hash);
+        if (!senhaOk) {
+          throw new BadRequestException(
+            'Senha incorreta. Use a senha da sua conta para vincular o cadastro de admin.',
+          );
+        }
+        const admin = this.adminRepository.create({
+          usuario: existingUsuario,
+          cargo: dto.cargo,
+          aprovado: false,
+          approvalToken: this.generateRandomToken(),
+          approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        });
+        const savedAdmin = await this.adminRepository.save(admin);
+        const token = this.jwtService.sign(
+          { email: existingUsuario.email },
+          { secret: process.env.JWT_SECRET, expiresIn: '2d' },
+        );
+        await this.adminRepository.update(savedAdmin.id_admin, {
+          approvalToken: token,
+          approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        });
+        await this.emailService.sendAdminApprovalRequest(
+          existingUsuario.email,
+          token,
+        );
+        const rolesAtualizados = existingUsuario.roles?.includes(RolesEnum.ADMIN)
+          ? existingUsuario.roles
+          : [...(existingUsuario.roles || []), RolesEnum.ADMIN];
+        existingUsuario.roles = rolesAtualizados;
+        await this.usuarioRepository.save(existingUsuario);
+        return {
+          sucesso: true,
+          mensagem: 'Cadastro de admin vinculado à sua conta, aguardando aprovação.',
+          dados: {
+            usuario_id: existingUsuario.usuario_id,
+            id_admin: savedAdmin.id_admin,
+            cargo: savedAdmin.cargo,
+            email: existingUsuario.email,
+          },
+        };
+      }
+
+      const existingCpf = await this.usuarioRepository.findOne({
+        where: { cpf: cpf.mask(dto.cpf) },
+      });
+      if (existingCpf) throw new BadRequestException('CPF já cadastrado');
 
       const senhaHash = await bcrypt.hash(dto.senha, 12);
 
       const usuario = this.usuarioRepository.create({
         email: dto.email,
         nome: dto.nome,
-        cpf: dto.cpf,
+        cpf: cpf.mask(dto.cpf),
         celular: dto.celular,
         senha_hash: senhaHash,
         roles: [RolesEnum.ADMIN],
@@ -323,10 +516,16 @@ export class AuthService {
 
     await this.adminRepository.save(admin);
 
-    await this.adminRepository.findOne({
-      where: { id_admin: admin.id_admin },
-      relations: ['usuario'],
-    });
+    const emailNovoAdmin = admin.usuario?.email;
+    if (emailNovoAdmin) {
+      const base = (process.env.FRONTEND_URL || '').trim().replace(/\/+$/, '') || 'http://localhost:3001';
+      const loginUrl = `${base}/login`;
+      try {
+        await this.emailService.sendAdminApprovedNotification(emailNovoAdmin, loginUrl);
+      } catch (err) {
+        console.error('[approveAdmin] Falha ao enviar email de aprovação ao novo admin:', err);
+      }
+    }
 
     return { sucesso: true, mensagem: 'Admin aprovado com sucesso' };
   }
@@ -341,7 +540,29 @@ export class AuthService {
     if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
       throw new BadRequestException('Token expirado');
 
-    await this.usuarioRepository.remove(admin.usuario);
+    const usuario = admin.usuario;
+
+    // Remove apenas o registro de Admin, NÃO o usuario inteiro
+    // (o usuario pode ter perfil de aluno também)
+    await this.adminRepository.remove(admin);
+
+    if (usuario) {
+      const rolesAtualizados = (usuario.roles ?? []).filter(
+        (r): r is RolesEnum => r !== RolesEnum.ADMIN,
+      );
+      await this.usuarioRepository.update(usuario.usuario_id, {
+        roles: rolesAtualizados as RolesEnum[],
+      });
+
+      // Se o usuario não tem mais nenhum perfil (nem aluno nem admin), remove a conta
+      const usuarioAtualizado = await this.usuarioRepository.findOne({
+        where: { usuario_id: usuario.usuario_id },
+        relations: ['aluno'],
+      });
+      if (usuarioAtualizado && !usuarioAtualizado.aluno && rolesAtualizados.length === 0) {
+        await this.usuarioRepository.remove(usuarioAtualizado);
+      }
+    }
 
     return { sucesso: true, mensagem: 'Admin rejeitado e removido' };
   }

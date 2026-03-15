@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber, ValidateNested } from 'class-validator';
-import { CreateRespostaDto } from 'src/presentation/http/modules/resposta/dto/create-resposta.dto';
+import { RespostaInscricaoDto } from './resposta-inscricao.dto';
 
 export class CreateInscricaoDto {
   @ApiProperty({
@@ -9,18 +9,19 @@ export class CreateInscricaoDto {
     example: 1,
     required: true,
   })
+  @Transform(({ value }) => (typeof value === 'string' ? parseInt(value, 10) : value))
   @IsNotEmpty()
   @IsNumber()
   vaga_id: number;
 
   @ApiProperty({
-    type: [CreateRespostaDto],
-    description: 'Lista de respostas da inscrição',
+    type: [RespostaInscricaoDto],
+    description: 'Lista de respostas da inscrição (cada uma com perguntaId e valorTexto/valorOpcoes/urlArquivo)',
     required: true,
   })
   @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateRespostaDto)
-  respostas: CreateRespostaDto[];
+  @Type(() => RespostaInscricaoDto)
+  respostas: RespostaInscricaoDto[];
 }

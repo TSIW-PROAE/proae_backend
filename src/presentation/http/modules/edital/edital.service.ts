@@ -47,7 +47,9 @@ export class EditalService {
 
   async findAll(): Promise<EditalResponseDto[]> {
     try {
-      const editais = await this.editaisRepository.find();
+      const editais = await this.editaisRepository.find({
+        where: { is_formulario_geral: false },
+      });
       return plainToInstance(EditalResponseDto, editais, {
         excludeExtraneousValues: true,
       });
@@ -167,7 +169,7 @@ export class EditalService {
   async getEditalOpedened(): Promise<EditalResponseDto[]> {
     try {
       const editais = await this.editaisRepository.find({
-        where: { status_edital: StatusEdital.ABERTO },
+        where: { status_edital: StatusEdital.ABERTO, is_formulario_geral: false },
       });
       return plainToInstance(EditalResponseDto, editais, {
         excludeExtraneousValues: true,

@@ -21,7 +21,7 @@ export class Resposta extends AbstractEntity<Resposta> {
   @Column({ type: 'simple-array', nullable: true })
   valorOpcoes?: string[];
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   urlArquivo?: string;
 
   @Column({ type: 'text', nullable: true })

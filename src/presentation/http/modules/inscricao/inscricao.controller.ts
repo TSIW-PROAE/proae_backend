@@ -55,6 +55,9 @@ function mapInscricaoError(
     throw e;
   }
   if (e instanceof Error) {
+    if (e.message.includes('não possui cadastro de aluno')) {
+      throw new BadRequestException(e.message);
+    }
     if (
       e.message.includes('não encontrado') ||
       e.message.includes('não encontrada')
@@ -65,14 +68,26 @@ function mapInscricaoError(
       e.message.includes('não está aberto') ||
       e.message.includes('não tem permissão') ||
       e.message.includes('É necessário fornecer respostas') ||
+      e.message.includes('É necessário ter o Formulário Geral') ||
       e.message.includes('não pode estar vazia') ||
       e.message.includes('deve ter pelo menos uma opção') ||
-      e.message.includes('deve incluir um arquivo')
+      e.message.includes('deve incluir um arquivo') ||
+      e.message.includes('já possui uma inscrição')
     ) {
       throw new BadRequestException(e.message);
     }
-    throw new InternalServerErrorException(fallbackMessage);
+    console.error('[Inscricao] Erro inesperado:', e.message, e.stack);
+    const dbMsg = (e as any).detail || (e as any).driverError?.detail;
+    if (e.message.includes('value too long')) {
+      throw new BadRequestException(
+        'Um dos valores enviados excede o tamanho máximo permitido. Verifique os campos e tente novamente.',
+      );
+    }
+    throw new InternalServerErrorException(
+      dbMsg ? `${fallbackMessage} (detalhe: ${dbMsg})` : fallbackMessage,
+    );
   }
+  console.error('[Inscricao] Erro não-Error:', e);
   throw new InternalServerErrorException(fallbackMessage);
 }
 
@@ -145,6 +160,9 @@ export class InscricaoController {
     @Body() createInscricaoDto: CreateInscricaoDto,
     @Req() request: AuthenticatedRequest,
   ) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Inscricao] POST /inscricoes: usuario_id=', request.user?.userId, 'vaga_id=', createInscricaoDto?.vaga_id);
+    }
     try {
       return await this.createInscricaoUseCase.execute(
         {

@@ -88,7 +88,7 @@ async function bootstrap() {
   // Ajustes recomendados pelo Render: evita ECONNRESET/socket hang up
   // por keep-alive e timeouts do load balancer (default 5s é curto)
   const httpServer = server as import('http').Server;
-  if (httpServer?.setTimeout()) {
+  if (httpServer && 'keepAliveTimeout' in httpServer) {
     httpServer.keepAliveTimeout = 65000; // 65s
     httpServer.headersTimeout = 66000;   // > keepAliveTimeout
   }
@@ -98,8 +98,15 @@ async function bootstrap() {
 
 // Trata rejeições e exceções não capturadas para evitar crash por ECONNRESET
 // (ex.: falha em requisição HTTP para Upstash Redis, MinIO, etc.)
-process.on('unhandledRejection', (reason: any, promise: Promise<unknown>) => {
-  console.error('[unhandledRejection]', reason?.message ?? reason);
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  const msg =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'object' && reason !== null
+        ? JSON.stringify(reason)
+        : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  console.error('[unhandledRejection]', msg, stack ?? '');
 });
 
 process.on('uncaughtException', (err: Error) => {

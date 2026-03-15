@@ -10,6 +10,7 @@ import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/e
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
 import { Pergunta } from 'src/infrastructure/persistence/typeorm/entities/pergunta/pergunta.entity';
 import { Resposta } from 'src/infrastructure/persistence/typeorm/entities/resposta/resposta.entity';
+import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
 import { PdfModule } from 'src/infrastructure/adapters/pdf/pdf.module';
 import { InscricaoTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/inscricao.typeorm.repository';
@@ -23,6 +24,7 @@ import { InscricaoService } from './inscricao.service';
       Inscricao,
       Documento,
       Aluno,
+      Usuario,
       Edital,
       Resposta,
       Pergunta,

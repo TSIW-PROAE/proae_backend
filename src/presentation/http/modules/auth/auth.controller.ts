@@ -27,6 +27,13 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 
+/** Remove trailing slash para evitar URL duplicada (ex: https://site.com//admin/aprovado) */
+function normalizeFrontendUrl(url: string | undefined): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  return trimmed ? trimmed.replace(/\/+$/, '') : null;
+}
+
 @ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
@@ -130,10 +137,19 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
   async approveAdmin(@Param('token') token: string, @Res() res) {
     const result = await this.authService.approveAdmin(token);
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (frontendUrl) {
-      return res.redirect(`${frontendUrl}/admin/aprovado?sucesso=true`);
+    const frontendUrl = normalizeFrontendUrl(process.env.FRONTEND_URL);
+    const redirectTo = frontendUrl
+      ? `${frontendUrl}/admin/aprovado?sucesso=true`
+      : null;
+    if (redirectTo) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[approve-admin] redirectTo=', redirectTo);
+      }
+      return res.redirect(redirectTo);
     }
+    console.warn(
+      '[approve-admin] FRONTEND_URL não configurado. Usuário viu página HTML em vez de redirecionamento. Configure FRONTEND_URL no .env / Cloud Run.',
+    );
     return res.send(`
       <!DOCTYPE html>
       <html><head><meta charset="UTF-8"><title>Admin Aprovado</title></head>
@@ -147,10 +163,19 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
   async rejectAdmin(@Param('token') token: string, @Res() res) {
     const result = await this.authService.rejectAdmin(token);
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (frontendUrl) {
-      return res.redirect(`${frontendUrl}/admin/rejeitado?sucesso=true`);
+    const frontendUrl = normalizeFrontendUrl(process.env.FRONTEND_URL);
+    const redirectTo = frontendUrl
+      ? `${frontendUrl}/admin/rejeitado?sucesso=true`
+      : null;
+    if (redirectTo) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[reject-admin] redirectTo=', redirectTo);
+      }
+      return res.redirect(redirectTo);
     }
+    console.warn(
+      '[reject-admin] FRONTEND_URL não configurado. Configure FRONTEND_URL no .env / Cloud Run.',
+    );
     return res.send(`
       <!DOCTYPE html>
       <html><head><meta charset="UTF-8"><title>Admin Rejeitado</title></head>

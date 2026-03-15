@@ -25,6 +25,10 @@ export class Edital extends AbstractEntity<Edital> {
   })
   status_edital: StatusEdital;
 
+  /** Quando true, este edital é o Formulário Geral. Só pode haver um ativo. Aluno precisa ter inscrição aprovada nele para se inscrever em outros editais. */
+  @Column({ type: 'boolean', default: false })
+  is_formulario_geral: boolean;
+
   @Column({ type: 'json', nullable: true })
   etapa_edital?: {
     etapa: string;

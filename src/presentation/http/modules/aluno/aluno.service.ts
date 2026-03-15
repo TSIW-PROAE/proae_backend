@@ -5,19 +5,24 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
 import { StatusDocumento } from 'src/core/shared-kernel/enums/statusDocumento';
+import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
 import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
+import type { CompleteCadastroAlunoDto } from './dto/complete-cadastro-aluno.dto';
 
 @Injectable()
 export class AlunoService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Aluno)
+    private readonly alunoRepository: Repository<Aluno>,
     @InjectRepository(Step)
     private readonly stepRepository: Repository<Step>,
     @InjectRepository(Edital)
@@ -28,29 +33,118 @@ export class AlunoService {
     private readonly inscricaoRepository: Repository<Inscricao>,
   ) {}
 
+  /**
+   * Vincula perfil de aluno à conta do usuário logado (quando ele ainda não tem).
+   * Use quando GET /aluno/me retorna 404 — a pessoa está “no perfil aluno” mas o backend não tinha o registro.
+   */
+  async completeCadastro(userId: string, dto: CompleteCadastroAlunoDto) {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { usuario_id: userId },
+      relations: ['aluno'],
+    });
+    if (!usuario) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    if (usuario.aluno) {
+      throw new BadRequestException(
+        'Sua conta já possui cadastro de aluno. Use a atualização de dados se precisar alterar.',
+      );
+    }
+    const matriculaExistente = await this.alunoRepository.findOne({
+      where: { matricula: dto.matricula },
+      relations: ['usuario'],
+    });
+    if (matriculaExistente) {
+      // Matrícula já existe. O usuário logado está reivindicando-a.
+      // Transfere o perfil de aluno para a conta atual (cenário: usuário criou
+      // conta de aluno com um email e conta de admin com outro, quer unificar).
+      const usuarioAnterior = matriculaExistente.usuario;
+      matriculaExistente.usuario = usuario;
+      matriculaExistente.curso = dto.curso;
+      matriculaExistente.campus = dto.campus;
+      matriculaExistente.data_ingresso = dto.data_ingresso;
+      await this.alunoRepository.save(matriculaExistente);
+
+      const rolesAtualizados = usuario.roles?.includes(RolesEnum.ALUNO)
+        ? usuario.roles
+        : [...(usuario.roles || []), RolesEnum.ALUNO];
+      await this.usuarioRepository.update(usuario.usuario_id, {
+        roles: rolesAtualizados,
+      });
+
+      // Limpa a role ALUNO da conta antiga para não ficar dessincronizada
+      if (usuarioAnterior?.usuario_id && usuarioAnterior.usuario_id !== usuario.usuario_id) {
+        const rolesAntigo = (usuarioAnterior.roles ?? []) as RolesEnum[];
+        const novoRoles = rolesAntigo.filter((r): r is RolesEnum => r !== RolesEnum.ALUNO);
+        await this.usuarioRepository.update(usuarioAnterior.usuario_id, {
+          roles: novoRoles as RolesEnum[],
+        });
+      }
+
+      return {
+        sucesso: true,
+        mensagem: 'Cadastro de aluno vinculado à sua conta. Agora você pode se inscrever em editais.',
+        dados: {
+          aluno_id: matriculaExistente.aluno_id,
+          matricula: matriculaExistente.matricula,
+          curso: matriculaExistente.curso,
+          campus: matriculaExistente.campus,
+          data_ingresso: matriculaExistente.data_ingresso,
+        },
+      };
+    }
+    const aluno = this.alunoRepository.create({
+      matricula: dto.matricula,
+      curso: dto.curso,
+      campus: dto.campus,
+      data_ingresso: dto.data_ingresso,
+      usuario,
+    });
+    await this.alunoRepository.save(aluno);
+    const rolesAtualizados = usuario.roles?.includes(RolesEnum.ALUNO)
+      ? usuario.roles
+      : [...(usuario.roles || []), RolesEnum.ALUNO];
+    await this.usuarioRepository.update(usuario.usuario_id, {
+      roles: rolesAtualizados,
+    });
+    return {
+      sucesso: true,
+      mensagem: 'Cadastro de aluno vinculado à sua conta. Agora você pode se inscrever em editais.',
+      dados: {
+        aluno_id: aluno.aluno_id,
+        matricula: aluno.matricula,
+        curso: aluno.curso,
+        campus: aluno.campus,
+        data_ingresso: aluno.data_ingresso,
+      },
+    };
+  }
+
   async findUsers() {
     const usuarios = await this.usuarioRepository.find({
       relations: ['aluno', 'aluno.inscricoes'],
     });
 
-    if (!usuarios || usuarios.length === 0) {
+    const comAluno = (usuarios ?? []).filter((u) => u.aluno);
+
+    if (comAluno.length === 0) {
       throw new NotFoundException('Alunos não encontrados.');
     }
 
-    const dados = usuarios.map((usuario) => {
-      const aluno = usuario.aluno;
+    const dados = comAluno.map((usuario) => {
+      const aluno = usuario.aluno!;
 
       return {
-        aluno_id: aluno?.aluno_id,
+        aluno_id: aluno.aluno_id,
         email: usuario.email,
-        matricula: aluno?.matricula,
+        matricula: aluno.matricula,
         data_nascimento: usuario.data_nascimento,
-        curso: aluno?.curso,
-        campus: aluno?.campus,
+        curso: aluno.curso,
+        campus: aluno.campus,
         cpf: usuario.cpf,
-        data_ingresso: aluno?.data_ingresso,
+        data_ingresso: aluno.data_ingresso,
         celular: usuario.celular,
-        inscricoes: aluno?.inscricoes || [],
+        inscricoes: aluno.inscricoes || [],
       };
     });
     return {
@@ -179,7 +273,13 @@ export class AlunoService {
   async getStudentRegistration(userId: string) {
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
-      relations: ['aluno', 'aluno.inscricoes', 'aluno.inscricoes.documentos'],
+      relations: [
+        'aluno',
+        'aluno.inscricoes',
+        'aluno.inscricoes.vagas',
+        'aluno.inscricoes.vagas.edital',
+        'aluno.inscricoes.documentos',
+      ],
     });
 
     if (!usuario || !usuario.aluno) {
@@ -188,15 +288,33 @@ export class AlunoService {
 
     const inscricoes = usuario.aluno.inscricoes || [];
 
-    return inscricoes.map((inscricao: Inscricao) => ({
-      edital_id: 0,
-      inscricao_id: inscricao.id,
-      titulo_edital: 'TODO: Buscar via vagas',
-      status_edital: 'TODO: Buscar via vagas',
-      etapas_edital: [],
-      status_inscricao: inscricao.status_inscricao,
-      possui_pendencias: false,
-    }));
+    const porVaga = new Map<number, Inscricao>();
+    for (const inscricao of inscricoes) {
+      const vagaId = (inscricao.vagas as any)?.id ?? 0;
+      const existing = porVaga.get(vagaId);
+      if (!existing || inscricao.id > existing.id) {
+        porVaga.set(vagaId, inscricao);
+      }
+    }
+
+    return Array.from(porVaga.values()).map((inscricao: Inscricao) => {
+      const vagas = inscricao.vagas as any;
+      const edital = vagas?.edital;
+      const hasPendencias = (inscricao.documentos || []).some(
+        (d: any) => d.status_documento === 'Pendente' || d.status_documento === 'Não Enviado',
+      );
+      return {
+        edital_id: edital?.id ?? 0,
+        inscricao_id: inscricao.id,
+        titulo_edital: edital?.titulo_edital ?? 'Edital',
+        status_edital: edital?.status_edital ?? '',
+        is_formulario_geral: edital?.is_formulario_geral ?? false,
+        etapas_edital: [],
+        status_inscricao: inscricao.status_inscricao,
+        observacao_admin: inscricao.observacao_admin ?? null,
+        possui_pendencias: hasPendencias,
+      };
+    });
   }
 
   async findAlunosInscritosEmStep(editalId: number, stepId: number) {

@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Aluno } from '../entities/aluno/aluno.entity';
+import { Usuario } from '../entities/usuarios/usuario.entity';
 import { Vagas } from '../entities/vagas/vagas.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
@@ -27,6 +28,8 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
     private readonly inscricaoRepository: Repository<Inscricao>,
     @InjectRepository(Aluno)
     private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
     @InjectRepository(Vagas)
     private readonly vagasRepository: Repository<Vagas>,
     @InjectRepository(Edital)
@@ -89,22 +92,101 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       .filter((i) => i.documentos.length > 0);
   }
 
+  /**
+   * Cria inscrição. Regra: uma conta pode ter no máximo um perfil de aluno e um de admin.
+   * Quem tem perfil de aluno (Aluno vinculado ao Usuario) pode se inscrever; não bloqueamos por role (ex.: ser admin também).
+   */
   async create(
     cmd: CreateInscricaoCommand,
     userId: string,
   ): Promise<InscricaoData> {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Inscricao] create: usuario_id=', userId, 'vaga_id=', cmd.vaga_id);
+    }
     const alunoExists = await this.alunoRepository.findOne({
       where: { usuario: { usuario_id: userId } },
     });
-    if (!alunoExists) throw new Error('Aluno não encontrado');
+    if (!alunoExists) {
+      const usuarioExists = await this.usuarioRepository.findOne({
+        where: { usuario_id: userId },
+        select: ['usuario_id', 'email'],
+      });
+      if (usuarioExists) {
+        console.warn(
+          '[Inscricao] Aluno não encontrado: usuário existe (email=',
+          usuarioExists.email,
+          ') mas não possui cadastro de aluno.',
+        );
+        throw new Error(
+          'Seu usuário não possui cadastro de aluno. Faça o cadastro como estudante (rota de cadastro de aluno) com o mesmo e-mail e senha para vincular o perfil de aluno; depois você poderá se inscrever.',
+        );
+      } else {
+        console.warn(
+          '[Inscricao] Aluno não encontrado: nenhum usuário com usuario_id=',
+          userId,
+        );
+        throw new Error('Aluno não encontrado');
+      }
+    }
 
     const vagaExists = await this.vagasRepository.findOne({
       where: { id: cmd.vaga_id },
       relations: ['edital'],
     });
-    if (!vagaExists) throw new Error('Vaga não encontrada');
+    if (!vagaExists) {
+      console.warn('[Inscricao] Vaga não encontrada: vaga_id=', cmd.vaga_id);
+      throw new Error('Vaga não encontrada');
+    }
     if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
       throw new Error('Edital não está aberto para inscrições');
+    }
+
+    if (!vagaExists.edital.is_formulario_geral) {
+      const editalFG = await this.editalRepository.findOne({
+        where: { is_formulario_geral: true },
+        relations: ['vagas'],
+      });
+      if (editalFG?.vagas?.length) {
+        const vagaIdsFG = editalFG.vagas.map((v) => v.id);
+        const inscricaoFG = await this.inscricaoRepository.findOne({
+          where: {
+            aluno: { aluno_id: alunoExists.aluno_id },
+            vagas: { id: In(vagaIdsFG) },
+            status_inscricao: StatusInscricao.APROVADA,
+          },
+        });
+        if (!inscricaoFG) {
+          throw new Error(
+            'É necessário ter o Formulário Geral preenchido e aprovado para se inscrever em outros editais/benefícios.',
+          );
+        }
+      }
+    }
+
+    const inscricoesExistentes = await this.inscricaoRepository.find({
+      where: {
+        aluno: { aluno_id: alunoExists.aluno_id },
+        vagas: { id: cmd.vaga_id },
+      },
+      relations: ['respostas', 'documentos'],
+      order: { id: 'DESC' },
+    });
+
+    if (inscricoesExistentes.length > 0) {
+      const maisRecente = inscricoesExistentes[0];
+      if (maisRecente.status_inscricao === StatusInscricao.EM_AJUSTE) {
+        await this.entityManager.transaction(async (tx) => {
+          for (const insc of inscricoesExistentes) {
+            if (insc.respostas?.length) await tx.remove(insc.respostas);
+            if (insc.documentos?.length) await tx.remove(insc.documentos);
+            await tx.remove(insc);
+          }
+        });
+      } else {
+        throw new Error(
+          'Você já possui uma inscrição para este benefício. Não é possível se inscrever novamente.',
+        );
+      }
     }
 
     const perguntas = await this.perguntaRepository.find({
@@ -149,9 +231,13 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       return tx.save(inscricao);
     });
 
-    const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-    if (!isNaN(userIdNum)) {
-      await this.removeRespostaEmCache(cmd.vaga_id, userIdNum);
+    try {
+      const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+      if (!isNaN(userIdNum)) {
+        await this.removeRespostaEmCache(cmd.vaga_id, userIdNum);
+      }
+    } catch (cacheErr) {
+      console.warn('[Inscricao] Falha ao limpar cache (não-crítico):', (cacheErr as Error).message);
     }
 
     return this.toInscricaoData(saved);

@@ -21,7 +21,6 @@ import { Dado } from 'src/infrastructure/persistence/typeorm/entities/tipoDado/t
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
 import { ValorDado } from 'src/infrastructure/persistence/typeorm/entities/valorDado/valorDado.entity';
-import { MinioClientModule } from 'src/infrastructure/adapters/storage/minio/minio-client.module';
 import { RespostaTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/resposta.typeorm.repository';
 import { RespostaController } from './resposta.controller';
 import { RespostaService } from './resposta.service';
@@ -40,7 +39,6 @@ import { RespostaService } from './resposta.service';
       ValorDado,
       Dado,
     ]),
-    MinioClientModule,
   ],
   providers: [
     { provide: RESPOSTA_REPOSITORY, useClass: RespostaTypeOrmRepository },
