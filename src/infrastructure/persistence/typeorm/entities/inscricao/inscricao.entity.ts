@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { AbstractEntity } from '../../abstract.entity';
 import { StatusInscricao } from 'src/core/shared-kernel/enums/enumStatusInscricao';
+import { StatusBeneficioEdital } from 'src/core/shared-kernel/enums/enumStatusBeneficioEdital';
 import { Aluno } from '../aluno/aluno.entity';
 import { Documento } from '../documento/documento.entity';
 import { Vagas } from '../vagas/vagas.entity';
@@ -20,6 +21,17 @@ export class Inscricao extends AbstractEntity<Inscricao> {
     default: StatusInscricao.PENDENTE,
   })
   status_inscricao: StatusInscricao;
+
+  /**
+   * Benefício no edital (seleção/homologação), separado da análise documental
+   * e do status da inscrição.
+   */
+  @Column({
+    type: 'varchar',
+    length: 80,
+    default: StatusBeneficioEdital.PENDENTE_SELECAO,
+  })
+  status_beneficio_edital: StatusBeneficioEdital;
 
   @OneToMany(() => Documento, (documento) => documento.inscricao, {
     nullable: true,

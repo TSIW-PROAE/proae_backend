@@ -94,8 +94,13 @@ export class EditalService {
 
       await this.entityManager.transaction(
         async (transactionalEntityManager) => {
-          const { ...updateData } = updateEditalDto;
+          const { data_fim_vigencia, ...updateData } = updateEditalDto;
           Object.assign(edital, updateData);
+          if (data_fim_vigencia !== undefined) {
+            edital.data_fim_vigencia = data_fim_vigencia
+              ? new Date(data_fim_vigencia)
+              : null;
+          }
           await transactionalEntityManager.save(edital);
         },
       );

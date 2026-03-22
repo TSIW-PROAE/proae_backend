@@ -35,4 +35,4 @@ EXPOSE 8080
 
 USER node
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]

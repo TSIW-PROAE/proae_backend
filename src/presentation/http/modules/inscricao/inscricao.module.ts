@@ -17,9 +17,11 @@ import { InscricaoTypeOrmRepository } from 'src/infrastructure/persistence/typeo
 import { AuthModule } from 'src/presentation/http/modules/auth/auth.module';
 import { InscricaoController } from './inscricao.controller';
 import { InscricaoService } from './inscricao.service';
+import { InscricaoAuditModule } from '../inscricao-audit/inscricao-audit.module';
 
 @Module({
   imports: [
+    InscricaoAuditModule,
     TypeOrmModule.forFeature([
       Inscricao,
       Documento,

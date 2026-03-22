@@ -38,4 +38,25 @@ export class Resposta extends AbstractEntity<Resposta> {
 
   @Column({ type: 'timestamp', nullable: true })
   dataValidade?: Date;
+
+  /** Admin marcou como invalidada (reprovação ou pedido de correção). */
+  @Column({ type: 'boolean', default: false })
+  invalidada: boolean;
+
+  /** Se true, aluno deve reenviar resposta até prazoReenvio. */
+  @Column({ type: 'boolean', default: false })
+  requerReenvio: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  parecer?: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  prazoReenvio?: Date | null;
+
+  /** Pergunta criada após a inscrição (fluxo complemento). */
+  @Column({ type: 'boolean', default: false })
+  perguntaAdicionadaPosInscricao: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  prazoRespostaNovaPergunta?: Date | null;
 }

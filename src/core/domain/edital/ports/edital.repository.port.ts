@@ -5,22 +5,29 @@ import type {
   StatusEditalDomain,
 } from '../edital.types';
 
-/** Aluno resumido para listagem de inscritos (evita acoplamento com entidade Aluno) */
+/**
+ * Uma linha por inscrição no edital, com dados do aluno e usuário já achatados
+ * (o frontend espera nome, email, inscricao_id, etc. no nível raiz).
+ */
 export interface AlunoInscritoData {
+  inscricao_id: number;
+  status_inscricao: string;
+  /** Situação de benefício no edital (seleção), separada da análise da inscrição */
+  status_beneficio_edital: string;
+  beneficio_nome: string | null;
+  /** ISO ou YYYY-MM-DD */
+  data_inscricao: string;
   aluno_id: number;
+  usuario_id: string;
+  email: string;
+  nome: string;
+  cpf: string;
+  celular: string;
+  data_nascimento: string | null;
   matricula: string;
   curso: string;
   campus: string;
   data_ingresso: string;
-  usuario: {
-    usuario_id: string;
-    email: string;
-    nome: string;
-    cpf: string;
-    celular: string;
-    data_nascimento: Date;
-    roles: string[];
-  };
 }
 
 export interface IEditalRepository {

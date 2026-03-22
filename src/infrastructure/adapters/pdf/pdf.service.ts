@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import PDFDocument from 'pdfkit';
+/** pdfkit usa module.exports (sem default) — import default quebra em runtime (default is not a constructor). */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import PDFDocument = require('pdfkit');
 import { Repository } from 'typeorm';
 import type { PdfRendererPort } from '../../../core/application/utilities/ports/pdf-renderer.port';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
+import { StatusBeneficioEdital } from '../../../core/shared-kernel/enums/enumStatusBeneficioEdital';
 import { StatusInscricao } from '../../../core/shared-kernel/enums/enumStatusInscricao';
+
+type ListaPdfTipo = 'aprovados_analise' | 'beneficiarios_edital';
 
 @Injectable()
 export class PdfService implements PdfRendererPort {
@@ -17,15 +22,44 @@ export class PdfService implements PdfRendererPort {
   ) {}
 
   async generateAprovadosPdf(editalId?: number): Promise<Buffer> {
+    return this.generateListaPdf({
+      editalId,
+      tipo: 'aprovados_analise',
+    });
+  }
+
+  async generateBeneficiariosPdf(editalId: number): Promise<Buffer> {
+    if (!editalId || Number.isNaN(editalId)) {
+      throw new BadRequestException('Informe o editalId para o relatório de beneficiários.');
+    }
+    return this.generateListaPdf({
+      editalId,
+      tipo: 'beneficiarios_edital',
+    });
+  }
+
+  private async generateListaPdf(opts: {
+    editalId?: number;
+    tipo: ListaPdfTipo;
+  }): Promise<Buffer> {
+    const { editalId, tipo } = opts;
+
     const queryBuilder = this.inscricaoRepository
       .createQueryBuilder('inscricao')
       .leftJoinAndSelect('inscricao.aluno', 'aluno')
       .leftJoinAndSelect('aluno.usuario', 'usuario')
       .leftJoinAndSelect('inscricao.vagas', 'vagas')
-      .leftJoinAndSelect('vagas.edital', 'edital')
-      .where('inscricao.status_inscricao = :status', {
+      .leftJoinAndSelect('vagas.edital', 'edital');
+
+    if (tipo === 'aprovados_analise') {
+      queryBuilder.andWhere('inscricao.status_inscricao = :status', {
         status: StatusInscricao.APROVADA,
       });
+    } else {
+      queryBuilder.andWhere('inscricao.status_beneficio_edital = :ben', {
+        ben: StatusBeneficioEdital.BENEFICIARIO,
+      });
+    }
 
     if (editalId) {
       const edital = await this.editalRepository.findOne({
@@ -39,13 +73,31 @@ export class PdfService implements PdfRendererPort {
       queryBuilder.andWhere('edital.id = :editalId', { editalId });
     }
 
-    const inscricoes = await queryBuilder
+    const inscricoesRaw = await queryBuilder
       .orderBy('usuario.nome', 'ASC')
       .getMany();
 
+    const inscricoes = inscricoesRaw.filter(
+      (i) => i.aluno && i.aluno.usuario && i.vagas,
+    );
+
     if (inscricoes.length === 0) {
-      throw new NotFoundException('Nenhum estudante aprovado encontrado');
+      const msg =
+        tipo === 'aprovados_analise'
+          ? 'Nenhum estudante com inscrição aprovada na análise encontrado para os filtros.'
+          : 'Nenhum beneficiário homologado no edital encontrado para os filtros.';
+      throw new NotFoundException(msg);
     }
+
+    const tituloPrincipal =
+      tipo === 'aprovados_analise'
+        ? 'Relatório — Inscrições aprovadas (análise)'
+        : 'Relatório — Beneficiários no edital';
+
+    const subtituloTipo =
+      tipo === 'aprovados_analise'
+        ? 'Critério: status da inscrição = Inscrição Aprovada (análise documental / parecer).'
+        : 'Critério: situação de benefício = Beneficiário no edital (homologação da vaga).';
 
     const doc = new PDFDocument({
       size: 'A4',
@@ -56,16 +108,24 @@ export class PdfService implements PdfRendererPort {
     doc.on('data', buffers.push.bind(buffers));
 
     doc
-      .fontSize(20)
+      .fontSize(18)
       .font('Helvetica-Bold')
-      .text('Relatório de Estudantes Aprovados', { align: 'center' })
+      .text(tituloPrincipal, { align: 'center' })
+      .moveDown(0.35);
+
+    doc
+      .fontSize(9)
+      .font('Helvetica')
+      .fillColor('#444444')
+      .text(subtituloTipo, { align: 'center' })
+      .fillColor('#000000')
       .moveDown();
 
     if (editalId && inscricoes.length > 0) {
-      const edital = inscricoes[0].vagas.edital;
+      const edital = inscricoes[0].vagas!.edital!;
       doc
-        .fontSize(14)
-        .font('Helvetica')
+        .fontSize(13)
+        .font('Helvetica-Bold')
         .text(`Edital: ${edital.titulo_edital}`, { align: 'center' })
         .moveDown(0.5);
     }
@@ -74,7 +134,7 @@ export class PdfService implements PdfRendererPort {
       .fontSize(10)
       .font('Helvetica')
       .text(
-        `Gerado em: ${new Date().toLocaleDateString('pt-BR', {
+        `Gerado em: ${new Date().toLocaleString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
@@ -83,97 +143,137 @@ export class PdfService implements PdfRendererPort {
         })}`,
         { align: 'center' },
       )
-      .moveDown(2);
+      .moveDown(1.5);
 
     doc
-      .fontSize(12)
+      .fontSize(11)
       .font('Helvetica-Bold')
-      .text(`Total de Estudantes Aprovados: ${inscricoes.length}`, {
+      .text(`Total: ${inscricoes.length} registro(s)`, {
         align: 'center',
       })
-      .moveDown(2);
+      .moveDown(1.5);
+
+    const incluirColBeneficio = tipo === 'beneficiarios_edital';
+    const colWidths = incluirColBeneficio
+      ? {
+          numero: 28,
+          nome: 150,
+          matricula: 72,
+          email: 128,
+          beneficio: 110,
+          curso: 88,
+          campus: 72,
+        }
+      : {
+          numero: 30,
+          nome: 175,
+          matricula: 85,
+          email: 150,
+          beneficio: 0,
+          curso: 115,
+          campus: 85,
+        };
 
     let yPosition = doc.y;
     const pageWidth = doc.page.width - 100;
-    const colWidths = {
-      numero: 40,
-      nome: 200,
-      matricula: 100,
-      email: 180,
-      curso: 150,
-      campus: 100,
-    };
 
-    doc
-      .fontSize(10)
-      .font('Helvetica-Bold')
-      .text('#', 50, yPosition)
-      .text('Nome', 50 + colWidths.numero, yPosition)
-      .text('Matrícula', 50 + colWidths.numero + colWidths.nome, yPosition)
-      .text('Email', 50 + colWidths.numero + colWidths.nome + colWidths.matricula, yPosition)
-      .text('Curso', 50 + colWidths.numero + colWidths.nome + colWidths.matricula + colWidths.email, yPosition)
-      .text('Campus', 50 + colWidths.numero + colWidths.nome + colWidths.matricula + colWidths.email + colWidths.curso, yPosition);
+    const headerY = yPosition;
+    doc.fontSize(8).font('Helvetica-Bold');
+    let x = 50;
+    doc.text('#', x, headerY, { width: colWidths.numero });
+    x += colWidths.numero;
+    doc.text('Nome', x, headerY, { width: colWidths.nome });
+    x += colWidths.nome;
+    doc.text('Matrícula', x, headerY, { width: colWidths.matricula });
+    x += colWidths.matricula;
+    doc.text('E-mail', x, headerY, { width: colWidths.email });
+    x += colWidths.email;
+    if (incluirColBeneficio) {
+      doc.text('Benefício (vaga)', x, headerY, { width: colWidths.beneficio });
+      x += colWidths.beneficio;
+    }
+    doc.text('Curso', x, headerY, { width: colWidths.curso });
+    x += colWidths.curso;
+    doc.text('Campus', x, headerY, { width: colWidths.campus });
 
-    yPosition += 15;
+    yPosition = headerY + 12;
     doc
       .moveTo(50, yPosition)
       .lineTo(pageWidth + 50, yPosition)
       .stroke();
-
-    yPosition += 10;
+    yPosition += 8;
 
     inscricoes.forEach((inscricao, index) => {
       if (yPosition > doc.page.height - 100) {
         doc.addPage();
         yPosition = 50;
-
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .text('#', 50, yPosition)
-          .text('Nome', 50 + colWidths.numero, yPosition)
-          .text('Matrícula', 50 + colWidths.numero + colWidths.nome, yPosition)
-          .text('Email', 50 + colWidths.numero + colWidths.nome + colWidths.matricula, yPosition)
-          .text('Curso', 50 + colWidths.numero + colWidths.nome + colWidths.matricula + colWidths.email, yPosition)
-          .text('Campus', 50 + colWidths.numero + colWidths.nome + colWidths.matricula + colWidths.email + colWidths.curso, yPosition);
-
-        yPosition += 15;
+        const hy = yPosition;
+        doc.fontSize(8).font('Helvetica-Bold');
+        let hx = 50;
+        doc.text('#', hx, hy, { width: colWidths.numero });
+        hx += colWidths.numero;
+        doc.text('Nome', hx, hy, { width: colWidths.nome });
+        hx += colWidths.nome;
+        doc.text('Matrícula', hx, hy, { width: colWidths.matricula });
+        hx += colWidths.matricula;
+        doc.text('E-mail', hx, hy, { width: colWidths.email });
+        hx += colWidths.email;
+        if (incluirColBeneficio) {
+          doc.text('Benefício (vaga)', hx, hy, { width: colWidths.beneficio });
+          hx += colWidths.beneficio;
+        }
+        doc.text('Curso', hx, hy, { width: colWidths.curso });
+        hx += colWidths.curso;
+        doc.text('Campus', hx, hy, { width: colWidths.campus });
+        yPosition = hy + 12;
         doc
           .moveTo(50, yPosition)
           .lineTo(pageWidth + 50, yPosition)
           .stroke();
-        yPosition += 10;
+        yPosition += 8;
       }
 
-      const aluno = inscricao.aluno;
-      const usuario = aluno.usuario;
+      const aluno = inscricao.aluno!;
+      const usuario = aluno.usuario!;
+      const beneficioTxt = inscricao.vagas?.beneficio ?? '—';
 
-      doc
-        .fontSize(9)
-        .font('Helvetica')
-        .text(`${index + 1}`, 50, yPosition)
-        .text(usuario.nome || '-', 50 + colWidths.numero, yPosition, {
-          width: colWidths.nome,
-          ellipsis: true,
-        })
-        .text(aluno.matricula || '-', 50 + colWidths.numero + colWidths.nome, yPosition, {
-          width: colWidths.matricula,
-          ellipsis: true,
-        })
-        .text(usuario.email || '-', 50 + colWidths.numero + colWidths.nome + colWidths.matricula, yPosition, {
-          width: colWidths.email,
-          ellipsis: true,
-        })
-        .text(aluno.curso || '-', 50 + colWidths.numero + colWidths.nome + colWidths.matricula + colWidths.email, yPosition, {
-          width: colWidths.curso,
-          ellipsis: true,
-        })
-        .text(aluno.campus || '-', 50 + colWidths.numero + colWidths.nome + colWidths.matricula + colWidths.email + colWidths.curso, yPosition, {
-          width: colWidths.campus,
+      doc.fontSize(7.5).font('Helvetica');
+      let cx = 50;
+      doc.text(String(index + 1), cx, yPosition, { width: colWidths.numero });
+      cx += colWidths.numero;
+      doc.text(usuario.nome || '-', cx, yPosition, {
+        width: colWidths.nome,
+        ellipsis: true,
+      });
+      cx += colWidths.nome;
+      doc.text(aluno.matricula || '-', cx, yPosition, {
+        width: colWidths.matricula,
+        ellipsis: true,
+      });
+      cx += colWidths.matricula;
+      doc.text(usuario.email || '-', cx, yPosition, {
+        width: colWidths.email,
+        ellipsis: true,
+      });
+      cx += colWidths.email;
+      if (incluirColBeneficio) {
+        doc.text(beneficioTxt, cx, yPosition, {
+          width: colWidths.beneficio,
           ellipsis: true,
         });
+        cx += colWidths.beneficio;
+      }
+      doc.text(aluno.curso || '-', cx, yPosition, {
+        width: colWidths.curso,
+        ellipsis: true,
+      });
+      cx += colWidths.curso;
+      doc.text(String(aluno.campus || '-'), cx, yPosition, {
+        width: colWidths.campus,
+        ellipsis: true,
+      });
 
-      yPosition += 15;
+      yPosition += 14;
     });
 
     const totalPages = doc.bufferedPageRange().count;

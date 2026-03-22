@@ -26,6 +26,7 @@ export class ListAlunosUseCase {
     }
     const dados = alunos.map((a) => ({
       aluno_id: a.alunoId,
+      nome: a.nome,
       email: a.email,
       matricula: a.matricula,
       data_nascimento: a.dataNascimento,

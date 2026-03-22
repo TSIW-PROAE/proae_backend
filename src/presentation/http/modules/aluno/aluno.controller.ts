@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +22,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles';
+import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
 import {
   AlunoNaoEncontradoError,
   FindAlunoByUserIdUseCase,
@@ -73,7 +77,11 @@ export class AlunoController {
   @ApiOkResponse({ description: 'Dados do aluno encontrados com sucesso' })
   @ApiNotFoundResponse({ description: 'Aluno não encontrado' })
   async findOne(@Req() request: AuthenticatedRequest) {
-    const { userId } = request.user;
+    const { userId, roles } = request.user;
+    await this.alunoService.assertAlunoEmailConfirmadoParaPortal(
+      userId,
+      roles ?? [],
+    );
     try {
       return await this.findAlunoByUserId.execute(userId);
     } catch (e) {
@@ -82,6 +90,42 @@ export class AlunoController {
       }
       throw e;
     }
+  }
+
+  @Get('admin/por-edital/:editalId/alunos')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: '[Admin] Alunos com inscrição em um edital',
+    description:
+      'Útil na Central de estudantes: filtrar por edital e, opcionalmente, só beneficiários homologados no edital e/ou só com inscrição aprovada na análise (são critérios diferentes).',
+  })
+  @ApiOkResponse({ description: 'Lista retornada' })
+  @ApiNotFoundResponse({ description: 'Edital não encontrado' })
+  async adminAlunosPorEdital(
+    @Param('editalId', ParseIntPipe) editalId: number,
+    @Query('apenas_beneficiarios_edital') apenasBenef?: string,
+    @Query('apenas_inscricao_aprovada') apenasInsc?: string,
+  ) {
+    return this.alunoService.listarAlunosComInscricaoNoEdital(editalId, {
+      apenasBeneficiariosEdital:
+        apenasBenef === 'true' || apenasBenef === '1',
+      apenasInscricaoAprovada: apenasInsc === 'true' || apenasInsc === '1',
+    });
+  }
+
+  @Get('admin/:alunoId/resumo')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: '[Admin] Resumo do estudante e inscrições',
+    description:
+      'Dados cadastrais e linhas de inscrição (por vaga) para hub administrativo único.',
+  })
+  @ApiOkResponse({ description: 'Resumo retornado com sucesso' })
+  @ApiNotFoundResponse({ description: 'Aluno não encontrado' })
+  async adminAlunoResumo(@Param('alunoId', ParseIntPipe) alunoId: number) {
+    return this.alunoService.getAdminAlunoResumo(alunoId);
   }
 
   @Get('all')
@@ -114,7 +158,11 @@ export class AlunoController {
     @Req() request: AuthenticatedRequest,
     @Body() atualizaDadosAlunoDTO: AtualizaDadosAlunoDTO,
   ) {
-    const { userId } = request.user;
+    const { userId, roles } = request.user;
+    await this.alunoService.assertAlunoEmailConfirmadoParaPortal(
+      userId,
+      roles ?? [],
+    );
     const hasAnyData = Object.values(atualizaDadosAlunoDTO).some(
       (v) => v !== undefined && v !== null && v !== '',
     );
@@ -131,6 +179,7 @@ export class AlunoController {
         campus: atualizaDadosAlunoDTO.campus,
         dataIngresso: atualizaDadosAlunoDTO.data_ingresso,
         celular: atualizaDadosAlunoDTO.celular,
+        cpf: atualizaDadosAlunoDTO.cpf,
       });
       return { success: true, message: 'Dados do aluno atualizados com sucesso!' };
     } catch (e) {
@@ -138,6 +187,9 @@ export class AlunoController {
         throw new NotFoundException(e.message);
       }
       if (e instanceof Error && e.message === 'Email já está em uso.') {
+        throw new BadRequestException(e.message);
+      }
+      if (e instanceof Error && e.message === 'CPF já cadastrado.') {
         throw new BadRequestException(e.message);
       }
       throw e;
@@ -152,7 +204,11 @@ export class AlunoController {
   @ApiOkResponse({ description: 'Inscrições do aluno encontradas com sucesso' })
   @ApiNotFoundResponse({ description: 'Aluno não encontrado' })
   async getStudentRegistration(@Req() request: AuthenticatedRequest) {
-    const { userId } = request.user;
+    const { userId, roles } = request.user;
+    await this.alunoService.assertAlunoEmailConfirmadoParaPortal(
+      userId,
+      roles ?? [],
+    );
     return this.alunoService.getStudentRegistration(userId);
   }
 

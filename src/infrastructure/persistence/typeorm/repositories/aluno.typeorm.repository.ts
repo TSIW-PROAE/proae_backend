@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as cpfLib from 'validation-br/dist/cpf';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuarios/usuario.entity';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
@@ -59,6 +60,20 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
     if (data.nome) usuario.nome = data.nome;
     if (data.celular) usuario.celular = data.celular;
     if (data.dataNascimento) usuario.data_nascimento = new Date(data.dataNascimento);
+
+    if (data.cpf !== undefined && String(data.cpf).trim() !== '') {
+      const digits = String(data.cpf).replace(/\D/g, '');
+      const masked = cpfLib.mask(digits);
+      if (masked !== usuario.cpf) {
+        const outroCpf = await this.usuarioRepository.findOne({
+          where: { cpf: masked },
+        });
+        if (outroCpf && outroCpf.usuario_id !== usuario.usuario_id) {
+          throw new Error('CPF já cadastrado.');
+        }
+        usuario.cpf = masked;
+      }
+    }
 
     Object.assign(usuario.aluno!, {
       matricula: data.matricula ?? usuario.aluno.matricula,

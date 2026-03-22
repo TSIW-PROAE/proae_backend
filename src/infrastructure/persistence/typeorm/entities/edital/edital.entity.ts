@@ -29,6 +29,14 @@ export class Edital extends AbstractEntity<Edital> {
   @Column({ type: 'boolean', default: false })
   is_formulario_geral: boolean;
 
+  /** Formulário de renovação (recadastro). Quem já teve inscrição aprovada precisa concluí-lo quando estiver aberto para voltar a se inscrever em editais. */
+  @Column({ type: 'boolean', default: false })
+  is_formulario_renovacao: boolean;
+
+  /** Após esta data o vínculo/participação neste edital deixa de estar ativa para o aluno (avisos no portal). */
+  @Column({ type: 'date', nullable: true })
+  data_fim_vigencia?: Date | null;
+
   @Column({ type: 'json', nullable: true })
   etapa_edital?: {
     etapa: string;

@@ -1,5 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsOptional } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class ValidateRespostaDto {
   @ApiPropertyOptional({
@@ -20,4 +25,28 @@ export class ValidateRespostaDto {
   @IsOptional()
   @IsBoolean()
   validada?: boolean;
+
+  @ApiPropertyOptional({ description: 'Marcar como invalidada' })
+  @IsOptional()
+  @IsBoolean()
+  invalidada?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Se invalidada, permite reenvio pelo aluno',
+  })
+  @IsOptional()
+  @IsBoolean()
+  requerReenvio?: boolean;
+
+  @ApiPropertyOptional({ description: 'Parecer ao invalidar ou pedir reenvio' })
+  @IsOptional()
+  @IsString()
+  parecer?: string;
+
+  @ApiPropertyOptional({
+    description: 'Prazo limite para reenvio (ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  prazoReenvio?: string;
 }

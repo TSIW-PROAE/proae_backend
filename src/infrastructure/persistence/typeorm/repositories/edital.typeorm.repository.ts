@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Edital } from '../entities/edital/edital.entity';
-import { Aluno } from '../entities/aluno/aluno.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusEdital } from '../../../../core/shared-kernel/enums/enumStatusEdital';
 import type {
   AlunoInscritoData,
@@ -128,34 +128,57 @@ export class EditalTypeOrmRepository implements IEditalRepository {
     offset: number,
   ): Promise<AlunoInscritoData[]> {
     const skip = offset * limit;
-    const alunos = await this.entityManager
-      .createQueryBuilder(Aluno, 'aluno')
-      .innerJoin('aluno.inscricoes', 'inscricao')
-      .innerJoin('inscricao.vagas', 'vaga')
-      .innerJoin('vaga.edital', 'edital')
+    const inscricoes = await this.entityManager
+      .createQueryBuilder(Inscricao, 'inscricao')
+      .innerJoinAndSelect('inscricao.aluno', 'aluno')
       .innerJoinAndSelect('aluno.usuario', 'usuario')
+      .innerJoinAndSelect('inscricao.vagas', 'vaga')
+      .innerJoin('vaga.edital', 'edital')
       .where('edital.id = :editalId', { editalId })
-      .distinct(true)
+      .orderBy('inscricao.data_inscricao', 'DESC')
+      .addOrderBy('inscricao.id', 'DESC')
       .skip(skip)
       .take(limit)
       .getMany();
 
-    return alunos.map((aluno) => ({
-      aluno_id: aluno.aluno_id,
-      matricula: aluno.matricula,
-      curso: aluno.curso,
-      campus: aluno.campus,
-      data_ingresso: aluno.data_ingresso,
-      usuario: {
-        usuario_id: aluno.usuario!.usuario_id,
-        email: aluno.usuario!.email,
-        nome: aluno.usuario!.nome,
-        cpf: aluno.usuario!.cpf,
-        celular: aluno.usuario!.celular,
-        data_nascimento: aluno.usuario!.data_nascimento,
-        roles: aluno.usuario!.roles ?? [],
-      },
-    }));
+    const fmtDate = (d: Date | string | null | undefined): string | null => {
+      if (d == null) return null;
+      if (typeof d === 'string') return d;
+      if (d instanceof Date) return d.toISOString().slice(0, 10);
+      return String(d);
+    };
+
+    return inscricoes.map((insc) => {
+      const aluno = insc.aluno;
+      const u = aluno.usuario!;
+      const di = insc.data_inscricao;
+      const dataInsc =
+        di instanceof Date
+          ? di.toISOString()
+          : typeof di === 'string'
+            ? di
+            : String(di);
+
+      const vaga = insc.vagas;
+      return {
+        inscricao_id: insc.id,
+        status_inscricao: String(insc.status_inscricao),
+        status_beneficio_edital: String(insc.status_beneficio_edital),
+        beneficio_nome: vaga?.beneficio ?? null,
+        data_inscricao: dataInsc,
+        aluno_id: aluno.aluno_id,
+        usuario_id: u.usuario_id,
+        email: u.email,
+        nome: u.nome,
+        cpf: u.cpf,
+        celular: u.celular,
+        data_nascimento: fmtDate(u.data_nascimento),
+        matricula: aluno.matricula,
+        curso: aluno.curso,
+        campus: String(aluno.campus),
+        data_ingresso: aluno.data_ingresso,
+      };
+    });
   }
 
   private toEditalData(e: Edital): EditalData {

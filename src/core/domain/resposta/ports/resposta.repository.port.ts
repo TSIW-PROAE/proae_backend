@@ -36,5 +36,15 @@ export interface IRespostaRepository {
     respostaId: number,
     cmd: ValidateRespostaCommand,
   ): Promise<RespostaConsultaResultado>;
+
+  findAllStepsComPerguntasRespostas(
+    alunoId: number,
+    editalId: number,
+  ): Promise<RespostaConsultaResultado>;
+
+  reabrirComplemento(
+    respostaId: number,
+    novoPrazo: string,
+  ): Promise<RespostaConsultaResultado>;
 }
 

@@ -122,7 +122,12 @@ export class FormularioGeralController {
   async alterarStatusInscricao(
     @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
     @Body() dto: UpdateFGInscricaoStatusDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.formularioGeralService.alterarStatusInscricaoFG(inscricaoId, dto);
+    return this.formularioGeralService.alterarStatusInscricaoFG(
+      inscricaoId,
+      dto,
+      req.user.userId,
+    );
   }
 }

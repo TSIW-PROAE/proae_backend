@@ -56,12 +56,13 @@ export class DocumentoService {
         throw new BadRequestException('Inscrição não encontrada');
       }
 
-      const documentUrl = (
-        await this.storageService.uploadDocuments(
-          ownerUserId,
-          files,
-        )
-      ).arquivos[0].nome_do_arquivo;
+      const upload = await this.storageService.uploadDocuments(
+        ownerUserId,
+        files,
+      );
+      const first = upload.arquivos[0];
+      const documentUrl =
+        first?.objectKey ?? first?.nome_do_arquivo ?? '';
 
       const novoDocumento = await this.createDocumentoUseCase.execute({
         inscricao_id: createDocumentoDto.inscricao,

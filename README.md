@@ -38,6 +38,10 @@ docker-compose up -d
 
 > **Nota:** Configure o arquivo `.env` baseado no `.env.example` antes de rodar.
 
+### Rodar local (sem Docker)
+
+O Nest compila TypeScript para `dist/`. **`npm run start:prod`** compila (`npm run build`) e sobe `node dist/main.js`. Se preferir só compilar: `npm run build`, depois `node dist/main.js`. O erro `Cannot find module '.../dist/main'` aparece quando a pasta `dist` não existe — rode o build antes.
+
 ## ☁️ Deploy GCP
 
 Guia completo para Cloud Run + Cloud SQL:

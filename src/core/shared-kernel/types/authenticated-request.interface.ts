@@ -5,8 +5,9 @@ interface AuthenticatedRequest extends Request {
     userId: string;
     email: string;
     aluno_id: number;
+    /** Ex.: ['admin'] | ['aluno'] — vem do JWT */
+    roles?: string[];
   };
 }
 
 export default AuthenticatedRequest;
-

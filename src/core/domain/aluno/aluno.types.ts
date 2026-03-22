@@ -32,4 +32,6 @@ export interface AtualizaAlunoData {
   campus?: Campus;
   dataIngresso?: string;
   celular?: string;
+  /** CPF com ou sem máscara; persistido mascarado no Usuario */
+  cpf?: string;
 }

@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -69,4 +70,15 @@ export class UpdateEditalDto {
   @ValidateNested({ each: true })
   @Type(() => EtapaEditalDto)
   etapa_edital?: EtapaEditalDto[];
+
+  @ApiProperty({
+    description:
+      'Data fim da vigência no portal (YYYY-MM-DD). Omitir para não alterar; null para limpar.',
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsDateString()
+  data_fim_vigencia?: string | null;
 }

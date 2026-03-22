@@ -13,6 +13,12 @@ export interface RespostaData {
   validada: boolean;
   dataValidacao?: Date | null;
   dataValidade?: Date | null;
+  invalidada?: boolean;
+  requerReenvio?: boolean;
+  parecer?: string | null;
+  prazoReenvio?: Date | null;
+  perguntaAdicionadaPosInscricao?: boolean;
+  prazoRespostaNovaPergunta?: Date | null;
 }
 
 export interface RespostaConsultaResultado {
@@ -24,5 +30,9 @@ export interface RespostaConsultaResultado {
 export interface ValidateRespostaCommand {
   validada?: boolean;
   dataValidade?: string;
+  invalidada?: boolean;
+  requerReenvio?: boolean;
+  parecer?: string | null;
+  prazoReenvio?: string | null;
 }
 

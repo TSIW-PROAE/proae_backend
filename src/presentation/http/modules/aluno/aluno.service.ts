@@ -1,5 +1,8 @@
 import {
   BadRequestException,
+  ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +16,9 @@ import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscr
 import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
+import { StatusBeneficioEdital } from 'src/core/shared-kernel/enums/enumStatusBeneficioEdital';
+import { StatusInscricao } from 'src/core/shared-kernel/enums/enumStatusInscricao';
+import { AuthService } from 'src/presentation/http/modules/auth/auth.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import type { CompleteCadastroAlunoDto } from './dto/complete-cadastro-aluno.dto';
 
@@ -31,7 +37,32 @@ export class AlunoService {
     private readonly vagasRepository: Repository<Vagas>,
     @InjectRepository(Inscricao)
     private readonly inscricaoRepository: Repository<Inscricao>,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
+
+  /**
+   * Bloqueia rotas do portal do estudante até confirmar o email (exceto quem tem papel admin).
+   */
+  async assertAlunoEmailConfirmadoParaPortal(
+    userId: string,
+    roles?: (RolesEnum | string)[] | null,
+  ): Promise<void> {
+    const isAdmin =
+      roles?.includes(RolesEnum.ADMIN) || roles?.includes('admin');
+    if (isAdmin) return;
+
+    const usuario = await this.usuarioRepository.findOne({
+      where: { usuario_id: userId },
+      relations: ['aluno'],
+    });
+    if (!usuario?.aluno) return;
+    if (!usuario.aluno.cadastroEmailConfirmado) {
+      throw new ForbiddenException(
+        'Confirme seu email para acessar o portal do estudante. Verifique sua caixa de entrada e o spam.',
+      );
+    }
+  }
 
   /**
    * Vincula perfil de aluno à conta do usuário logado (quando ele ainda não tem).
@@ -40,7 +71,7 @@ export class AlunoService {
   async completeCadastro(userId: string, dto: CompleteCadastroAlunoDto) {
     const usuario = await this.usuarioRepository.findOne({
       where: { usuario_id: userId },
-      relations: ['aluno'],
+      relations: ['aluno', 'admin'],
     });
     if (!usuario) {
       throw new NotFoundException('Usuário não encontrado');
@@ -81,9 +112,14 @@ export class AlunoService {
         });
       }
 
+      const { aguardando_confirmacao_email } =
+        await this.authService.aplicarConfirmacaoEmailPosCadastroAluno(userId);
       return {
         sucesso: true,
-        mensagem: 'Cadastro de aluno vinculado à sua conta. Agora você pode se inscrever em editais.',
+        mensagem: aguardando_confirmacao_email
+          ? 'Enviamos um link de confirmação para seu email. Após confirmar, você poderá se inscrever em editais.'
+          : 'Cadastro de aluno vinculado à sua conta. Agora você pode se inscrever em editais.',
+        aguardando_confirmacao_email,
         dados: {
           aluno_id: matriculaExistente.aluno_id,
           matricula: matriculaExistente.matricula,
@@ -107,9 +143,14 @@ export class AlunoService {
     await this.usuarioRepository.update(usuario.usuario_id, {
       roles: rolesAtualizados,
     });
+    const { aguardando_confirmacao_email: aguardandoNovo } =
+      await this.authService.aplicarConfirmacaoEmailPosCadastroAluno(userId);
     return {
       sucesso: true,
-      mensagem: 'Cadastro de aluno vinculado à sua conta. Agora você pode se inscrever em editais.',
+      mensagem: aguardandoNovo
+        ? 'Enviamos um link de confirmação para seu email. Após confirmar, você poderá se inscrever em editais.'
+        : 'Cadastro de aluno vinculado à sua conta. Agora você pode se inscrever em editais.',
+      aguardando_confirmacao_email: aguardandoNovo,
       dados: {
         aluno_id: aluno.aluno_id,
         matricula: aluno.matricula,
@@ -315,6 +356,164 @@ export class AlunoService {
         possui_pendencias: hasPendencias,
       };
     });
+  }
+
+  /**
+   * [Admin] Dados cadastrais + todas as inscrições (por vaga) para hub único.
+   */
+  async getAdminAlunoResumo(alunoId: number) {
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+      relations: [
+        'usuario',
+        'inscricoes',
+        'inscricoes.vagas',
+        'inscricoes.vagas.edital',
+        'inscricoes.documentos',
+      ],
+    });
+
+    if (!aluno) {
+      throw new NotFoundException('Aluno não encontrado.');
+    }
+
+    const usuario = aluno.usuario;
+    const inscricoes = aluno.inscricoes || [];
+
+    const porVaga = new Map<number, Inscricao>();
+    for (const inscricao of inscricoes) {
+      const vagaId = (inscricao.vagas as { id?: number })?.id ?? 0;
+      const existing = porVaga.get(vagaId);
+      if (!existing || inscricao.id > existing.id) {
+        porVaga.set(vagaId, inscricao);
+      }
+    }
+
+    const itens = Array.from(porVaga.values()).map((inscricao: Inscricao) => {
+      const vagas = inscricao.vagas as Vagas | undefined;
+      const edital = vagas?.edital;
+      const hasPendencias = (inscricao.documentos || []).some(
+        (d) =>
+          d.status_documento === 'Pendente' ||
+          d.status_documento === 'Não Enviado',
+      );
+      let processo_tipo: 'FORMULARIO_GERAL' | 'RENOVACAO' | 'EDITAL';
+      if (edital?.is_formulario_geral) {
+        processo_tipo = 'FORMULARIO_GERAL';
+      } else if (edital?.is_formulario_renovacao) {
+        processo_tipo = 'RENOVACAO';
+      } else {
+        processo_tipo = 'EDITAL';
+      }
+      return {
+        edital_id: edital?.id ?? 0,
+        vaga_id: vagas?.id ?? null,
+        inscricao_id: inscricao.id,
+        titulo_edital: edital?.titulo_edital ?? 'Edital',
+        status_edital: edital?.status_edital ?? '',
+        is_formulario_geral: edital?.is_formulario_geral ?? false,
+        is_formulario_renovacao: edital?.is_formulario_renovacao ?? false,
+        processo_tipo,
+        data_inscricao: inscricao.data_inscricao,
+        status_inscricao: inscricao.status_inscricao,
+        status_beneficio_edital: inscricao.status_beneficio_edital,
+        beneficio_nome: vagas?.beneficio ?? null,
+        observacao_admin: inscricao.observacao_admin ?? null,
+        possui_pendencias: hasPendencias,
+      };
+    });
+
+    return {
+      aluno: {
+        aluno_id: aluno.aluno_id,
+        nome: usuario?.nome ?? null,
+        email: usuario?.email ?? null,
+        matricula: aluno.matricula,
+        cpf: usuario?.cpf ?? null,
+        celular: usuario?.celular ?? null,
+        curso: aluno.curso,
+        campus: aluno.campus,
+        data_nascimento: usuario?.data_nascimento ?? null,
+        data_ingresso: aluno.data_ingresso,
+      },
+      inscricoes: itens,
+    };
+  }
+
+  /**
+   * [Admin] Alunos que têm pelo menos uma inscrição vinculada ao edital (via vaga).
+   * Filtros opcionais distinguem **benefício no edital** de **inscrição aprovada na análise**.
+   */
+  async listarAlunosComInscricaoNoEdital(
+    editalId: number,
+    opts: {
+      apenasBeneficiariosEdital?: boolean;
+      apenasInscricaoAprovada?: boolean;
+    },
+  ) {
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+    });
+    if (!edital) {
+      throw new NotFoundException(`Edital com ID ${editalId} não encontrado.`);
+    }
+
+    const qb = this.inscricaoRepository
+      .createQueryBuilder('inscricao')
+      .innerJoinAndSelect('inscricao.aluno', 'aluno')
+      .innerJoinAndSelect('aluno.usuario', 'usuario')
+      .innerJoin('inscricao.vagas', 'vaga')
+      .innerJoin('vaga.edital', 'edital')
+      .where('edital.id = :editalId', { editalId });
+
+    if (opts.apenasBeneficiariosEdital) {
+      qb.andWhere('inscricao.status_beneficio_edital = :ben', {
+        ben: StatusBeneficioEdital.BENEFICIARIO,
+      });
+    }
+    if (opts.apenasInscricaoAprovada) {
+      qb.andWhere('inscricao.status_inscricao = :st', {
+        st: StatusInscricao.APROVADA,
+      });
+    }
+
+    const inscricoes = await qb.getMany();
+    const seen = new Set<number>();
+    const dados: {
+      aluno_id: number;
+      nome: string;
+      email: string;
+      matricula: string;
+      data_nascimento: Date;
+      curso: string;
+      campus: string;
+      cpf: string;
+      data_ingresso: string;
+      celular: string;
+      inscricoes: unknown[];
+    }[] = [];
+
+    for (const ins of inscricoes) {
+      const a = ins.aluno;
+      const u = a?.usuario;
+      if (!a || !u || seen.has(a.aluno_id)) continue;
+      seen.add(a.aluno_id);
+      dados.push({
+        aluno_id: a.aluno_id,
+        nome: u.nome,
+        email: u.email,
+        matricula: a.matricula,
+        data_nascimento: u.data_nascimento,
+        curso: a.curso,
+        campus: a.campus,
+        cpf: u.cpf,
+        data_ingresso: a.data_ingresso,
+        celular: u.celular,
+        inscricoes: [],
+      });
+    }
+
+    return { sucesso: true as const, dados };
   }
 
   async findAlunosInscritosEmStep(editalId: number, stepId: number) {

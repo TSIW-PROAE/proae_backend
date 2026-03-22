@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RESPOSTA_REPOSITORY } from 'src/core/application/resposta/resposta.tokens';
 import { CreateRespostaUseCase } from 'src/core/application/resposta/use-cases/create-resposta.use-case';
@@ -24,9 +24,11 @@ import { ValorDado } from 'src/infrastructure/persistence/typeorm/entities/valor
 import { RespostaTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/resposta.typeorm.repository';
 import { RespostaController } from './resposta.controller';
 import { RespostaService } from './resposta.service';
+import { AuthModule } from 'src/presentation/http/modules/auth/auth.module';
 
 @Module({
   imports: [
+    forwardRef(() => AuthModule),
     TypeOrmModule.forFeature([
       Resposta,
       Pergunta,

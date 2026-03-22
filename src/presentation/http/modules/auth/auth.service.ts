@@ -56,12 +56,27 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.senha_hash);
     if (!isPasswordValid) return null;
 
-    if (user.roles?.includes(RolesEnum.ADMIN) && user.admin) {
-      if (!user.admin.aprovado) {
+    const full = await this.usuarioRepository.findOne({
+      where: { usuario_id: user.usuario_id },
+      relations: ['aluno', 'admin'],
+    });
+
+    if (full?.roles?.includes(RolesEnum.ADMIN) && full.admin) {
+      if (!full.admin.aprovado) {
         throw new UnauthorizedException(
           'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
         );
       }
+    }
+
+    if (
+      full?.aluno &&
+      !full.aluno.cadastroEmailConfirmado &&
+      full.admin?.aprovado !== true
+    ) {
+      throw new UnauthorizedException(
+        'Confirme seu email para ativar o cadastro de estudante. Verifique sua caixa de entrada e o spam.',
+      );
     }
 
     const { senha_hash, ...result } = user;
@@ -83,6 +98,16 @@ export class AuthService {
           'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
         );
       }
+    }
+
+    if (
+      userFull?.aluno &&
+      !userFull.aluno.cadastroEmailConfirmado &&
+      userFull.admin?.aprovado !== true
+    ) {
+      throw new UnauthorizedException(
+        'Confirme seu email para ativar o cadastro de estudante. Verifique sua caixa de entrada e o spam.',
+      );
     }
 
     // Sincroniza roles com a realidade do banco antes de emitir o JWT
@@ -123,6 +148,72 @@ export class AuthService {
 
   async logout() {
     return { sucesso: true, mensagem: 'Logout realizado com sucesso' };
+  }
+
+  /**
+   * Após criar/vincular perfil de aluno: quem já tem admin aprovado não precisa confirmar email;
+   * caso contrário envia link para o próprio estudante.
+   */
+  async aplicarConfirmacaoEmailPosCadastroAluno(
+    usuarioId: string,
+  ): Promise<{ aguardando_confirmacao_email: boolean }> {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { usuario_id: usuarioId },
+      relations: ['aluno', 'admin'],
+    });
+    if (!usuario?.aluno) {
+      throw new InternalServerErrorException(
+        'Registro de aluno não encontrado após o cadastro.',
+      );
+    }
+    const adminAprovado = usuario.admin?.aprovado === true;
+    usuario.aluno.cadastroEmailConfirmado = adminAprovado;
+    await this.alunoRepository.save(usuario.aluno);
+    if (!adminAprovado) {
+      const backendUrl = (
+        process.env.BACKEND_URL || 'http://localhost:3000'
+      ).replace(/\/+$/, '');
+      const token = this.jwtService.sign(
+        { sub: usuario.usuario_id, typ: 'aluno_confirm' },
+        {
+          secret: process.env.JWT_SECRET || 'seu_secret_jwt_aqui',
+          expiresIn: '48h',
+        },
+      );
+      const confirmUrl = `${backendUrl}/auth/confirm-cadastro-aluno?token=${encodeURIComponent(token)}`;
+      await this.emailService.sendAlunoCadastroConfirmation(
+        usuario.email,
+        confirmUrl,
+      );
+    }
+    return { aguardando_confirmacao_email: !adminAprovado };
+  }
+
+  async confirmAlunoCadastro(token: string) {
+    let payload: { sub: string; typ?: string };
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET || 'seu_secret_jwt_aqui',
+      }) as { sub: string; typ?: string };
+    } catch {
+      throw new BadRequestException('Link inválido ou expirado.');
+    }
+    if (payload.typ !== 'aluno_confirm' || !payload.sub) {
+      throw new BadRequestException('Link inválido.');
+    }
+    const usuario = await this.usuarioRepository.findOne({
+      where: { usuario_id: payload.sub },
+      relations: ['aluno'],
+    });
+    if (!usuario?.aluno) {
+      throw new BadRequestException('Cadastro de estudante não encontrado.');
+    }
+    usuario.aluno.cadastroEmailConfirmado = true;
+    await this.alunoRepository.save(usuario.aluno);
+    return {
+      sucesso: true,
+      mensagem: 'Email confirmado! Você já pode fazer login no portal do estudante.',
+    };
   }
 
   async signupAluno(dto: SignupDto) {
@@ -171,9 +262,16 @@ export class AuthService {
               roles: novoRoles as RolesEnum[],
             });
           }
+          const { aguardando_confirmacao_email } =
+            await this.aplicarConfirmacaoEmailPosCadastroAluno(
+              existingUsuario.usuario_id,
+            );
           return {
             sucesso: true,
-            mensagem: 'Cadastro de aluno vinculado à sua conta com sucesso.',
+            mensagem: aguardando_confirmacao_email
+              ? 'Enviamos um link de confirmação para seu email institucional. Abra o link para ativar seu cadastro de estudante.'
+              : 'Cadastro de aluno vinculado à sua conta com sucesso.',
+            aguardando_confirmacao_email,
             dados: {
               aluno: {
                 usuario_id: existingUsuario.usuario_id,
@@ -199,9 +297,16 @@ export class AuthService {
           : [...(existingUsuario.roles || []), RolesEnum.ALUNO];
         existingUsuario.roles = rolesAtualizados;
         await this.usuarioRepository.save(existingUsuario);
+        const { aguardando_confirmacao_email: aguardandoNovo } =
+          await this.aplicarConfirmacaoEmailPosCadastroAluno(
+            existingUsuario.usuario_id,
+          );
         return {
           sucesso: true,
-          mensagem: 'Cadastro de aluno vinculado à sua conta com sucesso.',
+          mensagem: aguardandoNovo
+            ? 'Enviamos um link de confirmação para seu email institucional. Abra o link para ativar seu cadastro de estudante.'
+            : 'Cadastro de aluno vinculado à sua conta com sucesso.',
+          aguardando_confirmacao_email: aguardandoNovo,
           dados: { aluno: { usuario_id: existingUsuario.usuario_id, ...novoAluno } },
         };
       }
@@ -222,13 +327,9 @@ export class AuthService {
 
       const senhaHash = await bcrypt.hash(dto.senha, 12);
 
-      const aluno = this.alunoRepository.create({
-        matricula: dto.matricula,
-        curso: dto.curso,
-        campus: dto.campus,
-        data_ingresso: dto.data_ingresso,
-      });
-
+      // Importante: o lado "dono" do relacionamento OneToOne (com @JoinColumn())
+      // está na entidade `Aluno`. Então, para garantir que o aluno fique realmente
+      // associado ao `usuario_id`, precisamos persistir a relação explicitamente.
       const usuario = this.usuarioRepository.create({
         email: dto.email,
         nome: dto.nome,
@@ -237,16 +338,30 @@ export class AuthService {
         senha_hash: senhaHash,
         data_nascimento: new Date(dto.data_nascimento),
         roles: [RolesEnum.ALUNO],
-        aluno,
       });
 
       const savedUser = await this.usuarioRepository.save(usuario);
+
+      const aluno = this.alunoRepository.create({
+        matricula: dto.matricula,
+        curso: dto.curso,
+        campus: dto.campus,
+        data_ingresso: dto.data_ingresso,
+        usuario: savedUser,
+      });
+      await this.alunoRepository.save(aluno);
+
+      const { aguardando_confirmacao_email: aguardandoNovoUser } =
+        await this.aplicarConfirmacaoEmailPosCadastroAluno(savedUser.usuario_id);
 
       const { senha_hash, ...result } = savedUser;
 
       return {
         sucesso: true,
-        mensagem: 'Aluno cadastrado',
+        mensagem: aguardandoNovoUser
+          ? 'Cadastro recebido! Enviamos um link de confirmação para seu email institucional.'
+          : 'Aluno cadastrado com sucesso.',
+        aguardando_confirmacao_email: aguardandoNovoUser,
         dados: { aluno: result },
       };
     } catch (error: any) {

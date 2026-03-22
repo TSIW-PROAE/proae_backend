@@ -7,6 +7,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
+import type { IRespostaRepository } from 'src/core/domain/resposta/ports/resposta.repository.port';
+import { RESPOSTA_REPOSITORY } from 'src/core/application/resposta/resposta.tokens';
 import { CreateRespostaUseCase } from 'src/core/application/resposta/use-cases/create-resposta.use-case';
 import { FindAllRespostasUseCase } from 'src/core/application/resposta/use-cases/find-all-respostas.use-case';
 import { FindPerguntasComRespostasAlunoStepUseCase } from 'src/core/application/resposta/use-cases/find-perguntas-com-respostas-aluno-step.use-case';
@@ -59,6 +61,8 @@ export class RespostaService {
     private readonly dadoRepository: Repository<Dado>,
     @Inject(FILE_STORAGE)
     private readonly minioService: FileStoragePort,
+    @Inject(RESPOSTA_REPOSITORY)
+    private readonly respostaRepositoryPort: IRespostaRepository,
     private readonly createRespostaUseCase: CreateRespostaUseCase,
     private readonly findAllRespostasUseCase: FindAllRespostasUseCase,
     private readonly findRespostaByIdUseCase: FindRespostaByIdUseCase,
@@ -80,19 +84,25 @@ export class RespostaService {
     });
     if (!pergunta) throw new NotFoundException('Pergunta não encontrada');
 
-    const inscricao = await this.inscricaoRepository.findOneBy({
-      id: dto.inscricaoId,
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: dto.inscricaoId },
+      relations: ['aluno', 'aluno.usuario'],
     });
     if (!inscricao) throw new NotFoundException('Inscrição não encontrada');
 
     let urlArquivo: string | undefined;
 
     if (files && files.length > 0) {
+      const ownerId = inscricao.aluno?.usuario?.usuario_id ?? inscricao.id;
       const uploadResult = await this.minioService.uploadDocuments(
-        inscricao.id,
+        ownerId,
         files,
       );
-      urlArquivo = uploadResult.arquivos[0].nome_do_arquivo;
+      const first = uploadResult.arquivos[0];
+      urlArquivo =
+        (first as { objectKey?: string })?.objectKey ??
+        (uploadResult as { objectKey?: string })?.objectKey ??
+        first?.nome_do_arquivo;
     }
 
     const saved = await this.createRespostaUseCase.execute({
@@ -193,6 +203,24 @@ export class RespostaService {
     return this.validateRespostaUseCase.execute(respostaId, {
       validada: dto.validada,
       dataValidade: dto.dataValidade,
+      invalidada: dto.invalidada,
+      requerReenvio: dto.requerReenvio,
+      parecer: dto.parecer,
+      prazoReenvio: dto.prazoReenvio,
     });
+  }
+
+  async findAllStepsComPerguntasRespostas(
+    alunoId: number,
+    editalId: number,
+  ) {
+    return this.respostaRepositoryPort.findAllStepsComPerguntasRespostas(
+      alunoId,
+      editalId,
+    );
+  }
+
+  async reabrirComplemento(respostaId: number, novoPrazo: string) {
+    return this.respostaRepositoryPort.reabrirComplemento(respostaId, novoPrazo);
   }
 }

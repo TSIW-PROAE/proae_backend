@@ -54,6 +54,8 @@ export class RedisService implements OnModuleInit, CachePort {
           '❌ Redis: falha na conectividade. As requisições que usam cache vão falhar até corrigir.',
         );
         console.error(formatRedisError(err));
+        // Se não conecta no boot, desabilita cache pro app continuar funcionando.
+        this.redis = null;
       });
   }
 
@@ -98,19 +100,36 @@ export class RedisService implements OnModuleInit, CachePort {
     expirationSeconds = 3 * 24 * 60 * 60,
   ): Promise<void> {
     if (!this.redis) return;
-    await this.safeCall((client) =>
-      client.set(key, value, { ex: expirationSeconds }),
-    );
+    try {
+      await this.safeCall((client) =>
+        client.set(key, value, { ex: expirationSeconds }),
+      );
+    } catch (err) {
+      // Cache é uma otimização: se Redis falhar (DNS/timeout/etc), não pode derrubar a request.
+      console.error('[Redis] setValue falhou. Desabilitando cache.', err);
+      this.redis = null;
+    }
   }
 
   async getValue<T = unknown>(key: string): Promise<T | null> {
     if (!this.redis) return null;
-    const result = await this.safeCall((client) => client.get<T>(key));
-    return result ?? null;
+    try {
+      const result = await this.safeCall((client) => client.get<T>(key));
+      return result ?? null;
+    } catch (err) {
+      console.error('[Redis] getValue falhou. Desabilitando cache.', err);
+      this.redis = null;
+      return null;
+    }
   }
 
   async deleteValue(key: string): Promise<void> {
     if (!this.redis) return;
-    await this.safeCall((client) => client.del(key));
+    try {
+      await this.safeCall((client) => client.del(key));
+    } catch (err) {
+      console.error('[Redis] deleteValue falhou. Desabilitando cache.', err);
+      this.redis = null;
+    }
   }
 }

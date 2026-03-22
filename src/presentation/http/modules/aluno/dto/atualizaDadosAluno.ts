@@ -6,7 +6,9 @@ import {
   IsNumberString,
   IsOptional,
   IsString,
+  ValidateIf,
 } from 'class-validator';
+import { IsCPF } from 'src/core/shared-kernel/validators/isCpf.validator';
 import { UnidadeEnum } from 'src/core/shared-kernel/enums/enumCampus';
 
 export class AtualizaDadosAlunoDTO {
@@ -77,4 +79,13 @@ export class AtualizaDadosAlunoDTO {
   @IsOptional()
   @IsString()
   celular?: string;
+
+  @ApiProperty({
+    description: 'CPF do aluno',
+    required: false,
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
+  @IsCPF({ message: 'CPF inválido' })
+  cpf?: string;
 }

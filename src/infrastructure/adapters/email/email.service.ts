@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { adminAprovadoTemplate } from './templates/admin_aprovado.template';
 import { adminApprovalTemplate } from './templates/aprovacao_cadastro.template';
+import { confirmacaoCadastroAlunoTemplate } from './templates/confirmacao_cadastro_aluno.template';
 import { recuperacaoSenhaTemplate } from './templates/recuperacao_senha.template';
 import type { EmailSenderPort } from '../../../core/application/utilities/ports/email-sender.port';
 
@@ -78,6 +79,26 @@ export class EmailService implements EmailSenderPort {
     } catch (error) {
       console.error('Erro ao enviar email de aprovação de admin:', error);
       throw new Error('Falha ao enviar email de aprovação de admin');
+    }
+  }
+
+  async sendAlunoCadastroConfirmation(
+    email: string,
+    confirmUrl: string,
+  ): Promise<void> {
+    const html = confirmacaoCadastroAlunoTemplate(confirmUrl);
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: `"PROAE - UFBA" <${process.env.GMAIL_USER as string}>`,
+      to: email,
+      subject: 'Confirme seu cadastro de estudante - PROAE UFBA',
+      html,
+    };
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('[sendAlunoCadastroConfirmation] Email enviado: %s', info.messageId);
+    } catch (error) {
+      console.error('Erro ao enviar email de confirmação de aluno:', error);
+      throw new Error('Falha ao enviar email de confirmação de cadastro');
     }
   }
 

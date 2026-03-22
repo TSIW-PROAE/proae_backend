@@ -17,6 +17,7 @@ import { In } from 'typeorm';
 import type { CreateFormularioGeralDto } from './dto/create-formulario-geral.dto';
 import type { UpdateFormularioGeralDto } from './dto/update-formulario-geral.dto';
 import type { UpdateFGInscricaoStatusDto } from './dto/update-fg-inscricao-status.dto';
+import { InscricaoAuditLogService } from '../inscricao-audit/inscricao-audit-log.service';
 
 @Injectable()
 export class FormularioGeralService {
@@ -33,6 +34,7 @@ export class FormularioGeralService {
     private readonly stepRepository: Repository<Step>,
     @InjectRepository(Pergunta)
     private readonly perguntaRepository: Repository<Pergunta>,
+    private readonly inscricaoAuditLog: InscricaoAuditLogService,
   ) {}
 
   async findFormularioGeral() {
@@ -83,11 +85,55 @@ export class FormularioGeralService {
       }
     }
 
+    let renovacao_pendente = false;
+    if (aluno) {
+      renovacao_pendente = await this.deveBloquearPorRenovacaoPendente(
+        aluno.aluno_id,
+      );
+      if (renovacao_pendente) {
+        pode_se_inscrever_em_outros = false;
+      }
+    }
+
     return {
       ...this.toFormularioGeralResponse(edital),
       minha_inscricao,
       pode_se_inscrever_em_outros,
+      renovacao_pendente,
     };
+  }
+
+  /**
+   * Há formulário de renovação aberto, aluno já teve alguma inscrição aprovada,
+   * mas ainda não concluiu a renovação com aprovação.
+   */
+  private async deveBloquearPorRenovacaoPendente(alunoId: number): Promise<boolean> {
+    const renovacaoEdital = await this.editalRepository.findOne({
+      where: {
+        is_formulario_renovacao: true,
+        status_edital: StatusEdital.ABERTO,
+      },
+      relations: ['vagas'],
+    });
+    if (!renovacaoEdital?.vagas?.length) return false;
+
+    const algumaAprovada = await this.inscricaoRepository.findOne({
+      where: {
+        aluno: { aluno_id: alunoId },
+        status_inscricao: StatusInscricao.APROVADA,
+      },
+    });
+    if (!algumaAprovada) return false;
+
+    const vagaRenovIds = renovacaoEdital.vagas.map((v) => v.id);
+    const renovacaoOk = await this.inscricaoRepository.findOne({
+      where: {
+        aluno: { aluno_id: alunoId },
+        status_inscricao: StatusInscricao.APROVADA,
+        vagas: { id: In(vagaRenovIds) },
+      },
+    });
+    return !renovacaoOk;
   }
 
   async create(dto: CreateFormularioGeralDto) {
@@ -277,7 +323,11 @@ export class FormularioGeralService {
     };
   }
 
-  async alterarStatusInscricaoFG(inscricaoId: number, dto: UpdateFGInscricaoStatusDto) {
+  async alterarStatusInscricaoFG(
+    inscricaoId: number,
+    dto: UpdateFGInscricaoStatusDto,
+    actorUsuarioId?: string | null,
+  ) {
     const edital = await this.getEditalFGComVagas();
     const vagaIds = edital.vagas.map((v) => v.id);
 
@@ -286,11 +336,20 @@ export class FormularioGeralService {
     });
     if (!inscricao) throw new NotFoundException('Inscrição não encontrada no Formulário Geral');
 
+    const statusAnterior = inscricao.status_inscricao;
     inscricao.status_inscricao = dto.status;
     if (dto.observacao !== undefined) {
       inscricao.observacao_admin = dto.observacao;
     }
     await this.inscricaoRepository.save(inscricao);
+
+    await this.inscricaoAuditLog.logStatusChange({
+      inscricaoId,
+      actorUsuarioId: actorUsuarioId ?? null,
+      statusAnterior,
+      statusNovo: dto.status,
+      observacao: dto.observacao ?? null,
+    });
 
     return {
       id: inscricao.id,
@@ -306,6 +365,7 @@ export class FormularioGeralService {
       titulo_edital: edital.titulo_edital,
       descricao: edital.descricao,
       status_edital: edital.status_edital,
+      data_fim_vigencia: edital.data_fim_vigencia ?? null,
       is_formulario_geral: true,
       steps: (edital.steps ?? []).map((s) => ({
         id: s.id,

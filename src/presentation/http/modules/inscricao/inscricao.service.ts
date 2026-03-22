@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { UpdateAdminInscricaoStatusDto } from './dto/update-admin-inscricao-status.dto';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { EntityManager, Repository } from 'typeorm';
@@ -21,6 +22,8 @@ import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vag
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
+import { InscricaoAuditLogService } from '../inscricao-audit/inscricao-audit-log.service';
+import { StatusBeneficioEdital } from 'src/core/shared-kernel/enums/enumStatusBeneficioEdital';
 
 @Injectable()
 export class InscricaoService {
@@ -41,6 +44,7 @@ export class InscricaoService {
     private readonly entityManager: EntityManager,
     @Inject(CACHE_PORT)
     private readonly redisService: CachePort,
+    private readonly inscricaoAuditLog: InscricaoAuditLogService,
   ) {}
 
   async createInscricao(
@@ -452,6 +456,83 @@ export class InscricaoService {
           );
         }
     }
+  }
+
+  /**
+   * [Admin] Atualiza status e observação sem checagem de dono da inscrição
+   * (válido para editais comuns, Formulário Geral e Renovação).
+   */
+  async adminUpdateInscricaoStatus(
+    inscricaoId: number,
+    dto: UpdateAdminInscricaoStatusDto,
+    actorUsuarioId?: string | null,
+  ): Promise<{
+    id: number;
+    status_inscricao: string;
+    observacao_admin?: string | null;
+  }> {
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: ['vagas', 'vagas.edital'],
+    });
+    if (!inscricao) {
+      throw new NotFoundException('Inscrição não encontrada');
+    }
+    const statusAnterior = inscricao.status_inscricao;
+    inscricao.status_inscricao = dto.status;
+    if (dto.observacao !== undefined) {
+      inscricao.observacao_admin = dto.observacao;
+    }
+    const saved = await this.entityManager.transaction(async (tx) =>
+      tx.save(inscricao),
+    );
+
+    await this.inscricaoAuditLog.logStatusChange({
+      inscricaoId,
+      actorUsuarioId: actorUsuarioId ?? null,
+      statusAnterior,
+      statusNovo: dto.status,
+      observacao: dto.observacao ?? null,
+    });
+
+    return {
+      id: saved.id,
+      status_inscricao: saved.status_inscricao,
+      observacao_admin: saved.observacao_admin ?? null,
+    };
+  }
+
+  /**
+   * [Admin] Atualiza só a situação de **benefício no edital** (seleção/homologação).
+   */
+  async adminUpdateBeneficioEdital(
+    inscricaoId: number,
+    statusBeneficio: StatusBeneficioEdital,
+  ): Promise<{
+    id: number;
+    status_beneficio_edital: string;
+  }> {
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: ['vagas', 'vagas.edital'],
+    });
+    if (!inscricao) {
+      throw new NotFoundException('Inscrição não encontrada');
+    }
+    const edital = inscricao.vagas?.edital;
+    if (edital?.is_formulario_geral || edital?.is_formulario_renovacao) {
+      throw new BadRequestException(
+        'Situação de benefício no edital não se aplica a Formulário Geral ou Renovação. Use apenas o status da inscrição.',
+      );
+    }
+    inscricao.status_beneficio_edital = statusBeneficio;
+    const saved = await this.entityManager.transaction(async (tx) =>
+      tx.save(inscricao),
+    );
+    return {
+      id: saved.id,
+      status_beneficio_edital: saved.status_beneficio_edital,
+    };
   }
 
   private calculateExpirationBasedOnEdital(vagaExists: Vagas, expirationInSeconds: number): number {

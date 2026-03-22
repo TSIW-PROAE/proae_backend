@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -56,10 +57,16 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
   async login(@Req() req, @Res() res) {
     const result = await this.authService.login(req.user);
+    const isProd = process.env.NODE_ENV === 'production';
+    // clearCookie precisa usar os MESMOS path/secure/sameSite do res.cookie, senão o browser não remove o cookie.
     res.cookie('token', result.access_token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'Strict',
+      path: '/',
+      // O frontend (Vercel) e o backend (Cloud Run) são domínios diferentes.
+      // Para o cookie ser enviado nas requisições do browser, em produção precisamos
+      // usar SameSite=None (e cookie precisa ser Secure).
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 3600000,
     });
     return res.status(200).json({ success: true, user: result.user });
@@ -69,7 +76,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout do usuário' })
   @ApiResponse({ status: 200, description: 'Logout realizado com sucesso' })
   async logout(@Res({ passthrough: true }) res) {
-    res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'Strict' });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie('token', {
+      httpOnly: true,
+      path: '/',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+    });
     return this.authService.logout();
   }
 
@@ -154,6 +167,46 @@ export class AuthController {
       <!DOCTYPE html>
       <html><head><meta charset="UTF-8"><title>Admin Aprovado</title></head>
       <body><h1>Admin Aprovado com Sucesso!</h1><p>${result.mensagem}</p></body></html>
+    `);
+  }
+
+  @Get('confirm-cadastro-aluno')
+  @ApiOperation({
+    summary: 'Confirmar email do cadastro de estudante (link enviado ao próprio aluno)',
+  })
+  @ApiResponse({ status: 302, description: 'Redireciona para o frontend' })
+  async confirmCadastroAluno(@Query('token') token: string, @Res() res) {
+    try {
+      const raw = token ? decodeURIComponent(token) : '';
+      if (!raw) {
+        throw new Error('missing token');
+      }
+      await this.authService.confirmAlunoCadastro(raw);
+    } catch {
+      const frontendUrl = normalizeFrontendUrl(process.env.FRONTEND_URL);
+      const errTo = frontendUrl
+        ? `${frontendUrl}/aluno/cadastro-confirmado?erro=1`
+        : null;
+      if (errTo) {
+        return res.redirect(errTo);
+      }
+      return res
+        .status(400)
+        .send(
+          '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><p>Link inválido ou expirado.</p></body></html>',
+        );
+    }
+    const frontendUrl = normalizeFrontendUrl(process.env.FRONTEND_URL);
+    const redirectTo = frontendUrl
+      ? `${frontendUrl}/aluno/cadastro-confirmado?sucesso=true`
+      : null;
+    if (redirectTo) {
+      return res.redirect(redirectTo);
+    }
+    return res.send(`
+      <!DOCTYPE html>
+      <html><head><meta charset="UTF-8"><title>Email confirmado</title></head>
+      <body><h1>Email confirmado!</h1><p>Você já pode fazer login no portal do estudante.</p></body></html>
     `);
   }
 

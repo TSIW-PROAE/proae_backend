@@ -28,6 +28,15 @@ export class Aluno {
   @Column()
   data_ingresso: string;
 
+  /**
+   * Se false, o estudante precisa clicar no link enviado ao email antes de usar o portal
+   * (exceto contas com admin já aprovado, que pulam essa etapa).
+   * Registros antigos: default true na migration.
+   * `name` explícito evita divergência com o banco; use sempre a coluna `cadastro_email_confirmado`.
+   */
+  @Column({ name: 'cadastro_email_confirmado', type: 'boolean', default: true })
+  cadastroEmailConfirmado: boolean;
+
   @OneToMany(() => Inscricao, (inscricao) => inscricao.aluno)
   inscricoes: Inscricao[];
 

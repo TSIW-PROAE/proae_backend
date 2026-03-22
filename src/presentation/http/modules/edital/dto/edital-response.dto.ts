@@ -70,4 +70,20 @@ export class EditalResponseDto {
   @ApiProperty({ type: Date, description: 'Data de atualização' })
   @Expose()
   updated_at: Date;
+
+  @ApiProperty({ type: Boolean, description: 'Indica Formulário Geral' })
+  @Expose()
+  is_formulario_geral: boolean;
+
+  @ApiProperty({ type: Boolean, description: 'Indica Formulário de Renovação' })
+  @Expose()
+  is_formulario_renovacao: boolean;
+
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+    description: 'Fim da vigência no portal (avisos ao aluno)',
+  })
+  @Expose()
+  data_fim_vigencia?: Date | null;
 }

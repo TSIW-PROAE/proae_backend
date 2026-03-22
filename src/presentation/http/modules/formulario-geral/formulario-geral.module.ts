@@ -8,10 +8,12 @@ import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.
 import { Pergunta } from 'src/infrastructure/persistence/typeorm/entities/pergunta/pergunta.entity';
 import { FormularioGeralController } from './formulario-geral.controller';
 import { FormularioGeralService } from './formulario-geral.service';
+import { InscricaoAuditModule } from '../inscricao-audit/inscricao-audit.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Edital, Vagas, Inscricao, Aluno, Step, Pergunta]),
+    InscricaoAuditModule,
   ],
   controllers: [FormularioGeralController],
   providers: [FormularioGeralService],

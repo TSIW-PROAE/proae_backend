@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -18,7 +19,12 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles';
+import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
 import { CreateRespostaDto } from './dto/create-resposta.dto';
+import { ReabrirComplementoDto } from './dto/reabrir-complemento.dto';
 import { RespostaResponseDto } from './dto/response-resposta.dto';
 import { UpdateRespostaDto } from './dto/update-resposta.dto';
 import { ValidateRespostaDto } from './dto/validate-resposta.dto';
@@ -26,6 +32,7 @@ import { RespostaService } from './resposta.service';
 
 @ApiTags('Respostas')
 @Controller('respostas')
+@UseGuards(JwtAuthGuard)
 export class RespostaController {
   constructor(private readonly respostaService: RespostaService) {}
 
@@ -51,7 +58,8 @@ export class RespostaController {
   @Get()
   @ApiOperation({
     summary: 'Listar todas as respostas',
-    description: 'Retorna uma lista com todas as respostas cadastradas no sistema',
+    description:
+      'Retorna uma lista com todas as respostas cadastradas no sistema',
   })
   @ApiOkResponse({
     type: [RespostaResponseDto],
@@ -59,6 +67,112 @@ export class RespostaController {
   })
   findAll() {
     return this.respostaService.findAll();
+  }
+
+  // ——— Rotas estáticas ANTES de :id ———
+
+  @Get('aluno/:alunoId/edital/:editalId/steps-completos')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: 'Todos os steps do edital com perguntas e respostas do aluno',
+    description:
+      'Usado no gerenciamento de inscrições (PROAE): visão completa por step com status.',
+  })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  findAllStepsComPerguntasRespostas(
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+  ) {
+    return this.respostaService.findAllStepsComPerguntasRespostas(
+      alunoId,
+      editalId,
+    );
+  }
+
+  @Get('aluno/:alunoId/edital/:editalId')
+  @ApiOperation({ summary: 'Respostas do aluno no edital' })
+  findRespostasAlunoEdital(
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+  ) {
+    return this.respostaService.findRespostasAlunoEdital(alunoId, editalId);
+  }
+
+  @Get('aluno/:alunoId/edital/:editalId/step/:stepId')
+  @ApiOperation({ summary: 'Respostas do aluno em um step' })
+  findRespostasAlunoStep(
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+    @Param('stepId', ParseIntPipe) stepId: number,
+  ) {
+    return this.respostaService.findRespostasAlunoStep(
+      alunoId,
+      editalId,
+      stepId,
+    );
+  }
+
+  @Get(
+    'aluno/:alunoId/edital/:editalId/step/:stepId/perguntas-com-respostas',
+  )
+  @ApiOperation({ summary: 'Perguntas do step com respostas do aluno' })
+  findPerguntasComRespostasAlunoStep(
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+    @Param('stepId', ParseIntPipe) stepId: number,
+  ) {
+    return this.respostaService.findPerguntasComRespostasAlunoStep(
+      alunoId,
+      editalId,
+      stepId,
+    );
+  }
+
+  @Get('pergunta/:perguntaId/edital/:editalId')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({ summary: 'Respostas de uma pergunta no edital (admin)' })
+  findRespostasPerguntaEdital(
+    @Param('perguntaId', ParseIntPipe) perguntaId: number,
+    @Param('editalId', ParseIntPipe) editalId: number,
+  ) {
+    return this.respostaService.findRespostasPerguntaEdital(
+      perguntaId,
+      editalId,
+    );
+  }
+
+  @Patch(':id/reabrir-complemento')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({ summary: 'Reabrir prazo de complemento (nova pergunta)' })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiBody({ type: ReabrirComplementoDto })
+  reabrirComplemento(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReabrirComplementoDto,
+  ) {
+    return this.respostaService.reabrirComplemento(id, dto.novoPrazo);
+  }
+
+  @Patch(':id/validate')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: 'Validar / invalidar uma resposta',
+  })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiBody({
+    type: ValidateRespostaDto,
+    description: 'Dados para validação da resposta',
+  })
+  validateResposta(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ValidateRespostaDto,
+  ) {
+    return this.respostaService.validateResposta(id, dto);
   }
 
   @Get(':id')
@@ -107,66 +221,5 @@ export class RespostaController {
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.respostaService.remove(id);
-  }
-
-  @Get('aluno/:alunoId/edital/:editalId')
-  findRespostasAlunoEdital(
-    @Param('alunoId', ParseIntPipe) alunoId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
-  ) {
-    return this.respostaService.findRespostasAlunoEdital(alunoId, editalId);
-  }
-
-  @Get('aluno/:alunoId/edital/:editalId/step/:stepId')
-  findRespostasAlunoStep(
-    @Param('alunoId', ParseIntPipe) alunoId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
-    @Param('stepId', ParseIntPipe) stepId: number,
-  ) {
-    return this.respostaService.findRespostasAlunoStep(
-      alunoId,
-      editalId,
-      stepId,
-    );
-  }
-
-  @Get('aluno/:alunoId/edital/:editalId/step/:stepId/perguntas-com-respostas')
-  findPerguntasComRespostasAlunoStep(
-    @Param('alunoId', ParseIntPipe) alunoId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
-    @Param('stepId', ParseIntPipe) stepId: number,
-  ) {
-    return this.respostaService.findPerguntasComRespostasAlunoStep(
-      alunoId,
-      editalId,
-      stepId,
-    );
-  }
-
-  @Get('pergunta/:perguntaId/edital/:editalId')
-  findRespostasPerguntaEdital(
-    @Param('perguntaId', ParseIntPipe) perguntaId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
-  ) {
-    return this.respostaService.findRespostasPerguntaEdital(
-      perguntaId,
-      editalId,
-    );
-  }
-
-  @Patch(':id/validate')
-  @ApiOperation({
-    summary: 'Validar uma resposta',
-  })
-  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
-  @ApiBody({
-    type: ValidateRespostaDto,
-    description: 'Dados para validação da resposta',
-  })
-  validateResposta(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: ValidateRespostaDto,
-  ) {
-    return this.respostaService.validateResposta(id, dto);
   }
 }
