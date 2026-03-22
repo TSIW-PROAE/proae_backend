@@ -21,9 +21,12 @@ function buildTypeOrmConfig(): DataSourceOptions {
     };
   }
   if (process.env.USE_CLOUD_SQL === 'true') {
+    const conn =
+      process.env.INSTANCE_CONNECTION_NAME ||
+      process.env.CLOUD_SQL_CONNECTION_NAME;
     return {
       type: 'postgres',
-      host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`,
+      host: `/cloudsql/${conn}`,
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,

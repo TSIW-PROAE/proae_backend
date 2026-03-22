@@ -44,9 +44,10 @@ O Nest compila TypeScript para `dist/`. **`npm run start:prod`** compila (`npm r
 
 ## ☁️ Deploy GCP
 
-Guia completo para Cloud Run + Cloud SQL:
-
-- `README-CLOUD-RUN-CLOUD-SQL.md`
+| Documento | Conteúdo |
+|-----------|----------|
+| **[DEPLOY.md](./DEPLOY.md)** | **Dois fluxos:** deploy **por aqui** (PC / Cursor, `gcloud builds submit`) e **por fora** (Console, Cloud Shell, trigger Git) |
+| [README-CLOUD-RUN-CLOUD-SQL.md](./README-CLOUD-RUN-CLOUD-SQL.md) | Infra: Cloud SQL, IAM, segredos, troubleshooting |
 
 ## 📊 Estrutura Principal
 

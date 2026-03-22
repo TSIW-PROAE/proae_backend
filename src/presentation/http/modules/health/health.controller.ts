@@ -9,6 +9,10 @@ import { Controller, Get } from '@nestjs/common';
 export class HealthController {
   @Get('health')
   check() {
-    return { status: 'ok' };
+    const buildSha = process.env.BUILD_SHA;
+    return {
+      status: 'ok',
+      ...(buildSha ? { build: buildSha } : {}),
+    };
   }
 }

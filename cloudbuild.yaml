@@ -2,8 +2,9 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--pull'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/proae-backend:$SHORT_SHA'
+      - 'gcr.io/$PROJECT_ID/proae-backend:$BUILD_ID'
       - '-t'
       - 'gcr.io/$PROJECT_ID/proae-backend:latest'
       - '.'
@@ -12,7 +13,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'gcr.io/$PROJECT_ID/proae-backend:$SHORT_SHA'
+      - 'gcr.io/$PROJECT_ID/proae-backend:$BUILD_ID'
     id: 'push-image-sha'
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -29,35 +30,36 @@ steps:
       - 'deploy'
       - 'proae-backend'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/proae-backend:$SHORT_SHA'
+      - 'gcr.io/$PROJECT_ID/proae-backend:$BUILD_ID'
       - '--region'
       - '${_REGION}'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      # Use $PROJECT_ID nos args do passo (expandido pelo Cloud Build). Em `substitutions:`,
+      # aninhar ${PROJECT_ID} em variáveis customizadas pode NÃO expandir e quebrar o deploy (actAs).
       - '--service-account'
-      - '${_SERVICE_ACCOUNT}'
-      - '--add-cloudsql-instances'
-      - '${_CLOUD_SQL_CONNECTION_NAME}'
+      - 'proae-backend@$PROJECT_ID.iam.gserviceaccount.com'
+      # Postgres fora do GCP: sem Cloud SQL. Conexão = secret DB_URL (URL completa), igual costuma estar no .env local.
       - '--set-env-vars'
-      - 'NODE_ENV=${_NODE_ENV},PORT=8080,USE_CLOUD_SQL=true,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME},CORS_ORIGINS=${_CORS_ORIGINS}'
+      - 'NODE_ENV=${_NODE_ENV},USE_CLOUD_SQL=false,CORS_ORIGINS=${_CORS_ORIGINS},BUILD_SHA=$BUILD_ID'
       - '--set-secrets'
-      - 'DB_USERNAME=db-username:latest,DB_PASSWORD=db-password:latest,DB_NAME=db-name:latest,JWT_SECRET=jwt-secret:latest'
+      - 'DB_URL=db-url:latest,JWT_SECRET=jwt-secret:latest'
     id: 'deploy-cloud-run'
 
 options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
+# $SHORT_SHA só existe em build disparado por trigger (Git). Em `gcloud builds submit` manual fica vazio.
+# $BUILD_ID existe em todo build e evita tag inválida tipo proae-backend:
 substitutions:
   _REGION: 'us-central1'
   _NODE_ENV: 'production'
-  _SERVICE_ACCOUNT: 'proae-backend@${PROJECT_ID}.iam.gserviceaccount.com'
-  _CLOUD_SQL_CONNECTION_NAME: '${PROJECT_ID}:${_REGION}:proae-db-prod'
   _CORS_ORIGINS: 'https://proae-frontend.vercel.app'
 
 images:
-  - 'gcr.io/$PROJECT_ID/proae-backend:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/proae-backend:$BUILD_ID'
   - 'gcr.io/$PROJECT_ID/proae-backend:latest'
 
 timeout: '1200s'
