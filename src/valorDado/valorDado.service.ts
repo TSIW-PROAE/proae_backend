@@ -30,21 +30,21 @@ export class ValorDadoService {
     return this.valorDadoRepo.save(valor);
   }
 
-  async findValorByAluno(alunoId: number): Promise<ValorDado[]> {
+  async findValorByAluno(alunoId: string): Promise<ValorDado[]> {
     return this.valorDadoRepo.find({
       where: { aluno: { aluno_id: alunoId } },
       relations: ['dado'],
     });
   }
 
-  async updateValor(id: number, dto: CreateValorDadoDto): Promise<ValorDado> {
+  async updateValor(id: string, dto: CreateValorDadoDto): Promise<ValorDado> {
     const valor = await this.valorDadoRepo.findOne({ where: { id } });
     if (!valor) throw new NotFoundException('ValorDado não encontrado');
     Object.assign(valor, dto);
     return this.valorDadoRepo.save(valor);
   }
 
-  async removeValor(id: number): Promise<void> {
+  async removeValor(id: string): Promise<void> {
     const valor = await this.valorDadoRepo.findOne({ where: { id } });
     if (!valor) throw new NotFoundException('ValorDado não encontrado');
     await this.valorDadoRepo.remove(valor);

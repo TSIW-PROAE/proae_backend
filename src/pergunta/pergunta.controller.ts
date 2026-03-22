@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -74,7 +74,7 @@ export class PerguntaController {
     schema: { example: errorExamples.internalServerError },
   })
   async findByStep(
-    @Param('stepId', ParseIntPipe) stepId: number,
+    @Param('stepId', ParseUUIDPipe) stepId: string,
   ): Promise<PerguntaResponseDto[]> {
     return this.perguntaService.findByStep(stepId);
   }
@@ -96,7 +96,7 @@ export class PerguntaController {
     schema: { example: errorExamples.internalServerError },
   })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePerguntaDto: UpdatePerguntaDto,
   ) {
     return this.perguntaService.update(id, updatePerguntaDto);
@@ -113,7 +113,7 @@ export class PerguntaController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.perguntaService.remove(id);
   }
 }

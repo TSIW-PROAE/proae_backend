@@ -3,9 +3,9 @@ import { Expose } from 'class-transformer';
 import { UnidadeEnum } from '../../enum/enumCampus';
 
 export class AlunoResponseDto {
-  @ApiProperty({ type: Number, description: 'ID do aluno' })
+  @ApiProperty({ type: String, description: 'ID do aluno' })
   @Expose()
-  aluno_id: number;
+  aluno_id: string;
 
   @ApiProperty({ type: String, description: 'Nome do usuário' })
   @Expose()

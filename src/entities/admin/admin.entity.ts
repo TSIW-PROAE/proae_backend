@@ -3,8 +3,8 @@ import { Usuario } from '../usuarios/usuario.entity';
 
 @Entity()
 export class Admin {
-  @PrimaryGeneratedColumn()
-  id_admin: number;
+  @PrimaryGeneratedColumn('uuid')
+  id_admin: string;
 
   @Column({ length: 100 })
   cargo: string;

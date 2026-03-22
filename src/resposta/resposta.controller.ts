@@ -6,12 +6,13 @@ import {
   Param,
   Patch,
   Delete,
-  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { RespostaService } from './resposta.service';
 import { CreateRespostaDto } from './dto/create-resposta.dto';
 import { UpdateRespostaDto } from './dto/update-resposta.dto';
 import { ValidateRespostaDto } from './dto/validate-resposta.dto';
+import { ReabrirComplementoDto } from './dto/reabrir-complemento.dto';
 import {
   ApiTags,
   ApiCreatedResponse,
@@ -51,7 +52,8 @@ export class RespostaController {
   @Get()
   @ApiOperation({
     summary: 'Listar todas as respostas',
-    description: 'Retorna uma lista com todas as respostas cadastradas no sistema',
+    description:
+      'Retorna uma lista com todas as respostas cadastradas no sistema',
   })
   @ApiOkResponse({
     type: [RespostaResponseDto],
@@ -66,13 +68,13 @@ export class RespostaController {
     summary: 'Buscar resposta por ID',
     description: 'Retorna os dados de uma resposta específica pelo seu ID',
   })
-  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'string' })
   @ApiOkResponse({
     type: RespostaResponseDto,
     description: 'Resposta encontrada com sucesso',
   })
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.respostaService.findOne(id);
   }
 
@@ -81,7 +83,7 @@ export class RespostaController {
     summary: 'Atualizar uma resposta',
     description: 'Atualiza os dados de uma resposta existente',
   })
-  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'string' })
   @ApiOkResponse({
     type: RespostaResponseDto,
     description: 'Resposta atualizada com sucesso',
@@ -91,7 +93,7 @@ export class RespostaController {
     description: 'Dados inválidos fornecidos',
   })
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRespostaDto,
   ) {
     return this.respostaService.update(id, dto);
@@ -102,10 +104,10 @@ export class RespostaController {
     summary: 'Remover uma resposta',
     description: 'Remove uma resposta do sistema',
   })
-  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'string' })
   @ApiOkResponse({ description: 'Resposta removida com sucesso' })
   @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.respostaService.remove(id);
   }
 
@@ -115,8 +117,8 @@ export class RespostaController {
     description:
       'Retorna todas as respostas de um aluno específico em um edital específico',
   })
-  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
-  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'string' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'string' })
   @ApiOkResponse({
     description: 'Respostas encontradas com sucesso',
     schema: {
@@ -158,8 +160,8 @@ export class RespostaController {
     description: 'Aluno, edital ou respostas não encontradas',
   })
   findRespostasAlunoEdital(
-    @Param('alunoId', ParseIntPipe) alunoId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
+    @Param('alunoId', ParseUUIDPipe) alunoId: string,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
   ) {
     return this.respostaService.findRespostasAlunoEdital(alunoId, editalId);
   }
@@ -170,12 +172,12 @@ export class RespostaController {
     description:
       'Retorna todas as respostas de um aluno em um step específico de um edital',
   })
-  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
-  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'string' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'string' })
   @ApiParam({
     name: 'stepId',
     description: 'ID do step/questionário',
-    type: 'number',
+    type: 'string',
   })
   @ApiOkResponse({
     description: 'Respostas encontradas com sucesso',
@@ -220,9 +222,9 @@ export class RespostaController {
     description: 'Aluno, edital, step ou respostas não encontradas',
   })
   findRespostasAlunoStep(
-    @Param('alunoId', ParseIntPipe) alunoId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
-    @Param('stepId', ParseIntPipe) stepId: number,
+    @Param('alunoId', ParseUUIDPipe) alunoId: string,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
+    @Param('stepId', ParseUUIDPipe) stepId: string,
   ) {
     return this.respostaService.findRespostasAlunoStep(
       alunoId,
@@ -237,12 +239,12 @@ export class RespostaController {
     description:
       'Retorna todas as perguntas de um step específico de um edital, junto com as respostas do aluno (ou null se não houver resposta). Inclui a flag de obrigatoriedade de cada pergunta.',
   })
-  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'number' })
-  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'string' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'string' })
   @ApiParam({
     name: 'stepId',
     description: 'ID do step/questionário',
-    type: 'number',
+    type: 'string',
   })
   @ApiOkResponse({
     description: 'Perguntas e respostas encontradas com sucesso',
@@ -310,9 +312,9 @@ export class RespostaController {
     description: 'Aluno, edital ou step não encontrados',
   })
   findPerguntasComRespostasAlunoStep(
-    @Param('alunoId', ParseIntPipe) alunoId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
-    @Param('stepId', ParseIntPipe) stepId: number,
+    @Param('alunoId', ParseUUIDPipe) alunoId: string,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
+    @Param('stepId', ParseUUIDPipe) stepId: string,
   ) {
     return this.respostaService.findPerguntasComRespostasAlunoStep(
       alunoId,
@@ -330,9 +332,9 @@ export class RespostaController {
   @ApiParam({
     name: 'perguntaId',
     description: 'ID da pergunta',
-    type: 'number',
+    type: 'string',
   })
-  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'string' })
   @ApiOkResponse({
     description: 'Respostas encontradas com sucesso',
     schema: {
@@ -376,8 +378,8 @@ export class RespostaController {
     description: 'Pergunta, edital ou respostas não encontradas',
   })
   findRespostasPerguntaEdital(
-    @Param('perguntaId', ParseIntPipe) perguntaId: number,
-    @Param('editalId', ParseIntPipe) editalId: number,
+    @Param('perguntaId', ParseUUIDPipe) perguntaId: string,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
   ) {
     return this.respostaService.findRespostasPerguntaEdital(
       perguntaId,
@@ -391,7 +393,7 @@ export class RespostaController {
     description:
       'Valida uma resposta específica e, se vinculada a um dado, adiciona o valor na tabela de dados do aluno',
   })
-  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
+  @ApiParam({ name: 'id', description: 'ID da resposta', type: 'string' })
   @ApiBody({
     type: ValidateRespostaDto,
     description: 'Dados para validação da resposta',
@@ -440,9 +442,187 @@ export class RespostaController {
     },
   })
   validateResposta(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ValidateRespostaDto,
   ) {
     return this.respostaService.validateResposta(id, dto);
+  }
+
+  @Patch(':id/reabrir-complemento')
+  @ApiOperation({
+    summary: 'Reabrir prazo de complemento',
+    description:
+      'Permite ao admin dar um novo prazo para uma resposta de complemento que foi invalidada por expiração. Reseta a invalidação, define novo prazo e volta a inscrição para Aguardando Complemento.',
+  })
+  @ApiParam({ name: 'id', description: 'ID da resposta de complemento', type: 'string' })
+  @ApiBody({
+    type: ReabrirComplementoDto,
+    description: 'Novo prazo para resposta',
+    examples: {
+      exemplo: {
+        summary: 'Novo prazo de 15 dias',
+        value: {
+          novoPrazo: '2026-03-15T23:59:59.000Z',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Prazo de complemento reaberto com sucesso',
+    schema: {
+      example: {
+        sucesso: true,
+        dados: {
+          resposta: {
+            id: 'uuid',
+            invalidada: false,
+            validada: false,
+            prazoRespostaNovaPergunta: '2026-03-15T23:59:59.000Z',
+            perguntaAdicionadaPosInscricao: true,
+          },
+          inscricao: {
+            id: 'uuid',
+            status: 'Aguardando Complemento',
+          },
+          mensagem: 'Prazo de complemento reaberto com sucesso. O aluno poderá responder até o novo prazo.',
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Resposta não encontrada' })
+  @ApiBadRequestResponse({
+    description: 'Resposta não é de complemento, não está invalidada, ou prazo inválido',
+  })
+  reabrirComplemento(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReabrirComplementoDto,
+  ) {
+    return this.respostaService.reabrirComplemento(id, dto.novoPrazo);
+  }
+
+  @Get('aluno/:alunoId/edital/:editalId/steps-completos')
+  @ApiOperation({
+    summary: 'Todos os steps do edital com perguntas e respostas do aluno',
+    description:
+      'Retorna todos os steps de um edital, com suas perguntas e respostas do aluno. Cada step inclui uma flag de status: CONCLUIDO (todas validadas), EM_ANDAMENTO (pendente validação), PENDENTE_CORRECAO (alguma invalidada).',
+  })
+  @ApiParam({ name: 'alunoId', description: 'ID do aluno', type: 'string' })
+  @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'string' })
+  @ApiOkResponse({
+    description: 'Steps com perguntas e respostas encontrados com sucesso',
+    schema: {
+      example: {
+        sucesso: true,
+        dados: {
+          edital: {
+            id: 1,
+            titulo: 'Edital de Bolsa 2024',
+            descricao: 'Edital para bolsas de estudo',
+            status: 'Aberto',
+          },
+          aluno: {
+            aluno_id: 1,
+            nome: 'João Silva',
+            email: 'joao@exemplo.com',
+            matricula: '2024001',
+          },
+          steps: [
+            {
+              step: {
+                id: 1,
+                texto: 'Questionário socioeconômico',
+              },
+              status: 'CONCLUIDO',
+              perguntas: [
+                {
+                  pergunta: {
+                    id: 1,
+                    pergunta: 'Qual sua renda familiar?',
+                    tipo_Pergunta: 'select',
+                    obrigatoriedade: true,
+                    opcoes: [
+                      'Até 1 salário',
+                      '1 a 3 salários',
+                      '3 a 5 salários',
+                    ],
+                    tipo_formatacao: 'single-select',
+                    placeholder: 'Selecione uma opção',
+                  },
+                  resposta: {
+                    id: 1,
+                    texto: null,
+                    valorTexto: null,
+                    valorOpcoes: ['1 a 3 salários'],
+                    urlArquivo: null,
+                    dataResposta: '2024-01-15T10:00:00.000Z',
+                    validada: true,
+                    dataValidacao: '2024-01-20T10:00:00.000Z',
+                    dataValidade: null,
+                    parecer: null,
+                    prazoReenvio: null,
+                    requerReenvio: false,
+                  },
+                },
+              ],
+            },
+            {
+              step: {
+                id: 2,
+                texto: 'Documentação',
+              },
+              status: 'PENDENTE_CORRECAO',
+              perguntas: [
+                {
+                  pergunta: {
+                    id: 2,
+                    pergunta: 'Comprovante de renda',
+                    tipo_Pergunta: 'file',
+                    obrigatoriedade: true,
+                  },
+                  resposta: {
+                    id: 2,
+                    validada: false,
+                    dataValidacao: '2024-01-20T10:00:00.000Z',
+                    parecer: 'Documento ilegível, favor reenviar',
+                    prazoReenvio: '2024-02-01T23:59:59.000Z',
+                    requerReenvio: true,
+                  },
+                },
+              ],
+            },
+            {
+              step: {
+                id: 3,
+                texto: 'Dados complementares',
+              },
+              status: 'EM_ANDAMENTO',
+              perguntas: [
+                {
+                  pergunta: {
+                    id: 3,
+                    pergunta: 'Observações adicionais',
+                    tipo_Pergunta: 'text',
+                    obrigatoriedade: false,
+                  },
+                  resposta: null,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Aluno ou edital não encontrados',
+  })
+  findAllStepsComPerguntasRespostas(
+    @Param('alunoId', ParseUUIDPipe) alunoId: string,
+    @Param('editalId', ParseUUIDPipe) editalId: string,
+  ) {
+    return this.respostaService.findAllStepsComPerguntasRespostas(
+      alunoId,
+      editalId,
+    );
   }
 }

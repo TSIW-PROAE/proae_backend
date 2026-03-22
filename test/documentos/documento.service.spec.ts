@@ -89,7 +89,7 @@ describe('DocumentoService', () => {
             const mockQueryBuilder = (alunoRepository.createQueryBuilder as jest.Mock)();
             mockQueryBuilder.getOne.mockResolvedValue(null);
 
-            await expect(documentoService.getDocumentsWithProblemsByStudent(999))
+            await expect(documentoService.getDocumentsWithProblemsByStudent('00000000-0000-4000-a000-000000000999'))
                 .rejects.toThrow(new NotFoundException('Aluno não encontrado'));
         });
 

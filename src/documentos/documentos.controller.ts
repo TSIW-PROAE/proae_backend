@@ -6,7 +6,7 @@ import {
   Get,
   Param,
   ParseFilePipe,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Put,
   Req,
@@ -113,26 +113,26 @@ export class DocumentoController {
 
   @Get('/inscricao/:inscricaoId')
   async findAllByInscricao(
-    @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
+    @Param('inscricaoId', ParseUUIDPipe) inscricaoId: string,
   ) {
     return await this.documentoService.findAllDocumentoByInscricao(inscricaoId);
   }
 
   @Get(':id')
-  async findOneDocumento(@Param('id', ParseIntPipe) id: number) {
+  async findOneDocumento(@Param('id', ParseUUIDPipe) id: string) {
     return await this.documentoService.findOneDocumento(id);
   }
 
   @Put(':id')
   async updateDocumento(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDocumentoDto: UpdateDocumentoDto,
   ) {
     return await this.documentoService.updateDocumento(id, updateDocumentoDto);
   }
 
   @Delete(':id')
-  async removeDocumento(@Param('id', ParseIntPipe) id: number) {
+  async removeDocumento(@Param('id', ParseUUIDPipe) id: string) {
     return await this.documentoService.removeDocumento(id);
   }
 
@@ -168,7 +168,7 @@ export class DocumentoController {
   })
   @UseInterceptors(FilesInterceptor('files'))
   async resubmitDocument(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() resubmitDocumentoDto: ResubmitDocumentoDto,
     @UploadedFiles(
       new ParseFilePipe({

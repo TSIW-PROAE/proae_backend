@@ -44,7 +44,7 @@ export class ValidacaoController {
   @ApiOkResponse({ type: ValidacaoResponseDto })
   @ApiNotFoundResponse({ description: 'Validação não encontrada' })
   findOne(@Param('id') id: string) {
-    return this.validacaoService.findOne(+id);
+    return this.validacaoService.findOne(id);
   }
 
   @Patch(':id')
@@ -54,7 +54,7 @@ export class ValidacaoController {
     @Param('id') id: string,
     @Body() updateValidacaoDto: UpdateValidacaoDto,
   ) {
-    return this.validacaoService.update(+id, updateValidacaoDto);
+    return this.validacaoService.update(id, updateValidacaoDto);
   }
 
   @Delete(':id')
@@ -63,6 +63,6 @@ export class ValidacaoController {
   })
   @ApiNotFoundResponse({ description: 'Validação não encontrada' })
   remove(@Param('id') id: string) {
-    return this.validacaoService.remove(+id);
+    return this.validacaoService.remove(id);
   }
 }

@@ -25,7 +25,7 @@ export class StepService {
   ) {}
 
   // Buscar steps com perguntas de um edital específico
-  async findStepsByEditalWithPerguntas(id: number): Promise<AnswerStepResponseDto[]> {
+  async findStepsByEditalWithPerguntas(id: string): Promise<AnswerStepResponseDto[]> {
     try {
       const steps = await this.stepRepository.find({
         where: { edital: { id } },
@@ -71,7 +71,7 @@ export class StepService {
   }
 
   // Buscar apenas steps (sem perguntas) de um edital específico
-  async findStepsByEdital(id: number): Promise<StepSimpleResponseDto[]> {
+  async findStepsByEdital(id: string): Promise<StepSimpleResponseDto[]> {
     try {
       const steps = await this.stepRepository.find({
         where: { edital: { id } },
@@ -126,7 +126,7 @@ export class StepService {
 
   // Atualizar um step
   async update(
-    id: number,
+    id: string,
     updateStepDto: UpdateStepDto,
   ): Promise<StepSimpleResponseDto> {
     try {
@@ -159,7 +159,7 @@ export class StepService {
   }
 
   // Remover um step
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: string): Promise<{ message: string }> {
     try {
       const step = await this.stepRepository.findOne({
         where: { id },
@@ -182,7 +182,7 @@ export class StepService {
   }
 
   // Manter compatibilidade com método antigo
-  async findStepsByEdital_OLD(id: number): Promise<AnswerStepResponseDto[]> {
+  async findStepsByEdital_OLD(id: string): Promise<AnswerStepResponseDto[]> {
     return this.findStepsByEditalWithPerguntas(id);
   }
 }

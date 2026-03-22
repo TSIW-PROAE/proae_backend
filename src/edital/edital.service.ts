@@ -15,12 +15,19 @@ import { StatusEdital } from 'src/enum/enumStatusEdital';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { Aluno } from '../entities/aluno/aluno.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
+import { checkPendenciasExpiradas } from '../common/helpers/check-pendencias-expiradas';
 
 @Injectable()
 export class EditalService {
   constructor(
     @InjectRepository(Edital)
     private readonly editaisRepository: Repository<Edital>,
+    @InjectRepository(Inscricao)
+    private readonly inscricaoRepository: Repository<Inscricao>,
+    @InjectRepository(Vagas)
+    private readonly vagasRepository: Repository<Vagas>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {}
@@ -46,19 +53,38 @@ export class EditalService {
     }
   }
 
-  async findAll(): Promise<EditalResponseDto[]> {
+  async findAll() {
     try {
       const editais = await this.editaisRepository.find();
-      return plainToInstance(EditalResponseDto, editais, {
-        excludeExtraneousValues: true,
-      });
+
+      const editaisComInscricoes = await Promise.all(
+        editais.map(async (edital) => {
+          const totalInscricoes = await this.inscricaoRepository.count({
+            where: {
+              vagas: { edital: { id: edital.id } },
+            },
+          });
+
+          const editalDto = plainToInstance(EditalResponseDto, edital, {
+            excludeExtraneousValues: true,
+          });
+
+          return {
+            ...editalDto,
+            possui_inscricoes: totalInscricoes > 0,
+            total_inscricoes: totalInscricoes,
+          };
+        }),
+      );
+
+      return editaisComInscricoes;
     } catch (error) {
       console.error('Erro ao buscar editais:', error);
       throw new InternalServerErrorException();
     }
   }
 
-  async findOne(id: number): Promise<EditalResponseDto> {
+  async findOne(id: string): Promise<EditalResponseDto> {
     try {
       const edital = await this.editaisRepository.findOne({
         where: { id },
@@ -81,7 +107,7 @@ export class EditalService {
   }
 
   async update(
-    id: number,
+    id: string,
     updateEditalDto: UpdateEditalDto,
   ): Promise<EditalResponseDto> {
     try {
@@ -118,7 +144,7 @@ export class EditalService {
     }
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: string): Promise<{ message: string }> {
     console.log('🔥 MÉTODO REMOVE ATUALIZADO - ID:', id);
     try {
       const edital = await this.editaisRepository.findOne({
@@ -198,40 +224,54 @@ export class EditalService {
     }
   }
 
-  async getAlunosInscritos(id: number, limit: number = 20, offset: number = 0): Promise<Aluno[]> {
+  async getAlunosInscritos(id: string, limit: number = 20, offset: number = 0) {
     try {
       const editalExists = await this.editaisRepository.existsBy({ id });
-      
+
       if (!editalExists) {
         throw new NotFoundException('Edital não encontrado');
       }
 
+      // Checar pendências expiradas antes de retornar os dados
+      await checkPendenciasExpiradas(this.entityManager);
+
       const skip = offset * limit;
 
-      const alunos = await this.entityManager
-        .createQueryBuilder(Aluno, 'aluno')
-        .innerJoin('aluno.inscricoes', 'inscricao')
+      const inscricoes = await this.entityManager
+        .createQueryBuilder(Inscricao, 'inscricao')
+        .innerJoinAndSelect('inscricao.aluno', 'aluno')
+        .innerJoinAndSelect('aluno.usuario', 'usuario')
         .innerJoin('inscricao.vagas', 'vaga')
         .innerJoin('vaga.edital', 'edital')
-        .innerJoinAndSelect('aluno.usuario', 'usuario')
         .where('edital.id = :editalId', { editalId: id })
-        .distinct(true)
         .skip(skip)
         .take(limit)
         .getMany();
 
-      return alunos;
+      return inscricoes.map((inscricao) => ({
+        inscricao_id: inscricao.id,
+        aluno_id: inscricao.aluno.aluno_id,
+        matricula: inscricao.aluno.matricula,
+        nome: inscricao.aluno.usuario.nome,
+        email: inscricao.aluno.usuario.email,
+        curso: inscricao.aluno.curso,
+        campus: inscricao.aluno.campus,
+        data_inscricao: inscricao.data_inscricao,
+        status_inscricao: inscricao.status_inscricao,
+      }));
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
       console.error('Erro ao buscar alunos do edital:', error);
-      throw new InternalServerErrorException('Erro ao buscar alunos inscritos no edital');
+      throw new InternalServerErrorException(
+        'Erro ao buscar alunos inscritos no edital',
+      );
     }
   }
 
   async updateStatusByParam(
-    id: number,
+    id: string,
     statusParam: 'RASCUNHO' | 'ABERTO' | 'ENCERRADO' | 'EM_ANDAMENTO',
   ): Promise<EditalResponseDto> {
     try {
@@ -289,7 +329,7 @@ export class EditalService {
   }
 
   async updateStatus(
-    id: number,
+    id: string,
     updateStatusDto: UpdateStatusEditalDto,
   ): Promise<EditalResponseDto> {
     try {

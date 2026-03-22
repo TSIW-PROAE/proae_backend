@@ -89,7 +89,7 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   async findOne(@Param('id') id: string) {
-    return this.editalService.findOne(+id);
+    return this.editalService.findOne(id);
   }
 
   @Patch(':id')
@@ -109,7 +109,7 @@ export class EditalController {
     @Param('id') id: string,
     @Body() updateEditalDto: UpdateEditalDto,
   ) {
-    return this.editalService.update(+id, updateEditalDto);
+    return this.editalService.update(id, updateEditalDto);
   }
 
   @Get(':id/inscritos')
@@ -119,42 +119,24 @@ export class EditalController {
     schema: {
       example: [
         {
-          aluno_id: 1,
+          inscricao_id: 1,
           matricula: '2024001001',
+          nome: 'Maria Silva Santos',
+          email: 'maria.silva@ufba.br',
           curso: 'Ciência da Computação',
           campus: 'Salvador',
-          data_ingresso: '2024-03-01',
-          usuario: {
-            usuario_id: '550e8400-e29b-41d4-a716-446655440001',
-            email: 'maria.silva@ufba.br',
-            nome: 'Maria Silva Santos',
-            cpf: '12345678902',
-            celular: '71988888888',
-            lastPasswordResetRequest: null,
-            passwordResetToken: null,
-            passwordResetTokenExpires: null,
-            data_nascimento: '2000-03-20',
-            roles: 'aluno',
-          },
+          data_inscricao: '2024-01-15',
+          status_inscricao: 'Pendente',
         },
         {
-          aluno_id: 2,
+          inscricao_id: 2,
           matricula: '2024001002',
+          nome: 'João Pedro Oliveira',
+          email: 'joao.oliveira@ufba.br',
           curso: 'Engenharia de Software',
           campus: 'Salvador',
-          data_ingresso: '2024-03-01',
-          usuario: {
-            usuario_id: '550e8400-e29b-41d4-a716-446655440002',
-            email: 'joao.oliveira@ufba.br',
-            nome: 'João Pedro Oliveira',
-            cpf: '12345678903',
-            celular: '71977777777',
-            lastPasswordResetRequest: null,
-            passwordResetToken: null,
-            passwordResetTokenExpires: null,
-            data_nascimento: '1999-07-10',
-            roles: 'aluno',
-          },
+          data_inscricao: '2024-01-16',
+          status_inscricao: 'Em Análise',
         },
       ],
     },
@@ -186,8 +168,12 @@ export class EditalController {
   })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolesEnum.ADMIN)
-  async getAlunosInscritos(@Param('id') id: string, @Query('limit') limit?: number, @Query('offset') offset?: number) {
-    return this.editalService.getAlunosInscritos(+id, limit, offset);
+  async getAlunosInscritos(
+    @Param('id') id: string,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ) {
+    return this.editalService.getAlunosInscritos(id, limit, offset);
   }
 
   @Patch(':id/status/:status')
@@ -201,12 +187,13 @@ export class EditalController {
   })
   @ApiBadRequestResponse({
     description: 'Transição de status inválida ou dados incompletos',
-    schema: { 
+    schema: {
       example: {
         statusCode: 400,
-        message: 'Para alterar o status para ABERTO ou EM_ANDAMENTO, todos os dados do edital devem estar preenchidos',
-        timestamp: '2025-08-18T03:00:00.000Z'
-      }
+        message:
+          'Para alterar o status para ABERTO ou EM_ANDAMENTO, todos os dados do edital devem estar preenchidos',
+        timestamp: '2025-08-18T03:00:00.000Z',
+      },
     },
   })
   @ApiInternalServerErrorResponse({
@@ -215,9 +202,10 @@ export class EditalController {
   })
   async updateStatus(
     @Param('id') id: string,
-    @Param('status') status: 'RASCUNHO' | 'ABERTO' | 'ENCERRADO' | 'EM_ANDAMENTO',
+    @Param('status')
+    status: 'RASCUNHO' | 'ABERTO' | 'ENCERRADO' | 'EM_ANDAMENTO',
   ) {
-    return this.editalService.updateStatusByParam(+id, status);
+    return this.editalService.updateStatusByParam(id, status);
   }
 
   @Delete(':id')
@@ -231,6 +219,6 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   async remove(@Param('id') id: string) {
-    return this.editalService.remove(+id);
+    return this.editalService.remove(id);
   }
 }

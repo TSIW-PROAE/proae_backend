@@ -7,7 +7,7 @@ import { StatusDocumento } from "@/src/enum/statusDocumento";
 
 // ========== USUÁRIOS ==========
 export const mockUsuarioMaria = {
-  usuario_id: 2,
+  usuario_id: '00000000-0000-4000-a000-000000000002',
   email: 'maria.silva@ufba.br',
   nome: 'Maria Silva Santos',
   cpf: '12345678902',
@@ -16,7 +16,7 @@ export const mockUsuarioMaria = {
 } as Usuario;
 
 export const mockUsuarioMarcos = {
-  usuario_id: 7,
+  usuario_id: '00000000-0000-4000-a000-000000000007',
   email: 'marcos.medeiros@ufba.br',
   nome: 'Marcos Medeiros',
   cpf: '12345678905',
@@ -25,7 +25,7 @@ export const mockUsuarioMarcos = {
 } as Usuario;
 
 export const mockUsuarioPedro = {
-  usuario_id: 8,
+  usuario_id: '00000000-0000-4000-a000-000000000008',
   email: 'pedro.medeiros@ufba.br',
   nome: 'Pedro Medeiros',
   cpf: '12345678906',
@@ -35,7 +35,7 @@ export const mockUsuarioPedro = {
 
 // ========== ALUNOS ==========
 export const mockAlunoMaria = {
-  aluno_id: 1,
+  aluno_id: '00000000-0000-4000-a000-000000000a01',
   matricula: '2024001001',
   curso: 'Ciência da Computação',
   campus: 'Salvador',
@@ -45,14 +45,14 @@ export const mockAlunoMaria = {
 
 // ========== EDITAIS ==========
 export const mockEditalResidencias = {
-  id: 2,
+  id: '00000000-0000-4000-a000-000000000e02',
   titulo_edital: 'Residências Universitárias 2024.1',
   descricao: 'Seleção para concessão de vagas em residências universitárias da UFBA. DOCUMENTOS OBRIGATÓRIOS: CPF, RG, Histórico Escolar e Comprovante de Matrícula.',
   status_edital: 'Edital em andamento',
 };
 
 export const mockEditalTransporte = {
-  id: 3,
+  id: '00000000-0000-4000-a000-000000000e03',
   titulo_edital: 'Auxílio Transporte 2024.1',
   descricao: 'Auxílio financeiro para transporte dos alunos.',
   status_edital: 'Edital em andamento',
@@ -60,7 +60,7 @@ export const mockEditalTransporte = {
 
 // ========== VAGAS ==========
 export const mockVagaResidenciaFeminina = {
-  id: 4,
+  id: '00000000-0000-4000-a000-000000000v04',
   beneficio: 'Residência Feminina Salvador',
   descricao_beneficio: 'Vaga em residência universitária feminina no campus Salvador',
   numero_vagas: 30,
@@ -68,7 +68,7 @@ export const mockVagaResidenciaFeminina = {
 };
 
 export const mockVagaTransporte = {
-  id: 3,
+  id: '00000000-0000-4000-a000-000000000v03',
   beneficio: 'Auxílio Transporte',
   descricao_beneficio: 'Auxílio financeiro mensal para transporte',
   numero_vagas: 100,
@@ -77,7 +77,7 @@ export const mockVagaTransporte = {
 
 // ========== INSCRIÇÕES ==========
 export const mockInscricaoMariaResidencia = {
-  id: 5,
+  id: '00000000-0000-4000-a000-000000000i05',
   data_inscricao: new Date('2024-10-10'),
   status_inscricao: 'Inscrição Pendente',
   vagas: mockVagaResidenciaFeminina,
@@ -86,26 +86,26 @@ export const mockInscricaoMariaResidencia = {
 
 // ========== VALIDAÇÕES ==========
 export const mockValidacaoCPFAprovada = {
-  id: 1,
+  id: '00000000-0000-4000-a000-00000000val1',
   parecer: 'Documento válido e legível. CPF verificado no sistema da Receita Federal.',
   data_validacao: new Date('2024-10-12'),
 };
 
 export const mockValidacaoRGReprovada = {
-  id: 2,
+  id: '00000000-0000-4000-a000-00000000val2',
   parecer: 'Documento ilegível. Por favor, envie uma cópia mais nítida do RG com todas as informações visíveis.',
   data_validacao: new Date('2024-10-12'),
 };
 
 export const mockValidacaoMatriculaPendente = {
-  id: 3,
+  id: '00000000-0000-4000-a000-00000000val3',
   parecer: 'Documento aguardando análise.',
   data_validacao: new Date('2024-10-12'),
 };
 
 // ========== DOCUMENTOS ==========
 export const mockDocumentoCPFAprovado = {
-  documento_id: 1,
+  documento_id: '00000000-0000-4000-a000-000000000d01',
   tipo_documento: 'Comprovante de situação cadastral do cpf',
   documento_url: 'documentos/aluno_1/inscricao_5/cpf_maria_silva.pdf',
   status_documento: StatusDocumento.APROVADO,
@@ -114,7 +114,7 @@ export const mockDocumentoCPFAprovado = {
 } as Partial<Documento>;
 
 export const mockDocumentoRGReprovado = {
-  documento_id: 2,
+  documento_id: '00000000-0000-4000-a000-000000000d02',
   tipo_documento: 'Documento de Identidade',
   documento_url: 'documentos/aluno_1/inscricao_5/rg_maria_silva.pdf',
   status_documento: StatusDocumento.REPROVADO,
@@ -123,7 +123,7 @@ export const mockDocumentoRGReprovado = {
 } as Partial<Documento>;
 
 export const mockDocumentoHistoricoNaoEnviado = {
-  documento_id: 3,
+  documento_id: '00000000-0000-4000-a000-000000000d03',
   tipo_documento: 'Cert. de conclusão ou Hist. escolar do ensino médio',
   documento_url: undefined,
   status_documento: StatusDocumento.NAO_ENVIADO,
@@ -132,7 +132,7 @@ export const mockDocumentoHistoricoNaoEnviado = {
 } as Partial<Documento>;
 
 export const mockDocumentoMatriculaEmAnalise = {
-  documento_id: 4,
+  documento_id: '00000000-0000-4000-a000-000000000d04',
   tipo_documento: 'Comprovante de matrícula',
   documento_url: 'documentos/aluno_1/inscricao_5/comprovante_matricula_maria.pdf',
   status_documento: StatusDocumento.EM_ANALISE,
@@ -147,13 +147,13 @@ export const mockDocumentoMatriculaEmAnalise = {
  * Simula o retorno da query com documentos problemáticos já filtrados
  */
 export const mockAlunoMariaComDocumentosProblematicos = {
-  aluno_id: 1,
+  aluno_id: '00000000-0000-4000-a000-000000000a01',
   inscricoes: [
     {
-      id: 5,
+      id: '00000000-0000-4000-a000-000000000i05',
       documentos: [
         {
-          documento_id: 2,
+          documento_id: '00000000-0000-4000-a000-000000000d02',
           tipo_documento: 'Documento de Identidade',
           documento_url: 'documentos/aluno_1/inscricao_5/rg_maria_silva.pdf',
           status_documento: StatusDocumento.REPROVADO,
@@ -177,7 +177,7 @@ export const mockAlunoMariaComDocumentosProblematicos = {
           ],
         },
         {
-          documento_id: 3,
+          documento_id: '00000000-0000-4000-a000-000000000d03',
           tipo_documento: 'Cert. de conclusão ou Hist. escolar do ensino médio',
           documento_url: null,
           status_documento: StatusDocumento.NAO_ENVIADO,
@@ -185,7 +185,7 @@ export const mockAlunoMariaComDocumentosProblematicos = {
         },
       ],
       vagas: {
-        id: 4,
+        id: '00000000-0000-4000-a000-000000000v04',
         edital: {
           titulo_edital: 'Residências Universitárias 2024.1',
         },
@@ -198,7 +198,7 @@ export const mockAlunoMariaComDocumentosProblematicos = {
  * Mock de aluno sem inscrições
  */
 export const mockAlunoSemInscricoes = {
-  aluno_id: 1,
+  aluno_id: '00000000-0000-4000-a000-000000000a01',
   usuario: mockUsuarioMarcos,
   inscricoes: [],
 };
@@ -208,14 +208,14 @@ export const mockAlunoSemInscricoes = {
  * Query Builder já filtrou e retornou array vazio
  */
 export const mockAlunoSemDocumentosProblematicos = {
-  aluno_id: 1,
+  aluno_id: '00000000-0000-4000-a000-000000000a01',
   usuario: mockUsuarioPedro,
   inscricoes: [
     {
-      id: 6,
+      id: '00000000-0000-4000-a000-000000000i06',
       documentos: [], // Query Builder já filtrou documentos aprovados
       vagas: {
-        id: 3,
+        id: '00000000-0000-4000-a000-000000000v03',
         edital: {
           titulo_edital: 'Auxílio Transporte 2024.1',
         },
@@ -233,11 +233,11 @@ export const expectedPendenciasMaria = {
   success: true,
   pendencias: [
     {
-      inscricao_id: 5,
+      inscricao_id: '00000000-0000-4000-a000-000000000i05',
       titulo_edital: 'Residências Universitárias 2024.1',
       documentos: [
         {
-          documento_id: 2,
+          documento_id: '00000000-0000-4000-a000-000000000d02',
           tipo_documento: 'Documento de Identidade',
           documento_url: 'documentos/aluno_1/inscricao_5/rg_maria_silva.pdf',
           status_documento: 'Reprovado',
@@ -249,7 +249,7 @@ export const expectedPendenciasMaria = {
           ],
         },
         {
-          documento_id: 4,
+          documento_id: '00000000-0000-4000-a000-000000000d04',
           tipo_documento: 'Comprovante de matrícula',
           documento_url: 'documentos/aluno_1/inscricao_5/comprovante_matricula_maria.pdf',
           status_documento: 'Em Análise',
@@ -261,7 +261,7 @@ export const expectedPendenciasMaria = {
           ],
         },
         {
-          documento_id: 3,
+          documento_id: '00000000-0000-4000-a000-000000000d03',
           documento_url: null,
           status_documento: 'Não Enviado',
           tipo_documento: 'Cert. de conclusão ou Hist. escolar do ensino médio',

@@ -6,8 +6,8 @@ import { EnumTipoInput } from 'src/enum/enumTipoInput';
 // DTO simples para o Dado
 export class DadoResponseDto {
   @Expose()
-  @ApiProperty({ example: 1, description: 'ID do dado' })
-  id: number;
+  @ApiProperty({ example: '550e8400-e29b-41d4-a916-446655440000', description: 'ID do dado' })
+  id: string;
 
   @Expose()
   @ApiProperty({ example: 'CPF', description: 'Nome do tipo de dado' })
@@ -16,8 +16,8 @@ export class DadoResponseDto {
 
 export class PerguntaResponseDto {
   @Expose()
-  @ApiProperty({ example: 1, description: 'ID da pergunta' })
-  id: number;
+  @ApiProperty({ example: '550e8400-e29b-41d4-a916-446655440000', description: 'ID da pergunta' })
+  id: string;
 
   @Expose()
   @ApiProperty({

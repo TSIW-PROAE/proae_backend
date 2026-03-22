@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -63,7 +63,7 @@ export class StepController {
     schema: { example: errorExamples.internalServerError },
   })
   async findStepsWithPerguntasByEdital(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<AnswerStepResponseDto[]> {
     return this.stepService.findStepsByEditalWithPerguntas(id);
   }
@@ -85,7 +85,7 @@ export class StepController {
     schema: { example: errorExamples.internalServerError },
   })
   async findStepsByEdital(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<StepSimpleResponseDto[]> {
     return this.stepService.findStepsByEdital(id);
   }
@@ -105,7 +105,7 @@ export class StepController {
     schema: { example: errorExamples.internalServerError },
   })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateStepDto: UpdateStepDto,
   ) {
     return this.stepService.update(id, updateStepDto);
@@ -122,7 +122,7 @@ export class StepController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.stepService.remove(id);
   }
 }

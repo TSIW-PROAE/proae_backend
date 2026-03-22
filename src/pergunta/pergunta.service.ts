@@ -1,11 +1,12 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { Step } from '../entities/step/step.entity';
 import { InputFormatPlaceholders } from '../enum/enumInputFormat';
 import { CreatePerguntaDto } from './dto/create-pergunta.dto';
@@ -13,6 +14,10 @@ import { UpdatePerguntaDto } from './dto/update-pergunta.dto';
 import { PerguntaResponseDto } from '../step/dto/response-pergunta.dto';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Dado } from '../entities/tipoDado/tipoDado.entity';
+import { Inscricao } from '../entities/inscricao/inscricao.entity';
+import { Resposta } from '../entities/resposta/resposta.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
+import { StatusInscricao } from '../enum/enumStatusInscricao';
 
 @Injectable()
 export class PerguntaService {
@@ -21,11 +26,17 @@ export class PerguntaService {
     private readonly perguntaRepository: Repository<Pergunta>,
     @InjectRepository(Step) private readonly stepRepository: Repository<Step>,
     @InjectRepository(Dado) private readonly dadoRepository: Repository<Dado>,
+    @InjectRepository(Inscricao)
+    private readonly inscricaoRepository: Repository<Inscricao>,
+    @InjectRepository(Resposta)
+    private readonly respostaRepository: Repository<Resposta>,
+    @InjectRepository(Vagas)
+    private readonly vagasRepository: Repository<Vagas>,
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
 
   // Listar perguntas de um step específico
-  async findByStep(stepId: number): Promise<PerguntaResponseDto[]> {
+  async findByStep(stepId: string): Promise<PerguntaResponseDto[]> {
     try {
       const perguntas = await this.perguntaRepository.find({
         where: { step: { id: stepId } },
@@ -62,8 +73,9 @@ export class PerguntaService {
   ): Promise<PerguntaResponseDto> {
     try {
       // Verificar se o step existe
-      const step = await this.stepRepository.findOneBy({
-        id: createPerguntaDto.step_id,
+      const step = await this.stepRepository.findOne({
+        where: { id: createPerguntaDto.step_id },
+        relations: ['edital'],
       });
 
       if (!step) {
@@ -82,6 +94,17 @@ export class PerguntaService {
           throw new NotFoundException('Dado não encontrado');
         }
       }
+
+      // Verificar se já existem inscrições com respostas neste edital
+      const inscricoesComRespostas =
+        await this.buscarInscricoesComRespostasNoEdital(step.edital.id);
+
+      if (inscricoesComRespostas.length > 0 && !createPerguntaDto.prazoResposta) {
+        throw new BadRequestException(
+          'Já existem inscrições com respostas neste edital. É obrigatório informar o prazoResposta para que os alunos já inscritos possam responder a nova pergunta.',
+        );
+      }
+
       const pergunta = this.perguntaRepository.create({
         tipo_Pergunta: createPerguntaDto.tipo_Pergunta,
         pergunta: createPerguntaDto.pergunta,
@@ -94,6 +117,15 @@ export class PerguntaService {
 
       const savedPergunta = await this.perguntaRepository.save(pergunta);
 
+      // Se existem inscrições com respostas, criar respostas vazias e atualizar status
+      if (inscricoesComRespostas.length > 0) {
+        await this.criarRespostasParaInscricoesExistentes(
+          savedPergunta,
+          inscricoesComRespostas,
+          new Date(createPerguntaDto.prazoResposta!),
+        );
+      }
+
       const perguntaDto = plainToInstance(PerguntaResponseDto, savedPergunta, {
         excludeExtraneousValues: true,
       });
@@ -103,7 +135,10 @@ export class PerguntaService {
 
       return perguntaDto;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       console.error('Erro ao criar pergunta:', error);
@@ -113,7 +148,7 @@ export class PerguntaService {
 
   // Atualizar uma pergunta
   async update(
-    id: number,
+    id: string,
     updatePerguntaDto: UpdatePerguntaDto,
   ): Promise<PerguntaResponseDto> {
     try {
@@ -131,7 +166,7 @@ export class PerguntaService {
       if (updatePerguntaDto.dadoId !== undefined) {
         if (
           updatePerguntaDto.dadoId !== null &&
-          updatePerguntaDto.dadoId !== 0
+          updatePerguntaDto.dadoId !== undefined
         ) {
           dado = await this.dadoRepository.findOneBy({
             id: updatePerguntaDto.dadoId,
@@ -143,7 +178,7 @@ export class PerguntaService {
             );
           }
         }
-        // Se dadoId for null, 0 ou undefined, o relacionamento será removido (dado = null)
+        // Se dadoId for null ou undefined, o relacionamento será removido (dado = null)
       } else {
         // Se dadoId não foi fornecido, manter o relacionamento atual
         dado = pergunta.dado || null;
@@ -198,7 +233,7 @@ export class PerguntaService {
   }
 
   // Remover uma pergunta
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: string): Promise<{ message: string }> {
     try {
       const pergunta = await this.perguntaRepository.findOne({
         where: { id },
@@ -218,5 +253,69 @@ export class PerguntaService {
       console.error('Erro ao remover pergunta:', error);
       throw new InternalServerErrorException();
     }
+  }
+
+  /**
+   * Busca todas as inscrições que já possuem respostas em perguntas do edital.
+   */
+  private async buscarInscricoesComRespostasNoEdital(
+    editalId: string,
+  ): Promise<Inscricao[]> {
+    const vagas = await this.vagasRepository.find({
+      where: { edital: { id: editalId } },
+    });
+
+    if (!vagas || vagas.length === 0) return [];
+
+    const vagaIds = vagas.map((v) => v.id);
+
+    const inscricoes = await this.inscricaoRepository.find({
+      where: {
+        vagas: { id: In(vagaIds) },
+      },
+      relations: ['respostas', 'respostas.pergunta'],
+    });
+
+    // Filtrar apenas inscrições que possuem pelo menos uma resposta
+    return inscricoes.filter(
+      (inscricao) => inscricao.respostas && inscricao.respostas.length > 0,
+    );
+  }
+
+  /**
+   * Cria respostas vazias (pendentes) para cada inscrição existente
+   * e atualiza o status das inscrições para AGUARDANDO_COMPLEMENTO.
+   */
+  private async criarRespostasParaInscricoesExistentes(
+    pergunta: Pergunta,
+    inscricoes: Inscricao[],
+    prazoResposta: Date,
+  ): Promise<void> {
+    await this.entityManager.transaction(async (transactionalEntityManager) => {
+      // Criar respostas vazias para cada inscrição usando query direta para garantir FKs
+      for (const inscricao of inscricoes) {
+        await transactionalEntityManager.query(
+          `INSERT INTO resposta ("perguntaId", "inscricaoId", "validada", "invalidada", "requerReenvio", "perguntaAdicionadaPosInscricao", "prazoRespostaNovaPergunta")
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [pergunta.id, inscricao.id, false, false, false, true, prazoResposta],
+        );
+      }
+
+      // Atualizar o status para AGUARDANDO_COMPLEMENTO apenas para inscrições que NÃO estão rejeitadas.
+      // Inscrições com status REJEITADA ou REJEITADA_PRAZO_COMPLEMENTO mantêm seu status — 
+      // a rejeição tem prioridade e só é revertida quando o admin valida a resposta que causou a rejeição.
+      const inscricaoIds = inscricoes.map((i) => i.id);
+      await transactionalEntityManager.query(
+        `UPDATE inscricao SET status_inscricao = $1
+         WHERE id = ANY($2::uuid[])
+           AND status_inscricao NOT IN ($3, $4)`,
+        [
+          StatusInscricao.AGUARDANDO_COMPLEMENTO,
+          inscricaoIds,
+          StatusInscricao.REJEITADA,
+          StatusInscricao.REJEITADA_PRAZO_COMPLEMENTO,
+        ],
+      );
+    });
   }
 }

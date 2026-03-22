@@ -106,7 +106,7 @@ export class ValidacaoService {
     }
   }
 
-  async findOne(id: number): Promise<ValidacaoResponseDto> {
+  async findOne(id: string): Promise<ValidacaoResponseDto> {
     try {
       const validacao = await this.validacaoRepository.findOne({
         where: { id },
@@ -125,7 +125,7 @@ export class ValidacaoService {
   }
 
   async update(
-    id: number,
+    id: string,
     updateValidacaoDto: UpdateValidacaoDto,
   ): Promise<ValidacaoResponseDto> {
     try {
@@ -208,7 +208,7 @@ export class ValidacaoService {
     }
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: string): Promise<{ message: string }> {
     try {
       const validacao = await this.validacaoRepository.findOneBy({ id });
       if (!validacao) throw new NotFoundException('Validação não encontrada');
@@ -224,7 +224,7 @@ export class ValidacaoService {
     }
   }
 
-  async aprovarValidacao(id: number): Promise<ValidacaoResponseDto> {
+  async aprovarValidacao(id: string): Promise<ValidacaoResponseDto> {
     try {
       const validacao = await this.validacaoRepository.findOne({
         where: { id },
@@ -248,7 +248,7 @@ export class ValidacaoService {
     }
   }
 
-  async reprovarValidacao(id: number): Promise<ValidacaoResponseDto> {
+  async reprovarValidacao(id: string): Promise<ValidacaoResponseDto> {
     try {
       const validacao = await this.validacaoRepository.findOne({
         where: { id },

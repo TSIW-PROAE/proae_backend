@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsArray, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsArray } from 'class-validator';
 
 export class CreateValorDadoDto {
   @ApiPropertyOptional({ 
@@ -32,17 +32,17 @@ export class CreateValorDadoDto {
 
   @ApiProperty({ 
     description: 'ID do aluno',
-    example: 1,
-    type: Number
+    example: '550e8400-e29b-41d4-a916-446655440000',
+    type: String
   })
-  @IsNumber()
-  alunoId: number;
+  @IsString()
+  alunoId: string;
 
   @ApiProperty({ 
     description: 'ID do Dado',
-    example: 1,
-    type: Number
+    example: '550e8400-e29b-41d4-a916-446655440000',
+    type: String
   })
-  @IsNumber()
-  dadoId: number;
+  @IsString()
+  dadoId: string;
 }

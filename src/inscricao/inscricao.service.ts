@@ -44,7 +44,9 @@ export class InscricaoService {
   ): Promise<InscricaoResponseDto> {
     try {
       // Validação do aluno
-      const alunoExists = await this.alunoRepository.findOne({ where: { usuario: { usuario_id: userId } } });
+      const alunoExists = await this.alunoRepository.findOne({
+        where: { usuario: { usuario_id: userId } },
+      });
 
       if (!alunoExists) {
         throw new NotFoundException('Aluno não encontrado');
@@ -106,7 +108,6 @@ export class InscricaoService {
           resposta.valorTexto = respostaDto.valorTexto;
           resposta.valorOpcoes = respostaDto.valorOpcoes;
           resposta.urlArquivo = respostaDto.urlArquivo;
-          resposta.texto = respostaDto.valorTexto; // Para compatibilidade
           return resposta;
         }),
       );
@@ -127,7 +128,10 @@ export class InscricaoService {
         },
       );
 
-      await this.removeRespostaEmCache(createInscricaoDto.vaga_id, typeof userId === 'string' ? parseInt(userId, 10) : userId);
+      await this.removeRespostaEmCache(
+        createInscricaoDto.vaga_id,
+        userId,
+      );
 
       return plainToInstance(InscricaoResponseDto, result, {
         excludeExtraneousValues: true,
@@ -148,7 +152,7 @@ export class InscricaoService {
   }
 
   async updateInscricao(
-    inscricaoId: number,
+    inscricaoId: string,
     updateInscricaoDto: UpdateInscricaoDto,
     userId: string,
   ): Promise<InscricaoResponseDto> {
@@ -224,7 +228,6 @@ export class InscricaoService {
             resposta.valorTexto = respostaDto.valorTexto;
             resposta.valorOpcoes = respostaDto.valorOpcoes;
             resposta.urlArquivo = respostaDto.urlArquivo;
-            resposta.texto = respostaDto.valorTexto;
             return resposta;
           }),
         );
@@ -258,7 +261,6 @@ export class InscricaoService {
           // Atualiza os campos fornecidos
           if (respostaDto.valorTexto !== undefined) {
             respostaExistente.valorTexto = respostaDto.valorTexto;
-            respostaExistente.texto = respostaDto.valorTexto;
           }
           if (respostaDto.valorOpcoes !== undefined) {
             respostaExistente.valorOpcoes = respostaDto.valorOpcoes;
@@ -381,74 +383,84 @@ export class InscricaoService {
     }
   }
 
-  async saveRespostaEmCache(createInscricaoDto: CreateInscricaoDto, userId: number) {
+  async saveRespostaEmCache(
+    createInscricaoDto: CreateInscricaoDto,
+    userId: string,
+  ) {
     const vagaExists = await this.vagasRepository.findOne({
-        where: { id: createInscricaoDto.vaga_id },
-        relations: ['edital'],
+      where: { id: createInscricaoDto.vaga_id },
+      relations: ['edital'],
     });
 
     if (!vagaExists) {
-        throw new NotFoundException('Vaga não encontrada');
+      throw new NotFoundException('Vaga não encontrada');
     }
 
     if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
-        throw new BadRequestException('Edital não está aberto para inscrições');
+      throw new BadRequestException('Edital não está aberto para inscrições');
     }
-    
+
     const key = `userId:${userId}:form:${createInscricaoDto.vaga_id}:edital:${vagaExists.edital.id}`;
 
     // Calcula a expiração baseada no fim do edital
     let expirationInSeconds = 3 * 24 * 60 * 60; // 3 dias padrão
-    
-    expirationInSeconds = this.calculateExpirationBasedOnEdital(vagaExists, expirationInSeconds);
-    
-    await this.redisService.setValue(key, JSON.stringify(createInscricaoDto.respostas), expirationInSeconds);
 
-    return { 
-        message: 'Respostas salvas no cache com sucesso', 
-        key,
-        expirationInSeconds,
-        expirationInHours: Math.ceil(expirationInSeconds / 3600)
+    expirationInSeconds = this.calculateExpirationBasedOnEdital(
+      vagaExists,
+      expirationInSeconds,
+    );
+
+    await this.redisService.setValue(
+      key,
+      JSON.stringify(createInscricaoDto.respostas),
+      expirationInSeconds,
+    );
+
+    return {
+      message: 'Respostas salvas no cache com sucesso',
+      key,
+      expirationInSeconds,
+      expirationInHours: Math.ceil(expirationInSeconds / 3600),
     };
   }
 
-  async findRespostaEmCache(vagaId: number, userId: number) {
+  async findRespostaEmCache(vagaId: string, userId: string) {
     const vagaExists = await this.vagasRepository.findOne({
-        where: { id: vagaId },
-        relations: ['edital'],
+      where: { id: vagaId },
+      relations: ['edital'],
     });
 
     if (!vagaExists) {
-        throw new NotFoundException('Vaga não encontrada');
+      throw new NotFoundException('Vaga não encontrada');
     }
 
     const key = `userId:${userId}:form:${vagaId}:edital:${vagaExists.edital.id}`;
     const cachedData = await this.redisService.getValue(key);
-    
+
     if (!cachedData) {
-        return { message: 'Nenhuma resposta encontrada no cache', respostas: [] };
+      return { message: 'Nenhuma resposta encontrada no cache', respostas: [] };
     }
-    
+
     try {
-        const respostas = JSON.parse(cachedData);
-        return { 
-            message: 'Respostas encontradas no cache', 
-            respostas,
-        };
+      const respostas = JSON.parse(cachedData);
+      return {
+        message: 'Respostas encontradas no cache',
+        respostas,
+      };
     } catch (error) {
-        console.error('[CACHE] Erro ao fazer parse dos dados do cache:', error);
-        return { message: 'Erro ao recuperar dados do cache', respostas: [] };
+      console.error('[CACHE] Erro ao fazer parse dos dados do cache:', error);
+      return { message: 'Erro ao recuperar dados do cache', respostas: [] };
     }
   }
 
-  async removeRespostaEmCache(vagaId: number, userId: number) {
+  async removeRespostaEmCache(vagaId: string, userId: string) {
     const vagaExists = await this.vagasRepository.findOne({
-        where: { id: vagaId },
-        relations: ['edital'],
+      where: { id: vagaId },
+      relations: ['edital'],
     });
 
     if (!vagaExists) {
-        throw new NotFoundException('Vaga não encontrada');
+      throw new NotFoundException('Vaga não encontrada');
     }
 
     const key = `userId:${userId}:form:${vagaId}:edital:${vagaExists.edital.id}`;
@@ -489,8 +501,11 @@ export class InscricaoService {
         }
     }
   }
-  
-  private calculateExpirationBasedOnEdital(vagaExists: Vagas, expirationInSeconds: number): number {
+
+  private calculateExpirationBasedOnEdital(
+    vagaExists: Vagas,
+    expirationInSeconds: number,
+  ): number {
     const today = new Date();
     const editalSteps = vagaExists.edital.etapa_edital;
     const threeDaysInSeconds = 3 * 24 * 60 * 60;
@@ -501,7 +516,7 @@ export class InscricaoService {
     }
 
     // Encontra a etapa atual (ativa)
-    const currentStep = editalSteps.find(step => {
+    const currentStep = editalSteps.find((step) => {
       const startDate = new Date(step.data_inicio);
       const endDate = new Date(step.data_fim);
       return startDate <= today && endDate >= today;

@@ -6,7 +6,7 @@ import {
   Delete,
   Param,
   Body,
-  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { DadoService } from './tipoDado.service';
@@ -34,7 +34,7 @@ export class DadoController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Busca um Dado pelo ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.dadoService.findOne(id);
   }
 
@@ -42,13 +42,13 @@ export class DadoController {
   @ApiOperation({ summary: 'Atualiza um Dado pelo ID' })
   @ApiBody({ type: UpdateDadoDto })
   @ApiResponse({ status: 200, description: 'Dado atualizado com sucesso.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateDadoDto) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateDadoDto) {
     return this.dadoService.update(id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Remove um Dado pelo ID' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.dadoService.remove(id);
   }
 }

@@ -58,7 +58,7 @@ export class VagasService {
   }
 
   // Listar vagas de um edital específico
-  async findByEdital(editalId: number): Promise<VagaResponseDto[]> {
+  async findByEdital(editalId: string): Promise<VagaResponseDto[]> {
     try {
       const vagas = await this.vagasRepository.find({
         where: { edital: { id: editalId } },
@@ -84,7 +84,7 @@ export class VagasService {
 
   // Atualizar uma vaga
   async update(
-    id: number,
+    id: string,
     updateVagaDto: UpdateVagaDto,
   ): Promise<VagaResponseDto> {
     try {
@@ -123,7 +123,7 @@ export class VagasService {
   }
 
   // Remover uma vaga
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: string): Promise<{ message: string }> {
     try {
       const vaga = await this.vagasRepository.findOne({
         where: { id },

@@ -7,7 +7,7 @@ import {
   Post,
   Req,
   UseGuards,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Res,
   Query,
 } from '@nestjs/common';
@@ -110,7 +110,7 @@ export class InscricaoController {
     schema: { example: errorExamples.internalServerError },
   })
   async updateInscricao(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateInscricaoDto: UpdateInscricaoDto,
     @Req() request: AuthenticatedRequest,
   ) {
@@ -174,19 +174,19 @@ export class InscricaoController {
   ) {
     return await this.inscricaoService.saveRespostaEmCache(
       createInscricaoDto,
-      parseInt(request.user.userId, 10),
+      request.user.userId,
     );
   }
 
   @Get('cache/respostas/vaga/:vagaId')
   @ApiOperation({ summary: 'Buscar respostas do formulário no cache' })
   async getRespostasCache(
-    @Param('vagaId', ParseIntPipe) vagaId: number,
+    @Param('vagaId', ParseUUIDPipe) vagaId: string,
     @Req() request: AuthenticatedRequest,
   ) {
     return await this.inscricaoService.findRespostaEmCache(
       vagaId,
-      parseInt(request.user.userId, 10),
+      request.user.userId,
     );
   }
 
@@ -229,7 +229,7 @@ export class InscricaoController {
     @Res() res: Response,
     @Query('editalId') editalIdStr?: string,
   ) {
-    const editalId = editalIdStr ? parseInt(editalIdStr, 10) : undefined;
+    const editalId = editalIdStr ? editalIdStr : undefined;
     const pdfBuffer = await this.pdfService.generateAprovadosPdf(editalId);
 
     const filename = editalId

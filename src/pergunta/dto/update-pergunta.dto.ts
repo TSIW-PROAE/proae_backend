@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -48,11 +47,11 @@ export class UpdatePerguntaDto {
   @ApiProperty({
     description:
       'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento). Use null para remover a vinculação.',
-    example: 10,
+    example: '550e8400-e29b-41d4-a916-446655440000',
     required: false,
     nullable: true,
   })
   @IsOptional()
-  @IsNumber()
-  dadoId?: number | null;
+  @IsString()
+  dadoId?: string | null;
 }

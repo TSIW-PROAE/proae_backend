@@ -21,27 +21,27 @@ describe('InscricaoService', () => {
   let documentoRepository: Repository<Documento>;
 
   const mockAluno = {
-    aluno_id: 1,
+    aluno_id: '00000000-0000-4000-a000-000000000a01',
     id_clerk: 'clerk_123',
     cpf: '12345678901',
     inscricoes: [],
   } as Partial<Aluno>;
 
   const mockEdital = {
-    id: 1,
+    id: '00000000-0000-4000-a000-000000000e01',
     titulo_edital: 'Auxílio Permanência',
     tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
     inscricoes: [],
   } as Partial<Edital>;
 
   const mockValidacao = {
-    id: 1,
+    id: '00000000-0000-4000-a000-00000000val1',
     parecer: 'Documento necessita correção',
     data_validacao: new Date('2024-01-15'),
   } as Partial<Validacao>;
 
   const mockDocumentoPendente = {
-    documento_id: 1,
+    documento_id: '00000000-0000-4000-a000-000000000d01',
     tipo_documento: EnumTipoDocumento.RG,
     status_documento: StatusDocumento.PENDENTE,
     documento_url: 'http://example.com/rg.pdf',
@@ -49,7 +49,7 @@ describe('InscricaoService', () => {
   } as Partial<Documento>;
 
   const mockDocumentoAprovado = {
-    documento_id: 2,
+    documento_id: '00000000-0000-4000-a000-000000000d02',
     tipo_documento: EnumTipoDocumento.CPF,
     status_documento: StatusDocumento.APROVADO,
     documento_url: 'http://example.com/cpf.pdf',
@@ -237,7 +237,7 @@ describe('InscricaoService', () => {
 
     it('should filter out approved documents and keep only pending ones with validation data', async () => {
       const mockValidacao2 = {
-        id: 2,
+        id: '00000000-0000-4000-a000-00000000val2',
         parecer: 'Documento em análise',
         data_validacao: new Date('2024-01-20'),
       } as Partial<Validacao>;
@@ -248,7 +248,7 @@ describe('InscricaoService', () => {
           mockDocumentoPendente,
           mockDocumentoAprovado,
           {
-            documento_id: 3,
+            documento_id: '00000000-0000-4000-a000-000000000d03',
             tipo_documento: EnumTipoDocumento.HISTORICO_ESCOLAR,
             status_documento: StatusDocumento.PENDENTE,
             documento_url: 'http://example.com/historico.pdf',
@@ -280,7 +280,7 @@ describe('InscricaoService', () => {
 
     it('should return null validation fields when document has no validations', async () => {
       const mockDocumentoSemValidacao = {
-        documento_id: 4,
+        documento_id: '00000000-0000-4000-a000-000000000d04',
         tipo_documento: EnumTipoDocumento.COMPROVANTE_MATRICULA,
         status_documento: StatusDocumento.PENDENTE,
         documento_url: 'http://example.com/matricula.pdf',

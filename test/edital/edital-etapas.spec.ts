@@ -30,7 +30,7 @@ describe('EditalEtapas', () => {
   ];
 
   const mockEditalResponse = {
-    id: 1,
+    id: '00000000-0000-4000-a000-000000000e01',
     tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
     descricao: 'Edital de teste',
     edital_url: 'http://example.com/edital',
@@ -125,7 +125,7 @@ describe('EditalEtapas', () => {
           if (entity instanceof Edital) {
             savedEdital = new Edital({
               ...entity,
-              id: 1,
+              id: '00000000-0000-4000-a000-000000000e01',
               etapas: [],
             });
             return savedEdital;
@@ -178,7 +178,7 @@ describe('EditalEtapas', () => {
             data_inicio: new Date('2023-01-01'),
             data_fim: new Date('2023-07-01'),
             edital: expect.objectContaining({
-              id: 1,
+              id: '00000000-0000-4000-a000-000000000e01',
               tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
               descricao: 'Edital de teste n1',
               edital_url: 'http://example.com/edital',
@@ -192,7 +192,7 @@ describe('EditalEtapas', () => {
             data_inicio: new Date('2023-07-01'),
             data_fim: new Date('2023-12-31'),
             edital: expect.objectContaining({
-              id: 1,
+              id: '00000000-0000-4000-a000-000000000e01',
               tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
               descricao: 'Edital de teste n1',
               edital_url: 'http://example.com/edital',
@@ -206,7 +206,7 @@ describe('EditalEtapas', () => {
       // Verify the result
       expect(result).toEqual(
         expect.objectContaining({
-          id: 1,
+          id: '00000000-0000-4000-a000-000000000e01',
           tipo_edital: EditalEnum.AUXILIO_ALIMENTACAO,
           descricao: 'Edital de teste n1',
           edital_url: 'http://example.com/edital',

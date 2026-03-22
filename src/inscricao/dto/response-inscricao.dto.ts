@@ -4,13 +4,13 @@ import { StatusInscricao } from '../../enum/enumStatusInscricao';
 import { RespostaResponseDto } from '../../resposta/dto/response-resposta.dto';
 
 export class InscricaoResponseDto {
-  @ApiProperty({ type: Number, description: 'ID do aluno' })
+  @ApiProperty({ type: String, description: 'ID do aluno' })
   @Expose()
-  aluno_id: number;
+  aluno_id: string;
 
-  @ApiProperty({ type: Number, description: 'ID da vaga' })
+  @ApiProperty({ type: String, description: 'ID da vaga' })
   @Expose()
-  vaga_id: number;
+  vaga_id: string;
 
   @ApiProperty({ type: Date, description: 'Data da inscrição' })
   @Expose()
