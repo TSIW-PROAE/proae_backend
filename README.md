@@ -38,6 +38,17 @@ docker-compose up -d
 
 > **Nota:** Configure o arquivo `.env` baseado no `.env.example` antes de rodar.
 
+### Rodar local (sem Docker)
+
+O Nest compila para `dist/src/main.js`. Após `npm run build`, um **`dist/main.js`** é gerado automaticamente (redireciona para `src/main.js`), então **`node dist/main`** e **`node dist/src/main.js`** funcionam. **`npm run start:prod`** compila e sobe com `node dist/main.js`. Se aparecer `Cannot find module '.../dist/main'`, rode `npm run build` em `proae_backend` (a pasta `dist` precisa existir).
+
+## ☁️ Deploy GCP
+
+| Documento | Conteúdo |
+|-----------|----------|
+| **[DEPLOY.md](./DEPLOY.md)** | **Dois fluxos:** deploy **por aqui** (PC / Cursor, `gcloud builds submit`) e **por fora** (Console, Cloud Shell, trigger Git) |
+| [README-CLOUD-RUN-CLOUD-SQL.md](./README-CLOUD-RUN-CLOUD-SQL.md) | Infra: Cloud SQL, IAM, segredos, troubleshooting |
+
 ## 📊 Estrutura Principal
 
 ```

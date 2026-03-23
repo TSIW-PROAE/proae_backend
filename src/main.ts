@@ -3,18 +3,54 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './filters/http-exception.filter';
+import { HttpExceptionFilter } from './presentation/http/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const defaultAllowedOrigins = [
+    'https://proae-frontend.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ];
+  // CORS_ORIGINS no Cloud Run: origens *extras* (vírgula). Sempre unimos com default —
+  // se substituíssemos só por env, um deploy com env incompleto derruba o Vercel (preflight sem header).
+  const extraOrigins = (process.env.CORS_ORIGINS?.split(',') ?? [])
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const allowedOrigins = [
+    ...new Set([...defaultAllowedOrigins, ...extraOrigins]),
+  ];
 
   // Configuração do cookie parser
   app.use(cookieParser());
 
   // Configuração do CORS
   app.enableCors({
-    origin: true, // Permite todas as origens ou configure com um array de origens específicas
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: (origin, callback) => {
+      // Permite chamadas sem Origin (health checks/server-to-server)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin não permitida por CORS: ${origin}`), false);
+    },
+    // OPTIONS: preflight do browser; sem isso alguns clients falham no check de métodos permitidos
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
+    optionsSuccessStatus: 204,
+    preflightContinue: false,
     credentials: true,
   });
 
@@ -63,7 +99,7 @@ async function bootstrap() {
   // Ajustes recomendados pelo Render: evita ECONNRESET/socket hang up
   // por keep-alive e timeouts do load balancer (default 5s é curto)
   const httpServer = server as import('http').Server;
-  if (httpServer?.setTimeout()) {
+  if (httpServer && 'keepAliveTimeout' in httpServer) {
     httpServer.keepAliveTimeout = 65000; // 65s
     httpServer.headersTimeout = 66000;   // > keepAliveTimeout
   }
@@ -73,8 +109,15 @@ async function bootstrap() {
 
 // Trata rejeições e exceções não capturadas para evitar crash por ECONNRESET
 // (ex.: falha em requisição HTTP para Upstash Redis, MinIO, etc.)
-process.on('unhandledRejection', (reason: any, promise: Promise<unknown>) => {
-  console.error('[unhandledRejection]', reason?.message ?? reason);
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  const msg =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'object' && reason !== null
+        ? JSON.stringify(reason)
+        : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  console.error('[unhandledRejection]', msg, stack ?? '');
 });
 
 process.on('uncaughtException', (err: Error) => {

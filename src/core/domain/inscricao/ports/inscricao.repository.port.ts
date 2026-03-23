@@ -1,0 +1,27 @@
+import type {
+  InscricaoComPendenciasItem,
+  CreateInscricaoCommand,
+  CorrigirRespostasInscricaoCommand,
+  UpdateInscricaoCommand,
+  InscricaoData,
+} from '../inscricao.types';
+
+export interface IInscricaoRepository {
+  getInscricoesComPendenciasByAluno(
+    userId: string,
+  ): Promise<InscricaoComPendenciasItem[]>;
+  create(
+    cmd: CreateInscricaoCommand,
+    userId: string,
+  ): Promise<InscricaoData>;
+  update(
+    inscricaoId: number,
+    cmd: UpdateInscricaoCommand,
+    userId: string,
+  ): Promise<InscricaoData>;
+  corrigirRespostasPendentes(
+    inscricaoId: number,
+    cmd: CorrigirRespostasInscricaoCommand,
+    userId: string,
+  ): Promise<InscricaoData>;
+}

@@ -1,0 +1,62 @@
+import { AbstractEntity } from '../../abstract.entity';
+import { Column, CreateDateColumn, Entity, ManyToOne } from 'typeorm';
+import { Pergunta } from '../pergunta/pergunta.entity';
+import { Inscricao } from '../inscricao/inscricao.entity';
+
+@Entity()
+export class Resposta extends AbstractEntity<Resposta> {
+  @ManyToOne(() => Pergunta, (pergunta) => pergunta.respostas, {
+    onDelete: 'CASCADE',
+  })
+  pergunta: Pergunta;
+
+  @ManyToOne(() => Inscricao, (inscricao) => inscricao.respostas, {
+    onDelete: 'CASCADE',
+  })
+  inscricao: Inscricao;
+
+  @Column({ type: 'text', nullable: true })
+  valorTexto?: string;
+
+  @Column({ type: 'simple-array', nullable: true })
+  valorOpcoes?: string[];
+
+  @Column({ type: 'text', nullable: true })
+  urlArquivo?: string;
+
+  @Column({ type: 'text', nullable: true })
+  texto?: string;
+
+  @CreateDateColumn()
+  dataResposta: Date;
+
+  @Column({ type: 'boolean', default: false })
+  validada: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  dataValidacao?: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  dataValidade?: Date;
+
+  /** Admin marcou como invalidada (reprovação ou pedido de correção). */
+  @Column({ type: 'boolean', default: false })
+  invalidada: boolean;
+
+  /** Se true, aluno deve reenviar resposta até prazoReenvio. */
+  @Column({ type: 'boolean', default: false })
+  requerReenvio: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  parecer?: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  prazoReenvio?: Date | null;
+
+  /** Pergunta criada após a inscrição (fluxo complemento). */
+  @Column({ type: 'boolean', default: false })
+  perguntaAdicionadaPosInscricao: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  prazoRespostaNovaPergunta?: Date | null;
+}
