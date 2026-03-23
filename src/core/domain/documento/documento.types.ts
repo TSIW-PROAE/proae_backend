@@ -58,8 +58,24 @@ export interface UpdateDocumentoData {
  */
 export interface DocumentosComProblemasPorInscricao {
   inscricao_id: number;
+  vaga_id?: number | null;
+  edital_id?: number | null;
+  is_formulario_geral?: boolean;
+  is_formulario_renovacao?: boolean;
   titulo_edital: string;
+  vaga_beneficio?: string | null;
   documentos: DocumentoData[];
+  ajustes_resposta?: Array<{
+    resposta_id: number;
+    pergunta_id?: number | null;
+    step_id?: number | null;
+    step_texto?: string | null;
+    pergunta_texto?: string | null;
+    parecer?: string | null;
+    prazo_reenvio?: Date | string | null;
+    prazo_resposta_nova_pergunta?: Date | string | null;
+    tipo_ajuste: 'REENVIO_RESPOSTA' | 'NOVA_PERGUNTA';
+  }>;
 }
 
 export interface DocumentoOwnerData {

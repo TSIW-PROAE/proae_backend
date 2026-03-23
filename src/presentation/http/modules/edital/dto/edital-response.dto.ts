@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 
 class EditalUrlResponseDto {
   @ApiProperty({ description: 'Título do documento' })
@@ -78,6 +79,10 @@ export class EditalResponseDto {
   @ApiProperty({ type: Boolean, description: 'Indica Formulário de Renovação' })
   @Expose()
   is_formulario_renovacao: boolean;
+
+  @ApiProperty({ enum: NivelAcademico, description: 'Graduação ou Pós-graduação' })
+  @Expose()
+  nivel_academico: NivelAcademico;
 
   @ApiProperty({
     type: Date,

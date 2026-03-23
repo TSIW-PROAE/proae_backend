@@ -29,6 +29,11 @@ export interface CreateInscricaoCommand {
   respostas: RespostaInscricaoItem[];
 }
 
+/** PATCH /inscricoes/:id/correcao-respostas — aluno envia só as respostas a corrigir. */
+export interface CorrigirRespostasInscricaoCommand {
+  respostas: RespostaInscricaoItem[];
+}
+
 export interface UpdateInscricaoCommand {
   vaga_id?: number;
   respostas?: RespostaInscricaoItem[];

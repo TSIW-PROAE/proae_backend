@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { IsCPF } from 'src/core/shared-kernel/validators/isCpf.validator';
 import { UnidadeEnum } from 'src/core/shared-kernel/enums/enumCampus';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 
 export class AtualizaDadosAlunoDTO {
   @ApiProperty({
@@ -88,4 +89,13 @@ export class AtualizaDadosAlunoDTO {
   @ValidateIf((_, v) => v != null && String(v).trim() !== '')
   @IsCPF({ message: 'CPF inválido' })
   cpf?: string;
+
+  @ApiProperty({
+    description: 'Graduação ou Pós-graduação (alteração rara; use com cuidado)',
+    enum: NivelAcademico,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(NivelAcademico)
+  nivel_academico?: NivelAcademico;
 }

@@ -4,6 +4,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { Edital } from '../entities/edital/edital.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { StatusEdital } from '../../../../core/shared-kernel/enums/enumStatusEdital';
+import { NivelAcademico } from '../../../../core/shared-kernel/enums/enumNivelAcademico';
 import type {
   AlunoInscritoData,
 } from '../../../../core/domain/edital/ports/edital.repository.port';
@@ -39,20 +40,28 @@ export class EditalTypeOrmRepository implements IEditalRepository {
   ) {}
 
   async create(data: CreateEditalData): Promise<EditalData> {
+    const nivel =
+      (data.nivel_academico as NivelAcademico) ?? NivelAcademico.GRADUACAO;
     const edital = new Edital({
       titulo_edital: data.titulo_edital,
       status_edital: StatusEdital.RASCUNHO,
       descricao: undefined,
       edital_url: undefined,
       etapa_edital: undefined,
+      nivel_academico: nivel,
     });
     const saved = await this.editalRepository.save(edital);
     return this.toEditalData(saved);
   }
 
-  async findAll(): Promise<EditalData[]> {
+  async findAll(nivelAcademico?: string): Promise<EditalData[]> {
     const list = await this.editalRepository.find({
-      where: { is_formulario_geral: false },
+      where: {
+        is_formulario_geral: false,
+        ...(nivelAcademico
+          ? { nivel_academico: nivelAcademico as NivelAcademico }
+          : {}),
+      },
     });
     return list.map((e) => this.toEditalData(e));
   }
@@ -72,6 +81,9 @@ export class EditalTypeOrmRepository implements IEditalRepository {
         descricao: data.descricao ?? edital.descricao,
         edital_url: data.edital_url ?? edital.edital_url,
         etapa_edital: data.etapa_edital ?? edital.etapa_edital,
+        ...(data.nivel_academico != null
+          ? { nivel_academico: data.nivel_academico as NivelAcademico }
+          : {}),
       });
       await tx.save(edital);
     });
@@ -100,11 +112,33 @@ export class EditalTypeOrmRepository implements IEditalRepository {
     });
   }
 
-  async findOpened(): Promise<EditalData[]> {
+  async findOpened(nivelAcademico?: string): Promise<EditalData[]> {
+    const nivel =
+      nivelAcademico != null && nivelAcademico !== ''
+        ? (nivelAcademico as NivelAcademico)
+        : NivelAcademico.GRADUACAO;
     const list = await this.editalRepository.find({
-      where: { status_edital: StatusEdital.ABERTO, is_formulario_geral: false },
+      where: {
+        status_edital: StatusEdital.ABERTO,
+        is_formulario_geral: false,
+        is_formulario_renovacao: false,
+        nivel_academico: nivel,
+      },
+      relations: ['vagas'],
     });
-    return list.map((e) => this.toEditalData(e));
+    return list.map((e) => {
+      const base = this.toEditalData(e);
+      const vagas = e.vagas ?? [];
+      const quantidadeBolsas = vagas.reduce(
+        (acc, v) => acc + (Number(v.numero_vagas) || 0),
+        0,
+      );
+      return {
+        ...base,
+        quantidade_bolsas: quantidadeBolsas,
+        numero_beneficios: vagas.length,
+      };
+    });
   }
 
   async updateStatus(
@@ -189,6 +223,10 @@ export class EditalTypeOrmRepository implements IEditalRepository {
       edital_url: e.edital_url as EditalData['edital_url'],
       status_edital: ENUM_TO_STATUS[e.status_edital!],
       etapa_edital: e.etapa_edital as EditalData['etapa_edital'],
+      nivel_academico: e.nivel_academico ?? NivelAcademico.GRADUACAO,
+      is_formulario_geral: e.is_formulario_geral,
+      is_formulario_renovacao: e.is_formulario_renovacao,
+      data_fim_vigencia: e.data_fim_vigencia ?? null,
       created_at: (e as unknown as { created_at?: Date }).created_at,
       updated_at: (e as unknown as { updated_at?: Date }).updated_at,
     };

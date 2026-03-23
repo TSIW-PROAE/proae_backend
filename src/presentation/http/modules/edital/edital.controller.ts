@@ -44,6 +44,7 @@ import { errorExamples } from 'src/common/swagger/error-examples';
 import { CreateEditalDto } from './dto/create-edital.dto';
 import { EditalResponseDto } from './dto/edital-response.dto';
 import { UpdateEditalDto } from './dto/update-edital.dto';
+import { resolveNivelAcademicoQuery } from 'src/presentation/http/common/resolve-nivel-academico-query';
 
 @ApiTags('Editais')
 @Controller('editais')
@@ -71,10 +72,17 @@ export class EditalController {
   async create(@Body() createEditalDto: CreateEditalDto) {
     return this.createEdital.execute({
       titulo_edital: createEditalDto.titulo_edital,
+      nivel_academico: createEditalDto.nivel_academico,
     });
   }
 
   @Get()
+  @ApiQuery({
+    name: 'nivel_academico',
+    required: false,
+    description:
+      'Filtra por Graduação ou Pós-graduação. Omitir para listar todos os níveis.',
+  })
   @ApiOkResponse({
     type: [EditalResponseDto],
     description: 'Lista de editais retornada com sucesso',
@@ -83,11 +91,19 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async findAll() {
-    return this.listEditais.execute();
+  async findAll(@Query('nivel_academico') nivel?: string) {
+    return this.listEditais.execute(
+      nivel != null && String(nivel).trim() !== '' ? nivel.trim() : undefined,
+    );
   }
 
   @Get('abertos')
+  @ApiQuery({
+    name: 'nivel_academico',
+    required: false,
+    description:
+      'Graduação (padrão) ou Pós-graduação — editais abertos só desse nível (exc. formulário geral e renovação).',
+  })
   @ApiOkResponse({
     type: [EditalResponseDto],
     description: 'Lista de editais abertos retornada com sucesso',
@@ -96,8 +112,9 @@ export class EditalController {
     description: 'Erro interno do servidor',
     schema: { example: errorExamples.internalServerError },
   })
-  async findOpened() {
-    return this.listEditaisAbertos.execute();
+  async findOpened(@Query('nivel_academico') nivel?: string) {
+    const resolved = resolveNivelAcademicoQuery(nivel);
+    return this.listEditaisAbertos.execute(resolved);
   }
 
   @Get(':id')
@@ -147,6 +164,7 @@ export class EditalController {
         descricao: updateEditalDto.descricao,
         edital_url: updateEditalDto.edital_url,
         etapa_edital: updateEditalDto.etapa_edital,
+        nivel_academico: updateEditalDto.nivel_academico,
       });
     } catch (e) {
       if (e instanceof EditalNaoEncontradoError) {

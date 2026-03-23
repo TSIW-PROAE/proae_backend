@@ -9,8 +9,8 @@ export class ListEditaisUseCase {
     private readonly editalRepository: IEditalRepository,
   ) {}
 
-  async execute() {
-    const editais = await this.editalRepository.findAll();
+  async execute(nivelAcademico?: string) {
+    const editais = await this.editalRepository.findAll(nivelAcademico);
     return editais.map((e) => ({
       id: e.id,
       titulo_edital: e.titulo_edital,
@@ -18,6 +18,7 @@ export class ListEditaisUseCase {
       edital_url: e.edital_url,
       status_edital: e.status_edital,
       etapa_edital: e.etapa_edital,
+      nivel_academico: e.nivel_academico,
       created_at: e.created_at,
       updated_at: e.updated_at,
     }));

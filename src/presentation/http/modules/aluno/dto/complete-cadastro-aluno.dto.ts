@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { UnidadeEnum } from 'src/core/shared-kernel/enums/enumCampus';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 
 /**
  * Dados para completar o cadastro de aluno quando o usuário já está logado mas ainda não tem perfil de estudante.
@@ -25,4 +26,13 @@ export class CompleteCadastroAlunoDto {
   @IsNotEmpty()
   @IsString()
   data_ingresso: string;
+
+  @ApiProperty({
+    enum: NivelAcademico,
+    description: 'Graduação ou Pós-graduação (define editais e formulários visíveis).',
+    default: NivelAcademico.GRADUACAO,
+  })
+  @IsNotEmpty()
+  @IsEnum(NivelAcademico)
+  nivel_academico: NivelAcademico;
 }

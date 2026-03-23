@@ -12,6 +12,7 @@ import { Type } from 'class-transformer';
 import { Transform } from 'class-transformer';
 import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
 import { EnumTipoInput } from 'src/core/shared-kernel/enums/enumTipoInput';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 
 const TIPO_PERGUNTA_VALIDOS = Object.values(EnumTipoInput) as string[];
 
@@ -90,6 +91,15 @@ export class CreateFormularioGeralDto {
   @IsString()
   @Transform(({ value }) => (value == null || value === '' ? 'Formulário Geral' : value))
   titulo_edital?: string;
+
+  @ApiPropertyOptional({
+    enum: NivelAcademico,
+    description: 'Nível deste formulário (um FG ativo por nível). Padrão: Graduação.',
+    default: NivelAcademico.GRADUACAO,
+  })
+  @IsOptional()
+  @IsEnum(NivelAcademico)
+  nivel_academico?: NivelAcademico;
 
   @ApiPropertyOptional()
   @IsOptional()

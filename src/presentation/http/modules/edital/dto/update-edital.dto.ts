@@ -1,14 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 
 class EditalUrlDto {
   @ApiProperty({ description: 'Título do documento' })
@@ -81,4 +83,9 @@ export class UpdateEditalDto {
   @ValidateIf((_, v) => v !== null)
   @IsDateString()
   data_fim_vigencia?: string | null;
+
+  @ApiPropertyOptional({ enum: NivelAcademico })
+  @IsOptional()
+  @IsEnum(NivelAcademico)
+  nivel_academico?: NivelAcademico;
 }

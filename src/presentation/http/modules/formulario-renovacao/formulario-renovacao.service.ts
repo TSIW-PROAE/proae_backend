@@ -13,6 +13,7 @@ import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/alu
 import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.entity';
 import { Pergunta } from 'src/infrastructure/persistence/typeorm/entities/pergunta/pergunta.entity';
 import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 import type { CreateFormularioGeralDto } from '../formulario-geral/dto/create-formulario-geral.dto';
 import type { UpdateFormularioGeralDto } from '../formulario-geral/dto/update-formulario-geral.dto';
 import type { UpdateFGInscricaoStatusDto } from '../formulario-geral/dto/update-fg-inscricao-status.dto';
@@ -40,9 +41,9 @@ export class FormularioRenovacaoService {
     private readonly inscricaoAuditLog: InscricaoAuditLogService,
   ) {}
 
-  async findFormularioRenovacao() {
+  async findFormularioRenovacaoPorNivel(nivel: NivelAcademico) {
     const edital = await this.editalRepository.findOne({
-      where: { is_formulario_renovacao: true },
+      where: { is_formulario_renovacao: true, nivel_academico: nivel },
       relations: ['steps', 'steps.perguntas', 'vagas'],
     });
     if (!edital) return null;
@@ -50,15 +51,17 @@ export class FormularioRenovacaoService {
   }
 
   async findFormularioRenovacaoComMeuStatus(userId: string) {
-    const edital = await this.editalRepository.findOne({
-      where: { is_formulario_renovacao: true },
-      relations: ['steps', 'steps.perguntas', 'vagas'],
-    });
-    if (!edital) return null;
-
     const aluno = await this.alunoRepository.findOne({
       where: { usuario: { usuario_id: userId } },
     });
+    const nivel =
+      (aluno?.nivel_academico as NivelAcademico) ?? NivelAcademico.GRADUACAO;
+
+    const edital = await this.editalRepository.findOne({
+      where: { is_formulario_renovacao: true, nivel_academico: nivel },
+      relations: ['steps', 'steps.perguntas', 'vagas'],
+    });
+    if (!edital) return null;
     let minha_inscricao: {
       id: number;
       status_inscricao: string;
@@ -69,12 +72,18 @@ export class FormularioRenovacaoService {
     let elegivel_renovacao = false;
 
     if (aluno) {
-      const algumaAprovada = await this.inscricaoRepository.findOne({
-        where: {
-          aluno: { aluno_id: aluno.aluno_id },
-          status_inscricao: StatusInscricao.APROVADA,
-        },
-      });
+      const algumaAprovada = await this.inscricaoRepository
+        .createQueryBuilder('i')
+        .innerJoin('i.aluno', 'aluno')
+        .innerJoin('i.vagas', 'v')
+        .innerJoin('v.edital', 'e')
+        .where('aluno.aluno_id = :aid', { aid: aluno.aluno_id })
+        .andWhere('i.status_inscricao = :st', {
+          st: StatusInscricao.APROVADA,
+        })
+        .andWhere('e.nivel_academico = :nivel', { nivel })
+        .andWhere('e.is_formulario_renovacao = false')
+        .getOne();
       elegivel_renovacao = !!algumaAprovada;
     }
 
@@ -110,8 +119,11 @@ export class FormularioRenovacaoService {
   }
 
   async create(dto: CreateFormularioGeralDto) {
+    const nivel =
+      (dto.nivel_academico as NivelAcademico) ?? NivelAcademico.GRADUACAO;
+
     const existente = await this.editalRepository.findOne({
-      where: { is_formulario_renovacao: true },
+      where: { is_formulario_renovacao: true, nivel_academico: nivel },
     });
     if (existente) {
       existente.is_formulario_renovacao = false;
@@ -124,6 +136,7 @@ export class FormularioRenovacaoService {
       status_edital: StatusEdital.ABERTO,
       is_formulario_geral: false,
       is_formulario_renovacao: true,
+      nivel_academico: nivel,
     });
     const savedEdital = await this.editalRepository.save(edital);
 
@@ -157,7 +170,11 @@ export class FormularioRenovacaoService {
       }
     }
 
-    return this.findFormularioRenovacao();
+    const criado = await this.editalRepository.findOne({
+      where: { is_formulario_renovacao: true, nivel_academico: nivel },
+      relations: ['steps', 'steps.perguntas', 'vagas'],
+    });
+    return criado ? this.toResponse(criado) : null;
   }
 
   async update(id: number, dto: UpdateFormularioGeralDto) {
@@ -171,7 +188,12 @@ export class FormularioRenovacaoService {
     if (dto.descricao !== undefined) edital.descricao = dto.descricao;
     if (dto.status_edital != null) edital.status_edital = dto.status_edital;
     await this.editalRepository.save(edital);
-    return this.findFormularioRenovacao();
+    const nivel = edital.nivel_academico as NivelAcademico;
+    const recarregado = await this.editalRepository.findOne({
+      where: { is_formulario_renovacao: true, nivel_academico: nivel },
+      relations: ['steps', 'steps.perguntas', 'vagas'],
+    });
+    return recarregado ? this.toResponse(recarregado) : null;
   }
 
   async remove(id: number) {
@@ -198,9 +220,9 @@ export class FormularioRenovacaoService {
     return { mensagem: 'Formulário de renovação desativado com sucesso.' };
   }
 
-  private async getEditalFRComVagas() {
+  private async getEditalFRComVagas(nivel: NivelAcademico) {
     const edital = await this.editalRepository.findOne({
-      where: { is_formulario_renovacao: true },
+      where: { is_formulario_renovacao: true, nivel_academico: nivel },
       relations: ['vagas'],
     });
     if (!edital) {
@@ -214,8 +236,8 @@ export class FormularioRenovacaoService {
     return edital;
   }
 
-  async listarInscricoesFR() {
-    const edital = await this.getEditalFRComVagas();
+  async listarInscricoesFR(nivel: NivelAcademico) {
+    const edital = await this.getEditalFRComVagas(nivel);
     const vagaIds = edital.vagas.map((v) => v.id);
 
     const inscricoes = await this.inscricaoRepository.find({
@@ -227,6 +249,7 @@ export class FormularioRenovacaoService {
     return {
       edital_id: edital.id,
       titulo_edital: edital.titulo_edital,
+      nivel_academico: edital.nivel_academico,
       total: inscricoes.length,
       inscricoes: inscricoes.map((i) => ({
         id: i.id,
@@ -246,8 +269,8 @@ export class FormularioRenovacaoService {
     };
   }
 
-  async detalheInscricaoFR(inscricaoId: number) {
-    const edital = await this.getEditalFRComVagas();
+  async detalheInscricaoFR(inscricaoId: number, nivel: NivelAcademico) {
+    const edital = await this.getEditalFRComVagas(nivel);
     const vagaIds = edital.vagas.map((v) => v.id);
 
     const inscricao = await this.inscricaoRepository.findOne({
@@ -318,9 +341,10 @@ export class FormularioRenovacaoService {
   async alterarStatusInscricaoFR(
     inscricaoId: number,
     dto: UpdateFGInscricaoStatusDto,
+    nivel: NivelAcademico,
     actorUsuarioId?: string | null,
   ) {
-    const edital = await this.getEditalFRComVagas();
+    const edital = await this.getEditalFRComVagas(nivel);
     const vagaIds = edital.vagas.map((v) => v.id);
 
     const inscricao = await this.inscricaoRepository.findOne({
@@ -361,6 +385,7 @@ export class FormularioRenovacaoService {
       titulo_edital: edital.titulo_edital,
       descricao: edital.descricao,
       status_edital: edital.status_edital,
+      nivel_academico: edital.nivel_academico,
       is_formulario_geral: false,
       is_formulario_renovacao: true,
       data_fim_vigencia: edital.data_fim_vigencia ?? null,

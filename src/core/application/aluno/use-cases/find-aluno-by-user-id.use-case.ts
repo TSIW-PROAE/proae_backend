@@ -38,6 +38,7 @@ export class FindAlunoByUserIdUseCase {
     cpf: string;
     dataIngresso: string;
     celular: string;
+    nivelAcademico: string;
     inscricoes?: unknown[];
   }) {
     return {
@@ -50,6 +51,7 @@ export class FindAlunoByUserIdUseCase {
       cpf: aluno.cpf,
       data_ingresso: aluno.dataIngresso,
       celular: aluno.celular,
+      nivel_academico: aluno.nivelAcademico,
       inscricoes: aluno.inscricoes ?? [],
     };
   }

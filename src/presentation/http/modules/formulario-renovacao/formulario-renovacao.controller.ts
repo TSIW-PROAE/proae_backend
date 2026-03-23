@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -29,6 +30,7 @@ import { CreateFormularioGeralDto } from '../formulario-geral/dto/create-formula
 import { UpdateFormularioGeralDto } from '../formulario-geral/dto/update-formulario-geral.dto';
 import { UpdateFGInscricaoStatusDto } from '../formulario-geral/dto/update-fg-inscricao-status.dto';
 import { FormularioRenovacaoService } from './formulario-renovacao.service';
+import { resolveNivelAcademicoQuery } from 'src/presentation/http/common/resolve-nivel-academico-query';
 
 @ApiTags('Formulário Renovação')
 @ApiBearerAuth()
@@ -38,6 +40,26 @@ export class FormularioRenovacaoController {
   constructor(
     private readonly formularioRenovacaoService: FormularioRenovacaoService,
   ) {}
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: '[Admin] Formulário de renovação por nível (configuração)',
+  })
+  @ApiOkResponse({ description: 'Formulário retornado' })
+  @ApiNotFoundResponse({ description: 'Não configurado para este nível' })
+  async getFormularioRenovacaoAdmin(@Query('nivel_academico') nivel?: string) {
+    const n = resolveNivelAcademicoQuery(nivel);
+    const r =
+      await this.formularioRenovacaoService.findFormularioRenovacaoPorNivel(n);
+    if (!r) {
+      throw new NotFoundException(
+        'Formulário de renovação não configurado para este nível.',
+      );
+    }
+    return r;
+  }
 
   @Get()
   @ApiOperation({
@@ -95,8 +117,10 @@ export class FormularioRenovacaoController {
   @UseGuards(RolesGuard)
   @Roles(RolesEnum.ADMIN)
   @ApiOperation({ summary: '[Admin] Listar inscrições do formulário de renovação' })
-  async listarInscricoes() {
-    return this.formularioRenovacaoService.listarInscricoesFR();
+  async listarInscricoes(@Query('nivel_academico') nivelAcademico?: string) {
+    return this.formularioRenovacaoService.listarInscricoesFR(
+      resolveNivelAcademicoQuery(nivelAcademico),
+    );
   }
 
   @Get('inscricoes/:inscricaoId')
@@ -105,8 +129,12 @@ export class FormularioRenovacaoController {
   @ApiOperation({ summary: '[Admin] Detalhe de inscrição (renovação)' })
   async detalheInscricao(
     @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
+    @Query('nivel_academico') nivelAcademico?: string,
   ) {
-    return this.formularioRenovacaoService.detalheInscricaoFR(inscricaoId);
+    return this.formularioRenovacaoService.detalheInscricaoFR(
+      inscricaoId,
+      resolveNivelAcademicoQuery(nivelAcademico),
+    );
   }
 
   @Patch('inscricoes/:inscricaoId/status')
@@ -117,10 +145,12 @@ export class FormularioRenovacaoController {
     @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
     @Body() dto: UpdateFGInscricaoStatusDto,
     @Req() req: AuthenticatedRequest,
+    @Query('nivel_academico') nivelAcademico?: string,
   ) {
     return this.formularioRenovacaoService.alterarStatusInscricaoFR(
       inscricaoId,
       dto,
+      resolveNivelAcademicoQuery(nivelAcademico),
       req.user.userId,
     );
   }

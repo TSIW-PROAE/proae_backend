@@ -32,11 +32,13 @@ export interface AlunoInscritoData {
 
 export interface IEditalRepository {
   create(data: CreateEditalData): Promise<EditalData>;
-  findAll(): Promise<EditalData[]>;
+  /** Opcional: filtra por nível (Graduação / Pós-graduação). */
+  findAll(nivelAcademico?: string): Promise<EditalData[]>;
   findOne(id: number): Promise<EditalData | null>;
   update(id: number, data: UpdateEditalData): Promise<EditalData>;
   remove(id: number): Promise<void>;
-  findOpened(): Promise<EditalData[]>;
+  /** Editais abertos para inscrição, excl. formulário geral; filtrados por nível quando informado. */
+  findOpened(nivelAcademico?: string): Promise<EditalData[]>;
   updateStatus(id: number, status: StatusEditalDomain): Promise<EditalData>;
   getAlunosInscritos(
     editalId: number,

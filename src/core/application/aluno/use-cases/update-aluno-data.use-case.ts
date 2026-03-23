@@ -32,6 +32,7 @@ export class UpdateAlunoDataUseCase {
         cpf: updated.cpf,
         data_ingresso: updated.dataIngresso,
         celular: updated.celular,
+        nivel_academico: updated.nivelAcademico,
       },
     };
   }

@@ -8,6 +8,7 @@ import {
   IsString,
 } from 'class-validator';
 import { UnidadeEnum } from 'src/core/shared-kernel/enums/enumCampus';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 import { IsUfbaEmail } from 'src/core/shared-kernel/validators/is-ufba-email.validator';
 import { IsCPF } from 'src/core/shared-kernel/validators/isCpf.validator';
 import { IsStrongPassword } from 'src/core/shared-kernel/validators/strong-password.validator';
@@ -85,4 +86,13 @@ export class SignupDto {
   @IsNotEmpty()
   @IsPhoneNumber('BR')
   celular: string;
+
+  @ApiProperty({
+    enum: NivelAcademico,
+    description: 'Graduação ou Pós-graduação',
+    example: NivelAcademico.GRADUACAO,
+  })
+  @IsNotEmpty()
+  @IsEnum(NivelAcademico)
+  nivel_academico: NivelAcademico;
 }

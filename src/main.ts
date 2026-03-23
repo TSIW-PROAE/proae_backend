@@ -12,10 +12,14 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:5173',
   ];
-  const allowedOrigins = (
-    process.env.CORS_ORIGINS?.split(',').map((origin) => origin.trim()) ??
-    defaultAllowedOrigins
-  ).filter(Boolean);
+  // CORS_ORIGINS no Cloud Run: origens *extras* (vírgula). Sempre unimos com default —
+  // se substituíssemos só por env, um deploy com env incompleto derruba o Vercel (preflight sem header).
+  const extraOrigins = (process.env.CORS_ORIGINS?.split(',') ?? [])
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const allowedOrigins = [
+    ...new Set([...defaultAllowedOrigins, ...extraOrigins]),
+  ];
 
   // Configuração do cookie parser
   app.use(cookieParser());
@@ -36,8 +40,15 @@ async function bootstrap() {
 
       callback(new Error(`Origin não permitida por CORS: ${origin}`), false);
     },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+    // OPTIONS: preflight do browser; sem isso alguns clients falham no check de métodos permitidos
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
     optionsSuccessStatus: 204,
     preflightContinue: false,
     credentials: true,

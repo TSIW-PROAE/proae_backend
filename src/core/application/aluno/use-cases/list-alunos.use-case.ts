@@ -35,6 +35,7 @@ export class ListAlunosUseCase {
       cpf: a.cpf,
       data_ingresso: a.dataIngresso,
       celular: a.celular,
+      nivel_academico: a.nivelAcademico,
       inscricoes: a.inscricoes ?? [],
     }));
     return { sucesso: true, dados };

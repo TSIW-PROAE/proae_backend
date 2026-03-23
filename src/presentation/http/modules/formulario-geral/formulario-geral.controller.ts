@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -29,6 +30,7 @@ import { CreateFormularioGeralDto } from './dto/create-formulario-geral.dto';
 import { UpdateFormularioGeralDto } from './dto/update-formulario-geral.dto';
 import { UpdateFGInscricaoStatusDto } from './dto/update-fg-inscricao-status.dto';
 import { FormularioGeralService } from './formulario-geral.service';
+import { resolveNivelAcademicoQuery } from 'src/presentation/http/common/resolve-nivel-academico-query';
 
 @ApiTags('Formulário Geral')
 @ApiBearerAuth()
@@ -36,6 +38,25 @@ import { FormularioGeralService } from './formulario-geral.service';
 @Controller('formulario-geral')
 export class FormularioGeralController {
   constructor(private readonly formularioGeralService: FormularioGeralService) {}
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: '[Admin] Formulário geral por nível (configuração, sem status de aluno)',
+  })
+  @ApiOkResponse({ description: 'Formulário geral retornado' })
+  @ApiNotFoundResponse({ description: 'Não configurado para este nível' })
+  async getFormularioGeralAdmin(@Query('nivel_academico') nivel?: string) {
+    const n = resolveNivelAcademicoQuery(nivel);
+    const r = await this.formularioGeralService.findFormularioGeralPorNivel(n);
+    if (!r) {
+      throw new NotFoundException(
+        'Formulário geral não configurado para este nível.',
+      );
+    }
+    return r;
+  }
 
   @Get()
   @ApiOperation({
@@ -99,8 +120,12 @@ export class FormularioGeralController {
   @Roles(RolesEnum.ADMIN)
   @ApiOperation({ summary: '[Admin] Listar inscrições do formulário geral' })
   @ApiOkResponse({ description: 'Lista de inscrições retornada com sucesso' })
-  async listarInscricoes() {
-    return this.formularioGeralService.listarInscricoesFG();
+  async listarInscricoes(
+    @Query('nivel_academico') nivelAcademico?: string,
+  ) {
+    return this.formularioGeralService.listarInscricoesFG(
+      resolveNivelAcademicoQuery(nivelAcademico),
+    );
   }
 
   @Get('inscricoes/:inscricaoId')
@@ -109,8 +134,14 @@ export class FormularioGeralController {
   @ApiOperation({ summary: '[Admin] Detalhe de uma inscrição do formulário geral' })
   @ApiOkResponse({ description: 'Detalhe retornado com sucesso' })
   @ApiNotFoundResponse({ description: 'Inscrição não encontrada' })
-  async detalheInscricao(@Param('inscricaoId', ParseIntPipe) inscricaoId: number) {
-    return this.formularioGeralService.detalheInscricaoFG(inscricaoId);
+  async detalheInscricao(
+    @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
+    @Query('nivel_academico') nivelAcademico?: string,
+  ) {
+    return this.formularioGeralService.detalheInscricaoFG(
+      inscricaoId,
+      resolveNivelAcademicoQuery(nivelAcademico),
+    );
   }
 
   @Patch('inscricoes/:inscricaoId/status')
@@ -123,10 +154,12 @@ export class FormularioGeralController {
     @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
     @Body() dto: UpdateFGInscricaoStatusDto,
     @Req() req: AuthenticatedRequest,
+    @Query('nivel_academico') nivelAcademico?: string,
   ) {
     return this.formularioGeralService.alterarStatusInscricaoFG(
       inscricaoId,
       dto,
+      resolveNivelAcademicoQuery(nivelAcademico),
       req.user.userId,
     );
   }

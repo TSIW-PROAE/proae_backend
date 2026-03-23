@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { UnidadeEnum } from 'src/core/shared-kernel/enums/enumCampus';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { ValorDado } from '../valorDado/valorDado.entity';
 import { Usuario } from '../usuarios/usuario.entity';
@@ -27,6 +28,14 @@ export class Aluno {
 
   @Column()
   data_ingresso: string;
+
+  /** Graduação ou Pós-graduação: filtra editais, FG, renovação e regras de inscrição. */
+  @Column({
+    type: 'varchar',
+    length: 32,
+    default: NivelAcademico.GRADUACAO,
+  })
+  nivel_academico: NivelAcademico;
 
   /**
    * Se false, o estudante precisa clicar no link enviado ao email antes de usar o portal

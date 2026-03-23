@@ -24,6 +24,7 @@ import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { InscricaoAuditLogService } from '../inscricao-audit/inscricao-audit-log.service';
 import { StatusBeneficioEdital } from 'src/core/shared-kernel/enums/enumStatusBeneficioEdital';
+import { StatusInscricao } from 'src/core/shared-kernel/enums/enumStatusInscricao';
 
 @Injectable()
 export class InscricaoService {
@@ -63,6 +64,12 @@ export class InscricaoService {
 
       if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
         throw new BadRequestException('Edital não está aberto para inscrições');
+      }
+
+      if (alunoExists.nivel_academico !== vagaExists.edital.nivel_academico) {
+        throw new BadRequestException(
+          'O nível acadêmico deste processo (Graduação / Pós-graduação) não corresponde ao seu perfil de estudante.',
+        );
       }
 
       const perguntas = await this.perguntaRepository.find({
@@ -524,6 +531,13 @@ export class InscricaoService {
       throw new BadRequestException(
         'Situação de benefício no edital não se aplica a Formulário Geral ou Renovação. Use apenas o status da inscrição.',
       );
+    }
+    if (statusBeneficio === StatusBeneficioEdital.BENEFICIARIO) {
+      if (inscricao.status_inscricao !== StatusInscricao.APROVADA) {
+        throw new BadRequestException(
+          'Só é possível homologar como beneficiário no edital depois que a inscrição estiver aprovada na análise (status "Inscrição Aprovada").',
+        );
+      }
     }
     inscricao.status_beneficio_edital = statusBeneficio;
     const saved = await this.entityManager.transaction(async (tx) =>

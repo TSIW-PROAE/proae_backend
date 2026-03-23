@@ -40,7 +40,10 @@ steps:
       # aninhar ${PROJECT_ID} em variáveis customizadas pode NÃO expandir e quebrar o deploy (actAs).
       - '--service-account'
       - 'proae-backend@$PROJECT_ID.iam.gserviceaccount.com'
-      # Postgres fora do GCP: sem Cloud SQL. Conexão = secret DB_URL (URL completa), igual costuma estar no .env local.
+      # Postgres fora do GCP: sem Cloud SQL.
+      # ADMINS_EMAILS: crie o secret `admins-emails` no Secret Manager e acrescente abaixo:
+      #   ADMINS_EMAILS=admins-emails:latest
+      # (sem o secret o deploy falha — por isso não está no deploy padrão).
       - '--set-env-vars'
       - 'NODE_ENV=${_NODE_ENV},USE_CLOUD_SQL=false,CORS_ORIGINS=${_CORS_ORIGINS},BUILD_SHA=$BUILD_ID'
       - '--set-secrets'

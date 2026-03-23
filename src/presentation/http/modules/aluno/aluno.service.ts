@@ -13,6 +13,7 @@ import { StatusDocumento } from 'src/core/shared-kernel/enums/statusDocumento';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
+import { Resposta } from 'src/infrastructure/persistence/typeorm/entities/resposta/resposta.entity';
 import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
@@ -21,6 +22,146 @@ import { StatusInscricao } from 'src/core/shared-kernel/enums/enumStatusInscrica
 import { AuthService } from 'src/presentation/http/modules/auth/auth.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import type { CompleteCadastroAlunoDto } from './dto/complete-cadastro-aluno.dto';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
+
+/** YYYY-MM-DD para o portal (evita Invalid Date no front). */
+function serializeDateOnly(d: unknown): string {
+  if (d == null) return '';
+  if (d instanceof Date) {
+    return d.toISOString().slice(0, 10);
+  }
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const parsed = new Date(s);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+}
+
+/** Alinha com `GET /documentos/pendencias/meus`: qualquer doc que não esteja aprovado. */
+function documentoNaoAprovado(d: { status_documento?: string }): boolean {
+  return d.status_documento !== StatusDocumento.APROVADO;
+}
+
+/**
+ * Mesma regra que `RespostaTypeOrmRepository` usa para `aguardandoRespostaNovaPergunta`
+ * no questionário do aluno. Se o prazo de complemento já passou, não conta como pendência ativa.
+ */
+function respostaAguardandoNovaPerguntaPendente(r: Resposta): boolean {
+  if (!r.perguntaAdicionadaPosInscricao) return false;
+  if (r.valorTexto) return false;
+  if (r.urlArquivo) return false;
+  if (r.valorOpcoes && r.valorOpcoes.length > 0) return false;
+  if (r.prazoRespostaNovaPergunta != null) {
+    const fim = new Date(r.prazoRespostaNovaPergunta);
+    if (!Number.isNaN(fim.getTime()) && fim.getTime() < Date.now()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Resposta invalidada com pedido de correção/reenvio (não expirada).
+ */
+function respostaRequerReenvioPendente(r: Resposta): boolean {
+  if (!r.requerReenvio) return false;
+  if (r.prazoReenvio != null) {
+    const fim = new Date(r.prazoReenvio);
+    if (!Number.isNaN(fim.getTime()) && fim.getTime() < Date.now()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Campos esperados pelo `CandidateStatus` no portal. */
+function computeNovasPerguntasPendentesPortal(inscricao: Inscricao): {
+  possui_novas_perguntas_pendentes: boolean;
+  total_novas_perguntas: number;
+  novas_perguntas_pendentes_por_step: Array<{
+    step_id: string;
+    step_texto: string;
+    total_novas: number;
+    /** Para deep-link igual a pendências (`pergunta_id` na URL). */
+    primeira_pergunta_id?: number;
+  }>;
+} {
+  const respostas = inscricao.respostas ?? [];
+  const candidatas = respostas.filter((r) => {
+    if (r.pergunta?.step?.id == null) return false;
+    return (
+      respostaAguardandoNovaPerguntaPendente(r) ||
+      respostaRequerReenvioPendente(r)
+    );
+  });
+
+  const porStep = new Map<
+    number,
+    {
+      step_texto: string;
+      total_novas: number;
+      primeira_pergunta_id: number | null;
+    }
+  >();
+  for (const r of candidatas) {
+    const step = r.pergunta!.step;
+    const sid = step.id;
+    const pid = r.pergunta?.id;
+    const atual = porStep.get(sid);
+    const texto = (step.texto ?? 'Questionário').trim() || 'Questionário';
+    if (atual) {
+      atual.total_novas += 1;
+      if (typeof pid === 'number') {
+        atual.primeira_pergunta_id =
+          atual.primeira_pergunta_id == null
+            ? pid
+            : Math.min(atual.primeira_pergunta_id, pid);
+      }
+    } else {
+      porStep.set(sid, {
+        step_texto: texto,
+        total_novas: 1,
+        primeira_pergunta_id: typeof pid === 'number' ? pid : null,
+      });
+    }
+  }
+
+  const novas_perguntas_pendentes_por_step = [...porStep.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([stepId, v]) => ({
+      step_id: String(stepId),
+      step_texto: v.step_texto,
+      total_novas: v.total_novas,
+      ...(v.primeira_pergunta_id != null
+        ? { primeira_pergunta_id: v.primeira_pergunta_id }
+        : {}),
+    }));
+
+  const total_novas_perguntas = candidatas.length;
+
+  return {
+    possui_novas_perguntas_pendentes: total_novas_perguntas > 0,
+    total_novas_perguntas,
+    novas_perguntas_pendentes_por_step,
+  };
+}
+
+/** Alinha com o formato esperado pelo `CandidateStatus` (datas string). */
+function normalizeEtapaEditalParaPortal(
+  raw: Edital['etapa_edital'],
+): Array<{
+  etapa: string;
+  ordem_elemento: number;
+  data_inicio: string;
+  data_fim: string;
+}> {
+  if (!raw || !Array.isArray(raw)) return [];
+  return raw.map((e) => ({
+    etapa: e.etapa,
+    ordem_elemento: e.ordem_elemento,
+    data_inicio: serializeDateOnly(e.data_inicio as unknown),
+    data_fim: serializeDateOnly(e.data_fim as unknown),
+  }));
+}
 
 @Injectable()
 export class AlunoService {
@@ -94,11 +235,13 @@ export class AlunoService {
       matriculaExistente.curso = dto.curso;
       matriculaExistente.campus = dto.campus;
       matriculaExistente.data_ingresso = dto.data_ingresso;
+      matriculaExistente.nivel_academico = dto.nivel_academico;
       await this.alunoRepository.save(matriculaExistente);
 
-      const rolesAtualizados = usuario.roles?.includes(RolesEnum.ALUNO)
-        ? usuario.roles
-        : [...(usuario.roles || []), RolesEnum.ALUNO];
+      const curRoles = Array.isArray(usuario.roles) ? usuario.roles : [];
+      const rolesAtualizados = curRoles.includes(RolesEnum.ALUNO)
+        ? curRoles
+        : [...curRoles, RolesEnum.ALUNO];
       await this.usuarioRepository.update(usuario.usuario_id, {
         roles: rolesAtualizados,
       });
@@ -126,6 +269,7 @@ export class AlunoService {
           curso: matriculaExistente.curso,
           campus: matriculaExistente.campus,
           data_ingresso: matriculaExistente.data_ingresso,
+          nivel_academico: matriculaExistente.nivel_academico,
         },
       };
     }
@@ -134,14 +278,16 @@ export class AlunoService {
       curso: dto.curso,
       campus: dto.campus,
       data_ingresso: dto.data_ingresso,
+      nivel_academico: dto.nivel_academico,
       usuario,
     });
     await this.alunoRepository.save(aluno);
-    const rolesAtualizados = usuario.roles?.includes(RolesEnum.ALUNO)
-      ? usuario.roles
-      : [...(usuario.roles || []), RolesEnum.ALUNO];
+    const curRolesNew = Array.isArray(usuario.roles) ? usuario.roles : [];
+    const rolesAtualizadosNew = curRolesNew.includes(RolesEnum.ALUNO)
+      ? curRolesNew
+      : [...curRolesNew, RolesEnum.ALUNO];
     await this.usuarioRepository.update(usuario.usuario_id, {
-      roles: rolesAtualizados,
+      roles: rolesAtualizadosNew,
     });
     const { aguardando_confirmacao_email: aguardandoNovo } =
       await this.authService.aplicarConfirmacaoEmailPosCadastroAluno(userId);
@@ -157,6 +303,7 @@ export class AlunoService {
         curso: aluno.curso,
         campus: aluno.campus,
         data_ingresso: aluno.data_ingresso,
+        nivel_academico: aluno.nivel_academico,
       },
     };
   }
@@ -180,6 +327,7 @@ export class AlunoService {
         email: usuario.email,
         matricula: aluno.matricula,
         data_nascimento: usuario.data_nascimento,
+        nivel_academico: aluno.nivel_academico,
         curso: aluno.curso,
         campus: aluno.campus,
         cpf: usuario.cpf,
@@ -320,6 +468,9 @@ export class AlunoService {
         'aluno.inscricoes.vagas',
         'aluno.inscricoes.vagas.edital',
         'aluno.inscricoes.documentos',
+        'aluno.inscricoes.respostas',
+        'aluno.inscricoes.respostas.pergunta',
+        'aluno.inscricoes.respostas.pergunta.step',
       ],
     });
 
@@ -339,23 +490,127 @@ export class AlunoService {
     }
 
     return Array.from(porVaga.values()).map((inscricao: Inscricao) => {
-      const vagas = inscricao.vagas as any;
+      const vagas = inscricao.vagas as Vagas | undefined;
       const edital = vagas?.edital;
-      const hasPendencias = (inscricao.documentos || []).some(
-        (d: any) => d.status_documento === 'Pendente' || d.status_documento === 'Não Enviado',
+      const hasPendencias = (inscricao.documentos || []).some((d) =>
+        documentoNaoAprovado(d),
       );
+      const pendenteDocs = (inscricao.documentos || []).filter((d) =>
+        documentoNaoAprovado(d),
+      );
+      const novasPerg = computeNovasPerguntasPendentesPortal(inscricao);
       return {
         edital_id: edital?.id ?? 0,
         inscricao_id: inscricao.id,
         titulo_edital: edital?.titulo_edital ?? 'Edital',
         status_edital: edital?.status_edital ?? '',
+        nivel_academico:
+          (edital?.nivel_academico as NivelAcademico) ??
+          NivelAcademico.GRADUACAO,
         is_formulario_geral: edital?.is_formulario_geral ?? false,
-        etapas_edital: [],
+        is_formulario_renovacao: edital?.is_formulario_renovacao ?? false,
+        /** Nome alinhado ao front (`CandidateStatus`); etapas vêm do cadastro do edital. */
+        etapa_edital: normalizeEtapaEditalParaPortal(edital?.etapa_edital),
+        data_inscricao: serializeDateOnly(inscricao.data_inscricao),
         status_inscricao: inscricao.status_inscricao,
+        /** Homologação como beneficiário da vaga no edital (independe visualmente da análise, mas a regra de negócio exige inscrição aprovada para marcar). */
+        status_beneficio_edital: inscricao.status_beneficio_edital,
         observacao_admin: inscricao.observacao_admin ?? null,
         possui_pendencias: hasPendencias,
+        total_pendencias: pendenteDocs.length,
+        possui_novas_perguntas_pendentes:
+          novasPerg.possui_novas_perguntas_pendentes,
+        total_novas_perguntas: novasPerg.total_novas_perguntas,
+        novas_perguntas_pendentes_por_step:
+          novasPerg.novas_perguntas_pendentes_por_step,
+        vaga: vagas
+          ? {
+              vaga_id: String(vagas.id),
+              beneficio: vagas.beneficio ?? '',
+              descricao_beneficio: vagas.descricao_beneficio ?? '',
+              numero_vagas: vagas.numero_vagas ?? 0,
+            }
+          : undefined,
       };
     });
+  }
+
+  /**
+   * Card "Meus benefícios" no portal (`GET /beneficios/aluno`).
+   * Só lista quem está **Beneficiário no edital** e com **Inscrição Aprovada** na análise
+   * (benefício homologado só após validação/aprovação da inscrição).
+   */
+  async listarBeneficiosPortalAluno(
+    userId: string,
+    roles?: (RolesEnum | string)[] | null,
+  ): Promise<{
+    dados: {
+      beneficios: Array<{
+        titulo_beneficio: string;
+        titulo_edital: string;
+        data_inicio: string;
+        beneficio: string;
+        edital_id: number | null;
+        inscricao_id: number;
+        inscricao_aprovada_na_analise: boolean;
+        beneficiario_homologado_no_edital: boolean;
+        resumo_para_aluno: string;
+      }>;
+    };
+  }> {
+    await this.assertAlunoEmailConfirmadoParaPortal(userId, roles);
+
+    const usuario = await this.usuarioRepository.findOne({
+      where: { usuario_id: userId },
+      relations: ['aluno'],
+    });
+    if (!usuario?.aluno) {
+      return { dados: { beneficios: [] } };
+    }
+
+    const nivelAluno = usuario.aluno.nivel_academico;
+
+    const inscricoes = await this.inscricaoRepository
+      .createQueryBuilder('i')
+      .innerJoin('i.aluno', 'aluno')
+      .innerJoinAndSelect('i.vagas', 'v')
+      .innerJoinAndSelect('v.edital', 'e')
+      .where('aluno.aluno_id = :aid', { aid: usuario.aluno.aluno_id })
+      .andWhere('i.status_beneficio_edital = :ben', {
+        ben: StatusBeneficioEdital.BENEFICIARIO,
+      })
+      .andWhere('i.status_inscricao = :st', { st: StatusInscricao.APROVADA })
+      .andWhere('e.nivel_academico = :nivel', { nivel: nivelAluno })
+      .orderBy('i.data_inscricao', 'DESC')
+      .getMany();
+
+    const beneficios = inscricoes.map((ins) => {
+      const v = ins.vagas as Vagas | undefined;
+      const ed = v?.edital;
+      const tituloVaga =
+        v?.beneficio?.trim() ||
+        ed?.titulo_edital?.trim() ||
+        'Benefício';
+      const tituloEdital = ed?.titulo_edital?.trim() || 'Edital';
+      const dataIni = ins.data_inscricao
+        ? new Date(ins.data_inscricao).toISOString().slice(0, 10)
+        : '';
+      return {
+        titulo_beneficio: tituloVaga,
+        titulo_edital: tituloEdital,
+        data_inicio: dataIni,
+        /** Texto esperado pelo `BenefitsCard` (filtro "ativo") */
+        beneficio: 'Benefício ativo',
+        edital_id: ed?.id ?? null,
+        inscricao_id: ins.id,
+        inscricao_aprovada_na_analise: true,
+        beneficiario_homologado_no_edital: true,
+        resumo_para_aluno:
+          'Sua inscrição foi aprovada na análise e você foi homologado como beneficiário da vaga neste edital.',
+      };
+    });
+
+    return { dados: { beneficios } };
   }
 
   /**
@@ -392,10 +647,8 @@ export class AlunoService {
     const itens = Array.from(porVaga.values()).map((inscricao: Inscricao) => {
       const vagas = inscricao.vagas as Vagas | undefined;
       const edital = vagas?.edital;
-      const hasPendencias = (inscricao.documentos || []).some(
-        (d) =>
-          d.status_documento === 'Pendente' ||
-          d.status_documento === 'Não Enviado',
+      const hasPendencias = (inscricao.documentos || []).some((d) =>
+        documentoNaoAprovado(d),
       );
       let processo_tipo: 'FORMULARIO_GERAL' | 'RENOVACAO' | 'EDITAL';
       if (edital?.is_formulario_geral) {
@@ -411,6 +664,8 @@ export class AlunoService {
         inscricao_id: inscricao.id,
         titulo_edital: edital?.titulo_edital ?? 'Edital',
         status_edital: edital?.status_edital ?? '',
+        nivel_academico:
+          edital?.nivel_academico ?? NivelAcademico.GRADUACAO,
         is_formulario_geral: edital?.is_formulario_geral ?? false,
         is_formulario_renovacao: edital?.is_formulario_renovacao ?? false,
         processo_tipo,
@@ -435,6 +690,7 @@ export class AlunoService {
         campus: aluno.campus,
         data_nascimento: usuario?.data_nascimento ?? null,
         data_ingresso: aluno.data_ingresso,
+        nivel_academico: aluno.nivel_academico,
       },
       inscricoes: itens,
     };

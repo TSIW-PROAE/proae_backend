@@ -15,7 +15,7 @@ function buildTypeOrmConfig(): DataSourceOptions {
         max: 5,
       },
       entities: ['dist/**/*.entity.js'],
-      migrations: ['dist/migrations/*.js'],
+      migrations: ['dist/**/migrations/*.js'],
       synchronize: false,
       logging: process.env.DB_LOGGING === 'true',
     };
@@ -31,7 +31,7 @@ function buildTypeOrmConfig(): DataSourceOptions {
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: ['dist/**/*.entity.js'],
-      migrations: ['dist/migrations/*.js'],
+      migrations: ['dist/**/migrations/*.js'],
       synchronize: false,
       logging: process.env.DB_LOGGING === 'true',
     };
@@ -44,7 +44,7 @@ function buildTypeOrmConfig(): DataSourceOptions {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     entities: ['dist/**/*.entity.js'],
-    migrations: ['dist/migrations/*.js'],
+    migrations: ['dist/**/migrations/*.js'],
     synchronize: false,
     logging: process.env.DB_LOGGING === 'true',
     ...(process.env.DB_SSL === 'true' && {

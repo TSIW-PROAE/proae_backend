@@ -89,7 +89,8 @@ Quem já tem imagem em `gcr.io/...` pode ir em **Cloud Run** → serviço → **
 
 - [ ] APIs habilitadas (`sqladmin`, `run`, `cloudbuild`, etc.) — ver README Cloud Run.
 - [ ] Service account `proae-backend@...` existe e tem IAM (Cloud SQL + Secret Manager + `actAs` para o Cloud Build).
-- [ ] Segredos `db-username`, `db-password`, `db-name`, `jwt-secret` no Secret Manager.
+- [ ] Segredos `db-url` e `jwt-secret` no Secret Manager (conforme `cloudbuild.yaml`).
+- [ ] (Opcional) Secret `admins-emails` para e-mails de aprovação de admin; depois acrescente `ADMINS_EMAILS=admins-emails:latest` em `--set-secrets` ou defina `ADMINS_EMAILS` no Cloud Run.
 - [ ] **Não** definir `PORT` em `--set-env-vars` (o Cloud Run reserva).
 - [ ] Migrations aplicadas no banco de produção quando o código exigir colunas novas.
 
@@ -101,5 +102,5 @@ Quem já tem imagem em `gcr.io/...` pode ir em **Cloud Run** → serviço → **
 |---------|-----|
 | `cloudbuild.yaml` | Pipeline prod: build Docker + push + deploy `proae-backend` |
 | `cloudbuild-dev.yaml` | Pipeline dev: serviço `proae-backend-dev` |
-| `Dockerfile` | Imagem da API (`node dist/main.js`, porta via `PORT` do Cloud Run) |
+| `Dockerfile` | Imagem da API (`node dist/src/main.js`, porta via `PORT` do Cloud Run) |
 | `README-CLOUD-RUN-CLOUD-SQL.md` | Infra GCP, IAM, SQL, troubleshooting |

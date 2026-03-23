@@ -13,6 +13,7 @@ import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuario
 import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
 import { AlunoTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/aluno.typeorm.repository';
 import { AuthModule } from 'src/presentation/http/modules/auth/auth.module';
+import { BeneficiosController } from './beneficios.controller';
 import { AlunoController } from './aluno.controller';
 import { AlunoService } from './aluno.service';
 
@@ -21,7 +22,7 @@ import { AlunoService } from './aluno.service';
     TypeOrmModule.forFeature([Aluno, Inscricao, Usuario, Step, Edital, Vagas]),
     forwardRef(() => AuthModule),
   ],
-  controllers: [AlunoController],
+  controllers: [AlunoController, BeneficiosController],
   providers: [
     { provide: ALUNO_REPOSITORY, useClass: AlunoTypeOrmRepository },
     FindAlunoByUserIdUseCase,

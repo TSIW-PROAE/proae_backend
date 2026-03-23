@@ -61,13 +61,8 @@ export class AuthService {
       relations: ['aluno', 'admin'],
     });
 
-    if (full?.roles?.includes(RolesEnum.ADMIN) && full.admin) {
-      if (!full.admin.aprovado) {
-        throw new UnauthorizedException(
-          'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
-        );
-      }
-    }
+    // Admin pendente de aprovação ainda pode entrar (ex.: mesma conta aluno+admin);
+    // o front envia para /tela-de-espera na aba PROAE e o portal PROAE exige aprovação.
 
     if (
       full?.aluno &&
@@ -88,17 +83,6 @@ export class AuthService {
       where: { usuario_id: user.usuario_id },
       relations: ['admin', 'aluno'],
     });
-
-    if (
-      userFull?.roles?.includes(RolesEnum.ADMIN) &&
-      userFull.admin
-    ) {
-      if (!userFull.admin.aprovado) {
-        throw new UnauthorizedException(
-          'Seu cadastro está aguardando aprovação. Você receberá um email quando for aprovado.',
-        );
-      }
-    }
 
     if (
       userFull?.aluno &&
@@ -248,12 +232,15 @@ export class AuthService {
           matriculaEmUso.curso = dto.curso;
           matriculaEmUso.campus = dto.campus;
           matriculaEmUso.data_ingresso = dto.data_ingresso;
+          matriculaEmUso.nivel_academico = dto.nivel_academico;
           await this.alunoRepository.save(matriculaEmUso);
-          const rolesAtualizados = existingUsuario.roles?.includes(RolesEnum.ALUNO)
-            ? existingUsuario.roles
-            : [...(existingUsuario.roles || []), RolesEnum.ALUNO];
-          existingUsuario.roles = rolesAtualizados;
-          await this.usuarioRepository.save(existingUsuario);
+          const curRoles1 = Array.isArray(existingUsuario.roles) ? existingUsuario.roles : [];
+          const rolesAtualizados = curRoles1.includes(RolesEnum.ALUNO)
+            ? curRoles1
+            : [...curRoles1, RolesEnum.ALUNO];
+          await this.usuarioRepository.update(existingUsuario.usuario_id, {
+            roles: rolesAtualizados,
+          });
           // Limpa role ALUNO da conta antiga
           if (usuarioAnterior?.usuario_id && usuarioAnterior.usuario_id !== existingUsuario.usuario_id) {
             const rolesAntigo = (usuarioAnterior.roles ?? []) as RolesEnum[];
@@ -292,11 +279,13 @@ export class AuthService {
           usuario: existingUsuario,
         });
         await this.alunoRepository.save(novoAluno);
-        const rolesAtualizados = existingUsuario.roles?.includes(RolesEnum.ALUNO)
-          ? existingUsuario.roles
-          : [...(existingUsuario.roles || []), RolesEnum.ALUNO];
-        existingUsuario.roles = rolesAtualizados;
-        await this.usuarioRepository.save(existingUsuario);
+        const curRoles2 = Array.isArray(existingUsuario.roles) ? existingUsuario.roles : [];
+        const rolesAtualizados2 = curRoles2.includes(RolesEnum.ALUNO)
+          ? curRoles2
+          : [...curRoles2, RolesEnum.ALUNO];
+        await this.usuarioRepository.update(existingUsuario.usuario_id, {
+          roles: rolesAtualizados2,
+        });
         const { aguardando_confirmacao_email: aguardandoNovo } =
           await this.aplicarConfirmacaoEmailPosCadastroAluno(
             existingUsuario.usuario_id,
@@ -347,6 +336,7 @@ export class AuthService {
         curso: dto.curso,
         campus: dto.campus,
         data_ingresso: dto.data_ingresso,
+        nivel_academico: dto.nivel_academico,
         usuario: savedUser,
       });
       await this.alunoRepository.save(aluno);
@@ -448,29 +438,41 @@ export class AuthService {
     return { sucesso: true, mensagem: 'Senha alterada com sucesso' };
   }
 
+  /**
+   * Alinha `usuario.roles` aos perfis reais (aluno/admin) e devolve o usuário carregado.
+   * Evita JWT antigo com só "aluno" após vincular cadastro de admin.
+   */
+  async resolveJwtUserFromUsuarioId(
+    usuarioId: string,
+  ): Promise<Usuario | null> {
+    const user = await this.usuarioRepository.findOne({
+      where: { usuario_id: usuarioId },
+      relations: ['aluno', 'admin'],
+    });
+    if (!user) return null;
+
+    const rolesReais: RolesEnum[] = [];
+    if (user.aluno) rolesReais.push(RolesEnum.ALUNO);
+    if (user.admin) rolesReais.push(RolesEnum.ADMIN);
+    const rolesBanco = user.roles ?? [];
+    if (
+      rolesBanco.length !== rolesReais.length ||
+      !rolesBanco.every((r) => rolesReais.includes(r))
+    ) {
+      user.roles = rolesReais;
+      await this.usuarioRepository.update(user.usuario_id, { roles: rolesReais });
+    }
+    return user;
+  }
+
   async validateToken(token: string) {
     try {
       const payload: any = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
       });
-      const user = await this.usuarioRepository.findOne({
-        where: { usuario_id: payload.sub },
-        relations: ['aluno', 'admin'],
-      });
+      const user = await this.resolveJwtUserFromUsuarioId(String(payload.sub));
 
       if (!user) throw new NotFoundException('Usuário não encontrado');
-
-      // Sincroniza roles com a realidade do banco
-      const rolesReais: RolesEnum[] = [];
-      if (user.aluno) rolesReais.push(RolesEnum.ALUNO);
-      if (user.admin) rolesReais.push(RolesEnum.ADMIN);
-      if (
-        user.roles.length !== rolesReais.length ||
-        !user.roles.every((r) => rolesReais.includes(r))
-      ) {
-        user.roles = rolesReais;
-        await this.usuarioRepository.update(user.usuario_id, { roles: rolesReais });
-      }
 
       return {
         valid: true,
@@ -533,11 +535,16 @@ export class AuthService {
           existingUsuario.email,
           token,
         );
-        const rolesAtualizados = existingUsuario.roles?.includes(RolesEnum.ADMIN)
+        const currentRoles = Array.isArray(existingUsuario.roles)
           ? existingUsuario.roles
-          : [...(existingUsuario.roles || []), RolesEnum.ADMIN];
-        existingUsuario.roles = rolesAtualizados;
-        await this.usuarioRepository.save(existingUsuario);
+          : [];
+        const rolesAtualizados = currentRoles.includes(RolesEnum.ADMIN)
+          ? currentRoles
+          : [...currentRoles, RolesEnum.ADMIN];
+        // update() em vez de save() para não disparar cascade e desfazer o vínculo admin recem-criado
+        await this.usuarioRepository.update(existingUsuario.usuario_id, {
+          roles: rolesAtualizados,
+        });
         return {
           sucesso: true,
           mensagem: 'Cadastro de admin vinculado à sua conta, aguardando aprovação.',

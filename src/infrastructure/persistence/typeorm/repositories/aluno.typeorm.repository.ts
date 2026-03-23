@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as cpfLib from 'validation-br/dist/cpf';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuarios/usuario.entity';
+import { Aluno } from '../entities/aluno/aluno.entity';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
 import type { AlunoData, AtualizaAlunoData } from '../../../../core/domain/aluno/aluno.types';
 import type { IAlunoRepository } from '../../../../core/domain/aluno/ports/aluno.repository.port';
@@ -80,6 +81,9 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
       curso: data.curso ?? usuario.aluno.curso,
       campus: data.campus ?? usuario.aluno.campus,
       data_ingresso: data.dataIngresso ?? usuario.aluno.data_ingresso,
+      ...(data.nivelAcademico != null
+        ? { nivel_academico: data.nivelAcademico }
+        : {}),
     });
 
     await this.usuarioRepository.save(usuario);
@@ -109,13 +113,14 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
   }
 
   private toAlunoData(usuario: Usuario): AlunoData {
-    const aluno = usuario.aluno!;
+    const aluno = usuario.aluno as Aluno;
     return {
       alunoId: aluno.aluno_id,
       matricula: aluno.matricula,
       curso: aluno.curso,
       campus: aluno.campus,
       dataIngresso: aluno.data_ingresso,
+      nivelAcademico: aluno.nivel_academico,
       usuarioId: usuario.usuario_id,
       email: usuario.email,
       nome: usuario.nome,

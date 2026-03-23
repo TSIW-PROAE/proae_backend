@@ -6,6 +6,9 @@
 /** Campus como value object do domínio */
 export type Campus = string;
 
+/** Valores estáveis: "Graduação" | "Pós-graduação" */
+export type NivelAcademicoAluno = string;
+
 /** Dados do aluno no domínio (modelo de leitura/escrita) */
 export interface AlunoData {
   alunoId: number;
@@ -13,6 +16,8 @@ export interface AlunoData {
   curso: string;
   campus: Campus;
   dataIngresso: string;
+  /** Graduação ou Pós-graduação */
+  nivelAcademico: NivelAcademicoAluno;
   usuarioId: string;
   email: string;
   nome: string;
@@ -34,4 +39,6 @@ export interface AtualizaAlunoData {
   celular?: string;
   /** CPF com ou sem máscara; persistido mascarado no Usuario */
   cpf?: string;
+  /** Alteração rara; validar no use case se necessário */
+  nivelAcademico?: NivelAcademicoAluno;
 }

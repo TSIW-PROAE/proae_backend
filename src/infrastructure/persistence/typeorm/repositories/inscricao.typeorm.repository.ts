@@ -14,12 +14,17 @@ import { StatusInscricao } from '../../../../core/shared-kernel/enums/enumStatus
 import type {
   InscricaoComPendenciasItem,
   CreateInscricaoCommand,
+  CorrigirRespostasInscricaoCommand,
   UpdateInscricaoCommand,
   InscricaoData,
 } from '../../../../core/domain/inscricao/inscricao.types';
 import type { IInscricaoRepository } from '../../../../core/domain/inscricao/ports/inscricao.repository.port';
 import type { CachePort } from '../../../../core/application/utilities/ports/cache.port';
 import { CACHE_PORT } from '../../../../core/application/utilities/utility.tokens';
+import {
+  inscricaoTemRespostaPrecisandoAjuste,
+  respostaPrecisaAjuste,
+} from '../../../../core/domain/resposta/resposta-ajuste.policy';
 
 @Injectable()
 export class InscricaoTypeOrmRepository implements IInscricaoRepository {
@@ -141,9 +146,18 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       throw new Error('Edital não está aberto para inscrições');
     }
 
+    if (alunoExists.nivel_academico !== vagaExists.edital.nivel_academico) {
+      throw new Error(
+        'O nível acadêmico deste processo (Graduação / Pós-graduação) não corresponde ao seu perfil de estudante.',
+      );
+    }
+
     if (!vagaExists.edital.is_formulario_geral) {
       const editalFG = await this.editalRepository.findOne({
-        where: { is_formulario_geral: true },
+        where: {
+          is_formulario_geral: true,
+          nivel_academico: alunoExists.nivel_academico,
+        },
         relations: ['vagas'],
       });
       if (editalFG?.vagas?.length) {
@@ -163,17 +177,70 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       }
     }
 
+    if (
+      !vagaExists.edital.is_formulario_geral &&
+      !vagaExists.edital.is_formulario_renovacao
+    ) {
+      const editalRenov = await this.editalRepository.findOne({
+        where: {
+          is_formulario_renovacao: true,
+          status_edital: StatusEdital.ABERTO,
+          nivel_academico: alunoExists.nivel_academico,
+        },
+        relations: ['vagas'],
+      });
+      if (editalRenov?.vagas?.length) {
+        const algumaAprovadaNivel = await this.inscricaoRepository
+          .createQueryBuilder('i')
+          .innerJoin('i.aluno', 'aluno')
+          .innerJoin('i.vagas', 'v')
+          .innerJoin('v.edital', 'e')
+          .where('aluno.aluno_id = :aid', { aid: alunoExists.aluno_id })
+          .andWhere('i.status_inscricao = :st', {
+            st: StatusInscricao.APROVADA,
+          })
+          .andWhere('e.nivel_academico = :nivel', {
+            nivel: alunoExists.nivel_academico,
+          })
+          .andWhere('e.is_formulario_renovacao = false')
+          .getOne();
+        if (algumaAprovadaNivel) {
+          const vagaRenovIds = editalRenov.vagas.map((v) => v.id);
+          const renovacaoOk = await this.inscricaoRepository.findOne({
+            where: {
+              aluno: { aluno_id: alunoExists.aluno_id },
+              status_inscricao: StatusInscricao.APROVADA,
+              vagas: { id: In(vagaRenovIds) },
+            },
+          });
+          if (!renovacaoOk) {
+            throw new Error(
+              'Há formulário de renovação aberto para o seu nível. Conclua-o e aguarde aprovação antes de novas inscrições em editais.',
+            );
+          }
+        }
+      }
+    }
+
     const inscricoesExistentes = await this.inscricaoRepository.find({
       where: {
         aluno: { aluno_id: alunoExists.aluno_id },
         vagas: { id: cmd.vaga_id },
       },
-      relations: ['respostas', 'documentos'],
+      relations: ['respostas', 'respostas.pergunta', 'documentos'],
       order: { id: 'DESC' },
     });
 
     if (inscricoesExistentes.length > 0) {
-      const maisRecente = inscricoesExistentes[0];
+      const candidata = inscricoesExistentes[0];
+      // Recarrega por ID: com `where` composto + várias relações, o TypeORM às vezes
+      // não hidrata `respostas` de forma confiável; pendências e merge precisam da mesma lista.
+      const maisRecente =
+        (await this.inscricaoRepository.findOne({
+          where: { id: candidata.id },
+          relations: ['respostas', 'respostas.pergunta', 'documentos'],
+        })) ?? candidata;
+
       if (maisRecente.status_inscricao === StatusInscricao.EM_AJUSTE) {
         await this.entityManager.transaction(async (tx) => {
           for (const insc of inscricoesExistentes) {
@@ -182,6 +249,10 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
             await tx.remove(insc);
           }
         });
+      } else if (inscricaoTemRespostaPrecisandoAjuste(maisRecente)) {
+        throw new Error(
+          `Use PATCH /inscricoes/${maisRecente.id}/correcao-respostas para enviar correções (inscrição já existente com ajuste pendente).`,
+        );
       } else {
         throw new Error(
           'Você já possui uma inscrição para este benefício. Não é possível se inscrever novamente.',
@@ -241,6 +312,165 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
     }
 
     return this.toInscricaoData(saved);
+  }
+
+  /**
+   * PATCH /inscricoes/:id/correcao-respostas — fluxo explícito de correção pelo aluno.
+   */
+  async corrigirRespostasPendentes(
+    inscricaoId: number,
+    cmd: CorrigirRespostasInscricaoCommand,
+    userId: string,
+  ): Promise<InscricaoData> {
+    const alunoExists = await this.alunoRepository.findOne({
+      where: { usuario: { usuario_id: userId } },
+    });
+    if (!alunoExists) {
+      throw new Error(
+        'Seu usuário não possui cadastro de aluno. Faça o cadastro como estudante (rota de cadastro de aluno) com o mesmo e-mail e senha para vincular o perfil de aluno; depois você poderá enviar correções.',
+      );
+    }
+
+    const ins = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: [
+        'respostas',
+        'respostas.pergunta',
+        'documentos',
+        'aluno',
+        'vagas',
+        'vagas.edital',
+      ],
+    });
+    if (!ins) throw new Error('Inscrição não encontrada');
+    if ((ins.aluno as Aluno).aluno_id !== alunoExists.aluno_id) {
+      throw new Error('Você não tem permissão para alterar esta inscrição');
+    }
+    const vagaExists = ins.vagas as Vagas;
+    if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
+      throw new Error('Edital não está aberto para correções');
+    }
+    if (!inscricaoTemRespostaPrecisandoAjuste(ins)) {
+      throw new Error(
+        'Não há respostas pendentes de correção nesta inscrição.',
+      );
+    }
+
+    return this.mergeRespostasComplemento(
+      ins,
+      { vaga_id: vagaExists.id, respostas: cmd.respostas },
+      userId,
+      alunoExists,
+      vagaExists,
+    );
+  }
+
+  /**
+   * Atualiza só as respostas enviadas quando há complemento pendente (não é EM_AJUSTE).
+   */
+  private async mergeRespostasComplemento(
+    inscricaoBase: Inscricao,
+    cmd: CreateInscricaoCommand,
+    userId: string,
+    alunoExists: Aluno,
+    vagaExists: Vagas,
+  ): Promise<InscricaoData> {
+    const inscricaoId = inscricaoBase.id;
+
+    const perguntas = await this.perguntaRepository.find({
+      where: { step: { edital: { id: vagaExists.edital.id } } },
+    });
+    const perguntasMap = new Map(perguntas.map((p) => [p.id, p]));
+
+    if (!cmd.respostas?.length) {
+      throw new Error(
+        'É necessário fornecer respostas para as perguntas do edital',
+      );
+    }
+
+    await this.entityManager.transaction(async (tx) => {
+      const ins = await tx.getRepository(Inscricao).findOne({
+        where: { id: inscricaoId },
+        relations: ['respostas', 'respostas.pergunta', 'aluno', 'vagas'],
+      });
+      if (!ins) throw new Error('Inscrição não encontrada');
+      const alunoIns = ins.aluno as Aluno;
+      const vagaIns = ins.vagas as Vagas;
+      if (alunoIns.aluno_id !== alunoExists.aluno_id) {
+        throw new Error('Você não tem permissão para alterar esta inscrição');
+      }
+      if (vagaIns.id !== vagaExists.id) {
+        throw new Error('Vaga inconsistente com a inscrição');
+      }
+
+      for (const respostaDto of cmd.respostas) {
+        const pid = Number(respostaDto.perguntaId);
+        const pergunta = perguntasMap.get(pid);
+        if (!pergunta) {
+          throw new Error(
+            `Pergunta com ID ${pid} não encontrada no edital`,
+          );
+        }
+        this.validateRespostaByTipoPergunta(respostaDto, pergunta);
+
+        const existente = (ins.respostas ?? []).find(
+          (r) => (r.pergunta as Pergunta)?.id === pid,
+        );
+        if (!existente) {
+          throw new Error(
+            `Não há resposta cadastrada para a pergunta ${pid} nesta inscrição.`,
+          );
+        }
+        if (!respostaPrecisaAjuste(existente)) {
+          throw new Error(
+            'Uma ou mais perguntas enviadas não estão abertas para correção no momento.',
+          );
+        }
+
+        existente.valorTexto = respostaDto.valorTexto;
+        existente.valorOpcoes = Array.isArray(respostaDto.valorOpcoes)
+          ? (respostaDto.valorOpcoes as string[])
+          : undefined;
+        existente.urlArquivo = respostaDto.urlArquivo;
+        existente.texto = respostaDto.valorTexto;
+        existente.requerReenvio = false;
+        existente.invalidada = false;
+        existente.validada = false;
+        existente.prazoReenvio = null;
+        existente.perguntaAdicionadaPosInscricao = false;
+        existente.prazoRespostaNovaPergunta = null;
+        existente.parecer = null;
+        // Coluna nullable no banco; entidade tipada só como Date | undefined.
+        (existente as { dataValidacao?: Date | null }).dataValidacao = null;
+
+        await tx.getRepository(Resposta).save(existente);
+      }
+
+      // Mantém o status da inscrição (ex.: APROVADA): a pendência de análise fica na
+      // Resposta (validada=false). Se no futuro a PROAE exigir re-enfileirar o benefício
+      // inteiro, reavalie aqui (ex.: PENDENTE só para inscrições ainda em triagem).
+      await tx.getRepository(Inscricao).save(ins);
+    });
+
+    try {
+      const userIdNum =
+        typeof userId === 'string' ? parseInt(userId, 10) : userId;
+      if (!isNaN(userIdNum)) {
+        await this.removeRespostaEmCache(cmd.vaga_id, userIdNum);
+      }
+    } catch (cacheErr) {
+      console.warn(
+        '[Inscricao] Falha ao limpar cache (não-crítico):',
+        (cacheErr as Error).message,
+      );
+    }
+
+    const refreshed = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: ['aluno', 'vagas', 'respostas', 'respostas.pergunta'],
+    });
+    if (!refreshed) throw new Error('Inscrição não encontrada');
+    return this.toInscricaoData(refreshed);
   }
 
   async update(

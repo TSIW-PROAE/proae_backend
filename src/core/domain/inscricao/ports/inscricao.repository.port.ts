@@ -1,6 +1,7 @@
 import type {
   InscricaoComPendenciasItem,
   CreateInscricaoCommand,
+  CorrigirRespostasInscricaoCommand,
   UpdateInscricaoCommand,
   InscricaoData,
 } from '../inscricao.types';
@@ -16,6 +17,11 @@ export interface IInscricaoRepository {
   update(
     inscricaoId: number,
     cmd: UpdateInscricaoCommand,
+    userId: string,
+  ): Promise<InscricaoData>;
+  corrigirRespostasPendentes(
+    inscricaoId: number,
+    cmd: CorrigirRespostasInscricaoCommand,
     userId: string,
   ): Promise<InscricaoData>;
 }

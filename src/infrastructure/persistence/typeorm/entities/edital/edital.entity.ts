@@ -1,4 +1,5 @@
 import { StatusEdital } from 'src/core/shared-kernel/enums/enumStatusEdital';
+import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico';
 import { AbstractEntity } from '../../abstract.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { Step } from '../step/step.entity';
@@ -32,6 +33,14 @@ export class Edital extends AbstractEntity<Edital> {
   /** Formulário de renovação (recadastro). Quem já teve inscrição aprovada precisa concluí-lo quando estiver aberto para voltar a se inscrever em editais. */
   @Column({ type: 'boolean', default: false })
   is_formulario_renovacao: boolean;
+
+  /** Graduação ou Pós-graduação (processos separados). */
+  @Column({
+    type: 'varchar',
+    length: 32,
+    default: NivelAcademico.GRADUACAO,
+  })
+  nivel_academico: NivelAcademico;
 
   /** Após esta data o vínculo/participação neste edital deixa de estar ativa para o aluno (avisos no portal). */
   @Column({ type: 'date', nullable: true })

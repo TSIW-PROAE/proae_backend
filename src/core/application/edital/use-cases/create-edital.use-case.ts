@@ -23,6 +23,7 @@ export class CreateEditalUseCase {
       edital_url: edital.edital_url,
       status_edital: edital.status_edital,
       etapa_edital: edital.etapa_edital,
+      nivel_academico: edital.nivel_academico,
       created_at: edital.created_at,
       updated_at: edital.updated_at,
     };

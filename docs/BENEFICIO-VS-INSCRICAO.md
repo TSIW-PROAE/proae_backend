@@ -18,7 +18,8 @@ Exemplos possíveis (conforme regras da PROAE):
 ## API
 
 - `PATCH /inscricoes/admin/:id/status` — análise da inscrição (+ observação).
-- `PATCH /inscricoes/admin/:id/beneficio-edital` — corpo `{ "status_beneficio_edital": "Beneficiário no edital" }` (valores do enum).
+- `PATCH /inscricoes/admin/:id/beneficio-edital` — corpo `{ "status_beneficio_edital": "Beneficiário no edital" }` (valores do enum). **Regra:** não é possível marcar **Beneficiário no edital** se a inscrição **não** estiver com status **Inscrição Aprovada** (a homologação do benefício vem depois da validação da inscrição).
+- `GET /beneficios/aluno` (JWT aluno) — lista benefícios para o card **Meus benefícios** no portal: só entram inscrições **Beneficiário no edital** **e** **Inscrição Aprovada** (formato `{ dados: { beneficios: [...] } }`).
 - `GET /aluno/admin/por-edital/:editalId/alunos?apenas_beneficiarios_edital=true&apenas_inscricao_aprovada=true` — lista alunos com inscrição naquele edital, com filtros opcionais.
 
 ### PDFs (admin, JWT)

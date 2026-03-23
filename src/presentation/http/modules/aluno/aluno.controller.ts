@@ -180,6 +180,7 @@ export class AlunoController {
         dataIngresso: atualizaDadosAlunoDTO.data_ingresso,
         celular: atualizaDadosAlunoDTO.celular,
         cpf: atualizaDadosAlunoDTO.cpf,
+        nivelAcademico: atualizaDadosAlunoDTO.nivel_academico,
       });
       return { success: true, message: 'Dados do aluno atualizados com sucesso!' };
     } catch (e) {

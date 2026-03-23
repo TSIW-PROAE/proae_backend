@@ -40,7 +40,7 @@ docker-compose up -d
 
 ### Rodar local (sem Docker)
 
-O Nest compila TypeScript para `dist/`. **`npm run start:prod`** compila (`npm run build`) e sobe `node dist/main.js`. Se preferir só compilar: `npm run build`, depois `node dist/main.js`. O erro `Cannot find module '.../dist/main'` aparece quando a pasta `dist` não existe — rode o build antes.
+O Nest compila para `dist/src/main.js`. Após `npm run build`, um **`dist/main.js`** é gerado automaticamente (redireciona para `src/main.js`), então **`node dist/main`** e **`node dist/src/main.js`** funcionam. **`npm run start:prod`** compila e sobe com `node dist/main.js`. Se aparecer `Cannot find module '.../dist/main'`, rode `npm run build` em `proae_backend` (a pasta `dist` precisa existir).
 
 ## ☁️ Deploy GCP
 

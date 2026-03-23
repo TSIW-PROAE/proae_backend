@@ -82,6 +82,7 @@ export class UpdateEditalStatusUseCase {
       edital_url: updated.edital_url,
       status_edital: updated.status_edital,
       etapa_edital: updated.etapa_edital,
+      nivel_academico: updated.nivel_academico,
       created_at: updated.created_at,
       updated_at: updated.updated_at,
     };

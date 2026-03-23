@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && node scripts/write-dist-root-entry.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -21,6 +21,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:ci": "jest --ci --coverage",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --dataSource src/infrastructure/persistence/typeorm/db.config.ts",
+    "schema:drop": "npm run typeorm schema:drop",
+    "db:reset": "npm run schema:drop && npm run build && npm run migration:run",
+    "db:truncate-data": "ts-node -r tsconfig-paths/register scripts/truncate-all-data.ts",
     "migration:run": "npm run typeorm migration:run",
     "migration:revert": "npm run typeorm migration:revert",
     "migration:generate": "npm run typeorm migration:generate src/migrations/migration",

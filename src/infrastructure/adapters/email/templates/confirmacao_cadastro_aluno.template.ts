@@ -33,10 +33,6 @@ export const confirmacaoCadastroAlunoTemplate = (
                   Confirmar meu email
                 </a>
               </p>
-              <p style="font-size:13px;color:#666;line-height:1.5;margin:0 0 12px;">
-                Se o botão não funcionar, copie e cole este link no navegador:<br/>
-                <span style="word-break:break-all;color:#2c5f75;">${confirmUrl}</span>
-              </p>
               <p style="font-size:12px;color:#999;margin:20px 0 0;">
                 Este link expira em 48 horas. Se você não solicitou este cadastro, ignore este email.
               </p>

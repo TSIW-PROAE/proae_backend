@@ -31,6 +31,7 @@ import {
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateInscricaoUseCase } from 'src/core/application/inscricao/use-cases/create-inscricao.use-case';
+import { CorrigirRespostasInscricaoUseCase } from 'src/core/application/inscricao/use-cases/corrigir-respostas-inscricao.use-case';
 import { GetInscricoesComPendenciasUseCase } from 'src/core/application/inscricao/use-cases/get-inscricoes-com-pendencias.use-case';
 import { UpdateInscricaoUseCase } from 'src/core/application/inscricao/use-cases/update-inscricao.use-case';
 import type { PdfRendererPort } from 'src/core/application/utilities/ports/pdf-renderer.port';
@@ -41,6 +42,7 @@ import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { CorrigirRespostasInscricaoDto } from './dto/corrigir-respostas-inscricao.dto';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
@@ -78,7 +80,11 @@ function mapInscricaoError(
       e.message.includes('não pode estar vazia') ||
       e.message.includes('deve ter pelo menos uma opção') ||
       e.message.includes('deve incluir um arquivo') ||
-      e.message.includes('já possui uma inscrição')
+      e.message.includes('já possui uma inscrição') ||
+      e.message.includes('PATCH /inscricoes') ||
+      e.message.includes('correcao-respostas') ||
+      e.message.includes('Não há respostas pendentes') ||
+      e.message.includes('não estão abertas para correção')
     ) {
       throw new BadRequestException(e.message);
     }
@@ -111,6 +117,13 @@ function mapInscricaoUpdateError(e: unknown): never {
   );
 }
 
+function mapInscricaoCorrecaoError(e: unknown): never {
+  return mapInscricaoError(
+    e,
+    'Ocorreu um erro ao enviar a correção das respostas. Por favor, tente novamente mais tarde.',
+  );
+}
+
 function mapInscricaoPendenciasError(e: unknown): never {
   if (e instanceof NotFoundException) {
     throw e;
@@ -129,6 +142,7 @@ export class InscricaoController {
   constructor(
     private readonly getInscricoesComPendencias: GetInscricoesComPendenciasUseCase,
     private readonly createInscricaoUseCase: CreateInscricaoUseCase,
+    private readonly corrigirRespostasInscricaoUseCase: CorrigirRespostasInscricaoUseCase,
     private readonly updateInscricaoUseCase: UpdateInscricaoUseCase,
     private readonly inscricaoService: InscricaoService,
     private readonly inscricaoAuditLog: InscricaoAuditLogService,
@@ -149,6 +163,7 @@ export class InscricaoController {
       id: r.id,
       inscricao_id: r.inscricao_id,
       actor_usuario_id: r.actor_usuario_id,
+      actor_nome: r.actor_nome ?? null,
       status_anterior: r.status_anterior,
       status_novo: r.status_novo,
       observacao: r.observacao,
@@ -247,6 +262,40 @@ export class InscricaoController {
       );
     } catch (e) {
       mapInscricaoCreateError(e);
+    }
+  }
+
+  @Patch(':id/correcao-respostas')
+  @ApiOperation({
+    summary: 'Corrigir respostas pendentes (ajuste ou complemento)',
+    description:
+      'Atualiza apenas as respostas enviadas quando a PROAE pediu ajuste ou há nova pergunta pós-inscrição. Preferível a POST /inscricoes neste caso.',
+  })
+  @ApiBody({ type: CorrigirRespostasInscricaoDto })
+  @ApiOkResponse({
+    type: InscricaoResponseDto,
+    description: 'Respostas atualizadas',
+  })
+  async corrigirRespostasPendentes(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CorrigirRespostasInscricaoDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    try {
+      return await this.corrigirRespostasInscricaoUseCase.execute(
+        id,
+        {
+          respostas: (dto.respostas ?? []).map((r) => ({
+            perguntaId: r.perguntaId,
+            valorTexto: r.valorTexto,
+            valorOpcoes: r.valorOpcoes,
+            urlArquivo: r.urlArquivo,
+          })),
+        },
+        request.user.userId,
+      );
+    } catch (e) {
+      mapInscricaoCorrecaoError(e);
     }
   }
 

@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { INSCRICAO_REPOSITORY } from 'src/core/application/inscricao/inscricao.tokens';
 import { CreateInscricaoUseCase } from 'src/core/application/inscricao/use-cases/create-inscricao.use-case';
+import { CorrigirRespostasInscricaoUseCase } from 'src/core/application/inscricao/use-cases/corrigir-respostas-inscricao.use-case';
 import { GetInscricoesComPendenciasUseCase } from 'src/core/application/inscricao/use-cases/get-inscricoes-com-pendencias.use-case';
 import { UpdateInscricaoUseCase } from 'src/core/application/inscricao/use-cases/update-inscricao.use-case';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
@@ -40,6 +41,7 @@ import { InscricaoAuditModule } from '../inscricao-audit/inscricao-audit.module'
     { provide: INSCRICAO_REPOSITORY, useClass: InscricaoTypeOrmRepository },
     GetInscricoesComPendenciasUseCase,
     CreateInscricaoUseCase,
+    CorrigirRespostasInscricaoUseCase,
     UpdateInscricaoUseCase,
     InscricaoService,
   ],

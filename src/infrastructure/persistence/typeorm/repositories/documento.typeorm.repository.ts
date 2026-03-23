@@ -14,6 +14,7 @@ import type {
   UpdateDocumentoData,
 } from '../../../../core/domain/documento/documento.types';
 import type { IDocumentoRepository } from '../../../../core/domain/documento/ports/documento.repository.port';
+import { respostaPrecisaAjuste } from '../../../../core/domain/resposta/resposta-ajuste.policy';
 
 @Injectable()
 export class DocumentoTypeOrmRepository implements IDocumentoRepository {
@@ -138,24 +139,19 @@ export class DocumentoTypeOrmRepository implements IDocumentoRepository {
   async getDocumentsWithProblemsByStudent(
     userId: string,
   ): Promise<DocumentosComProblemasPorInscricao[]> {
-    const aluno = await this.alunoRepository
-      .createQueryBuilder('aluno')
-      .select('aluno.aluno_id')
-      .where('aluno.usuario.usuario_id = :usuarioId', { usuarioId: userId })
-      .leftJoin('aluno.inscricoes', 'inscricao')
-      .addSelect('inscricao.id')
-      .leftJoinAndSelect('inscricao.documentos', 'documento')
-      .andWhere(
-        '(documento.status_documento != :status OR documento.status_documento IS NULL)',
-        { status: StatusDocumento.APROVADO },
-      )
-      .leftJoin('documento.validacoes', 'validacao')
-      .addSelect(['validacao.parecer', 'validacao.data_validacao'])
-      .leftJoin('inscricao.vagas', 'vagas')
-      .addSelect('vagas.id')
-      .leftJoin('vagas.edital', 'edital')
-      .addSelect('edital.titulo_edital')
-      .getOne();
+    const aluno = await this.alunoRepository.findOne({
+      where: { usuario: { usuario_id: userId } },
+      relations: [
+        'inscricoes',
+        'inscricoes.documentos',
+        'inscricoes.documentos.validacoes',
+        'inscricoes.vagas',
+        'inscricoes.vagas.edital',
+        'inscricoes.respostas',
+        'inscricoes.respostas.pergunta',
+        'inscricoes.respostas.pergunta.step',
+      ],
+    });
 
     if (!aluno || !aluno.inscricoes?.length) {
       return [];
@@ -163,12 +159,40 @@ export class DocumentoTypeOrmRepository implements IDocumentoRepository {
 
     const result: DocumentosComProblemasPorInscricao[] = [];
     for (const inscricao of aluno.inscricoes) {
-      if (!inscricao.documentos || inscricao.documentos.length === 0) continue;
+      const documentosNaoAprovados = (inscricao.documentos ?? []).filter(
+        (d) => d.status_documento !== StatusDocumento.APROVADO,
+      );
+      const ajustesResposta = (inscricao.respostas ?? [])
+        .filter((r) => respostaPrecisaAjuste(r))
+        .map((r) => ({
+          resposta_id: r.id,
+          pergunta_id: r.pergunta?.id ?? null,
+          step_id: r.pergunta?.step?.id ?? null,
+          step_texto: r.pergunta?.step?.texto ?? null,
+          pergunta_texto: r.pergunta?.pergunta ?? null,
+          parecer: r.parecer ?? null,
+          prazo_reenvio: r.prazoReenvio ?? null,
+          prazo_resposta_nova_pergunta: r.prazoRespostaNovaPergunta ?? null,
+          tipo_ajuste: r.perguntaAdicionadaPosInscricao
+            ? ('NOVA_PERGUNTA' as const)
+            : ('REENVIO_RESPOSTA' as const),
+        }));
+
+      if (documentosNaoAprovados.length === 0 && ajustesResposta.length === 0) {
+        continue;
+      }
 
       result.push({
         inscricao_id: inscricao.id,
-        titulo_edital: inscricao.vagas.edital.titulo_edital,
-        documentos: (inscricao.documentos ?? []).map((d) => this.toDocumentoData(d)),
+        vaga_id: inscricao.vagas?.id ?? null,
+        edital_id: inscricao.vagas?.edital?.id ?? null,
+        is_formulario_geral: inscricao.vagas?.edital?.is_formulario_geral ?? false,
+        is_formulario_renovacao:
+          inscricao.vagas?.edital?.is_formulario_renovacao ?? false,
+        titulo_edital: inscricao.vagas?.edital?.titulo_edital ?? 'Edital',
+        vaga_beneficio: inscricao.vagas?.beneficio ?? null,
+        documentos: documentosNaoAprovados.map((d) => this.toDocumentoData(d)),
+        ajustes_resposta: ajustesResposta,
       });
     }
     return result;

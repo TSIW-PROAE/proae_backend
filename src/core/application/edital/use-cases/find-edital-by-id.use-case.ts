@@ -26,6 +26,10 @@ export class FindEditalByIdUseCase {
       edital_url: edital.edital_url,
       status_edital: edital.status_edital,
       etapa_edital: edital.etapa_edital,
+      nivel_academico: edital.nivel_academico,
+      is_formulario_geral: edital.is_formulario_geral,
+      is_formulario_renovacao: edital.is_formulario_renovacao,
+      data_fim_vigencia: edital.data_fim_vigencia,
       created_at: edital.created_at,
       updated_at: edital.updated_at,
     };
