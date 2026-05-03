@@ -45,6 +45,7 @@ export class EmailService implements EmailSenderPort {
   async sendAdminApprovalRequest(
     emailNovoAdmin: string,
     token: string,
+    perfilPretendido?: string | null,
   ): Promise<void> {
     const adminsEmails = process.env.ADMINS_EMAILS?.split(',').map((e) => e.trim()).filter(Boolean) ?? [];
     if (adminsEmails.length === 0) {
@@ -56,7 +57,7 @@ export class EmailService implements EmailSenderPort {
       );
     }
 
-    const html = adminApprovalTemplate(emailNovoAdmin, token);
+    const html = adminApprovalTemplate(emailNovoAdmin, token, perfilPretendido);
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
     if (process.env.NODE_ENV !== 'production') {
       console.log(

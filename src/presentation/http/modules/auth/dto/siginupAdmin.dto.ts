@@ -1,10 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsPhoneNumber,
   IsString,
 } from 'class-validator';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { IsUfbaEmail } from 'src/core/shared-kernel/validators/is-ufba-email.validator';
 import { IsCPF } from 'src/core/shared-kernel/validators/isCpf.validator';
 import { IsStrongPassword } from 'src/core/shared-kernel/validators/strong-password.validator';
@@ -14,6 +17,19 @@ export class SignupDtoAdmin {
   @IsNotEmpty()
   @IsString()
   cargo: string;
+
+  @ApiProperty({
+    description:
+      'Perfil de acesso: tecnico (análise), gerencial (gestão/edição) ou coordenacao (consulta).',
+    enum: AdminPerfilEnum,
+    required: false,
+    default: AdminPerfilEnum.GERENCIAL,
+  })
+  @IsOptional()
+  @IsEnum(AdminPerfilEnum, {
+    message: 'perfil deve ser tecnico, gerencial ou coordenacao',
+  })
+  perfil?: AdminPerfilEnum;
 
   @ApiProperty({
     description: 'Email institucional do admin (apenas @ufba.br)',

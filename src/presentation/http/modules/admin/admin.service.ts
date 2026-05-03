@@ -8,6 +8,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as cpfLib from 'validation-br/dist/cpf';
 import { Repository } from 'typeorm';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import {
+  AdminPerfilEnum,
+  parseAdminPerfil,
+  resolveAdminPerfilEfetivo,
+} from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { Admin } from 'src/infrastructure/persistence/typeorm/entities/admin/admin.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { AtualizaAdminDto } from './dto/atualiza-admin.dto';
@@ -40,6 +45,7 @@ export class AdminService {
       nome: usuario.nome,
       email: usuario.email,
       cargo: admin?.cargo ?? '',
+      perfil: admin ? resolveAdminPerfilEfetivo(admin.perfil) : null,
       data_nascimento: this.formatDataNascimento(usuario.data_nascimento),
       cpf: usuario.cpf,
       celular: usuario.celular,
@@ -79,11 +85,28 @@ export class AdminService {
       dto.nome !== undefined ||
       dto.email !== undefined ||
       dto.cargo !== undefined ||
+      dto.perfil !== undefined ||
       dto.data_nascimento !== undefined ||
       dto.cpf !== undefined ||
       dto.celular !== undefined;
     if (!hasAny) {
       throw new BadRequestException('Dados para atualização não fornecidos.');
+    }
+
+    if (dto.perfil !== undefined) {
+      const perfilParsed = parseAdminPerfil(dto.perfil);
+      if (!perfilParsed) {
+        throw new BadRequestException(
+          'Perfil inválido. Use tecnico, gerencial ou coordenacao.',
+        );
+      }
+      // Apenas gerencial pode trocar o próprio perfil; demais perfis ignoram a tentativa.
+      const perfilAtual = resolveAdminPerfilEfetivo(usuario.admin?.perfil);
+      if (perfilAtual !== AdminPerfilEnum.GERENCIAL) {
+        throw new ForbiddenException(
+          'Apenas perfis gerenciais podem alterar o perfil de acesso.',
+        );
+      }
     }
 
     if (dto.email !== undefined && dto.email !== usuario.email) {
@@ -122,12 +145,17 @@ export class AdminService {
         const novo = this.adminRepository.create({
           usuario,
           cargo: dto.cargo,
+          perfil: AdminPerfilEnum.GERENCIAL,
           aprovado: true,
         });
         usuario.admin = novo;
       } else {
         usuario.admin.cargo = dto.cargo;
       }
+    }
+
+    if (dto.perfil !== undefined && usuario.admin) {
+      usuario.admin.perfil = parseAdminPerfil(dto.perfil)!;
     }
 
     await this.usuarioRepository.save(usuario);
@@ -145,6 +173,113 @@ export class AdminService {
           atualizado!,
           atualizado!.admin ?? null,
         ),
+      },
+    };
+  }
+
+  /**
+   * Lista todos os admins cadastrados (aprovados ou pendentes), incluindo
+   * o perfil de acesso. Uso típico: tela de gerenciamento da equipe PROAE.
+   *
+   * Apenas perfis `gerencial` devem chamar este método; o controller já aplica
+   * `AdminPerfisGuard`. Aqui, por defesa em profundidade, validamos o perfil
+   * do solicitante novamente.
+   */
+  async listAdminsForGerencial(requesterUserId: string) {
+    const requester = await this.usuarioRepository.findOne({
+      where: { usuario_id: requesterUserId },
+      relations: ['admin'],
+    });
+    if (!requester) {
+      throw new NotFoundException('Usuário solicitante não encontrado.');
+    }
+    this.ensureAdminRole(requester);
+    const perfilSolicitante = resolveAdminPerfilEfetivo(
+      requester.admin?.perfil,
+    );
+    if (perfilSolicitante !== AdminPerfilEnum.GERENCIAL) {
+      throw new ForbiddenException(
+        'Apenas perfis gerenciais podem listar a equipe administrativa.',
+      );
+    }
+
+    const admins = await this.adminRepository.find({
+      relations: ['usuario'],
+      order: { id_admin: 'ASC' },
+    });
+
+    return {
+      sucesso: true,
+      dados: admins.map((a) => ({
+        id_admin: a.id_admin,
+        usuario_id: a.usuario?.usuario_id ?? null,
+        nome: a.usuario?.nome ?? '',
+        email: a.usuario?.email ?? '',
+        cargo: a.cargo ?? '',
+        perfil: resolveAdminPerfilEfetivo(a.perfil),
+        aprovado: a.aprovado === true,
+        sou_eu: a.usuario?.usuario_id === requesterUserId,
+      })),
+    };
+  }
+
+  /**
+   * Altera o perfil de acesso de OUTRO admin. Apenas gerenciais podem chamar
+   * (controller já protege via guard); aqui rejeitamos a auto-alteração para
+   * evitar que o último gerencial se rebaixe sozinho — ele deve usar a tela de
+   * configuração pessoal apenas para alterar dados próprios e, se quiser mudar
+   * o próprio perfil, deve pedir a outro gerencial.
+   */
+  async updateAdminPerfilByGerencial(
+    requesterUserId: string,
+    targetAdminId: number,
+    novoPerfil: AdminPerfilEnum,
+  ) {
+    const requester = await this.usuarioRepository.findOne({
+      where: { usuario_id: requesterUserId },
+      relations: ['admin'],
+    });
+    if (!requester) {
+      throw new NotFoundException('Usuário solicitante não encontrado.');
+    }
+    this.ensureAdminRole(requester);
+    const perfilSolicitante = resolveAdminPerfilEfetivo(
+      requester.admin?.perfil,
+    );
+    if (perfilSolicitante !== AdminPerfilEnum.GERENCIAL) {
+      throw new ForbiddenException(
+        'Apenas perfis gerenciais podem alterar perfis da equipe.',
+      );
+    }
+
+    const target = await this.adminRepository.findOne({
+      where: { id_admin: targetAdminId },
+      relations: ['usuario'],
+    });
+    if (!target) {
+      throw new NotFoundException('Admin não encontrado.');
+    }
+
+    if (target.usuario?.usuario_id === requesterUserId) {
+      throw new BadRequestException(
+        'Para alterar seu próprio perfil, peça a outro gerencial. Isto evita rebaixamentos acidentais do último gerencial.',
+      );
+    }
+
+    target.perfil = novoPerfil;
+    await this.adminRepository.save(target);
+
+    return {
+      sucesso: true,
+      mensagem: 'Perfil atualizado com sucesso.',
+      dados: {
+        id_admin: target.id_admin,
+        usuario_id: target.usuario?.usuario_id ?? null,
+        nome: target.usuario?.nome ?? '',
+        email: target.usuario?.email ?? '',
+        cargo: target.cargo ?? '',
+        perfil: resolveAdminPerfilEfetivo(target.perfil),
+        aprovado: target.aprovado === true,
       },
     };
   }

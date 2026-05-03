@@ -24,6 +24,9 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { CreateEditalUseCase } from 'src/core/application/edital/use-cases/create-edital.use-case';
 import {
   EditalNaoEncontradoError,
@@ -61,6 +64,10 @@ export class EditalController {
   ) {}
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiCreatedResponse({
     type: EditalResponseDto,
     description: 'Edital criado com sucesso',
@@ -142,6 +149,10 @@ export class EditalController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOkResponse({
     type: EditalResponseDto,
     description: 'Edital atualizado com sucesso',
@@ -212,6 +223,10 @@ export class EditalController {
   }
 
   @Patch(':id/status/:status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOkResponse({
     type: EditalResponseDto,
     description: 'Status do edital atualizado com sucesso',
@@ -245,6 +260,10 @@ export class EditalController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOkResponse({ description: 'Edital removido com sucesso' })
   @ApiNotFoundResponse({
     description: 'Edital não encontrado',

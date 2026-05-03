@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { AdminPerfisGuard } from './guards/admin-perfis.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 
@@ -35,9 +36,17 @@ import { LocalStrategy } from './strategies/local.strategy';
     JwtStrategy,
     AuthGuard,
     RolesGuard,
+    AdminPerfisGuard,
     JwtAuthGuard,
     LocalAuthGuard,
   ],
-  exports: [AuthGuard, RolesGuard, JwtModule, AuthService, JwtAuthGuard],
+  exports: [
+    AuthGuard,
+    RolesGuard,
+    AdminPerfisGuard,
+    JwtModule,
+    AuthService,
+    JwtAuthGuard,
+  ],
 })
 export class AuthModule {}
