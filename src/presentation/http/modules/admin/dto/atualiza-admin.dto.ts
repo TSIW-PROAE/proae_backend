@@ -2,9 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
 } from 'class-validator';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 
 export class AtualizaAdminDto {
   @ApiProperty({ required: false })
@@ -21,6 +23,18 @@ export class AtualizaAdminDto {
   @IsOptional()
   @IsString()
   cargo?: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Perfil de acesso: tecnico, gerencial ou coordenacao. Apenas perfis gerenciais podem alterar este campo de outros usuários.',
+    enum: AdminPerfilEnum,
+  })
+  @IsOptional()
+  @IsEnum(AdminPerfilEnum, {
+    message: 'perfil deve ser tecnico, gerencial ou coordenacao',
+  })
+  perfil?: AdminPerfilEnum;
 
   @ApiProperty({ required: false, example: '2000-01-01' })
   @IsOptional()

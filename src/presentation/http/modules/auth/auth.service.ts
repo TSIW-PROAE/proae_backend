@@ -14,6 +14,10 @@ import { Repository } from 'typeorm';
 import type { EmailSenderPort } from 'src/core/application/utilities/ports/email-sender.port';
 import { EMAIL_SENDER } from 'src/core/application/utilities/utility.tokens';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import {
+  AdminPerfilEnum,
+  parseAdminPerfil,
+} from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { Admin } from 'src/infrastructure/persistence/typeorm/entities/admin/admin.entity';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
@@ -125,6 +129,7 @@ export class AuthService {
         nome: user.nome,
         roles: rolesSincronizados,
         adminAprovado: userFull?.admin?.aprovado ?? null,
+        adminPerfil: userFull?.admin?.perfil ?? null,
         hasAluno: !!userFull?.aluno,
       },
     };
@@ -485,6 +490,7 @@ export class AuthService {
           data_nascimento: user.data_nascimento,
           roles: user.roles,
           adminAprovado: user.admin?.aprovado ?? null,
+          adminPerfil: user.admin?.perfil ?? null,
           hasAluno: !!user.aluno,
         },
         roles: user.roles,
@@ -515,9 +521,12 @@ export class AuthService {
             'Senha incorreta. Use a senha da sua conta para vincular o cadastro de admin.',
           );
         }
+        const perfilEscolhido =
+          parseAdminPerfil(dto.perfil) ?? AdminPerfilEnum.GERENCIAL;
         const admin = this.adminRepository.create({
           usuario: existingUsuario,
           cargo: dto.cargo,
+          perfil: perfilEscolhido,
           aprovado: false,
           approvalToken: this.generateRandomToken(),
           approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -534,6 +543,7 @@ export class AuthService {
         await this.emailService.sendAdminApprovalRequest(
           existingUsuario.email,
           token,
+          perfilEscolhido,
         );
         const currentRoles = Array.isArray(existingUsuario.roles)
           ? existingUsuario.roles
@@ -576,9 +586,12 @@ export class AuthService {
 
       const savedUsuario = await this.usuarioRepository.save(usuario);
 
+      const perfilEscolhido =
+        parseAdminPerfil(dto.perfil) ?? AdminPerfilEnum.GERENCIAL;
       const admin = this.adminRepository.create({
         usuario: savedUsuario,
         cargo: dto.cargo,
+        perfil: perfilEscolhido,
         aprovado: false,
         approvalToken: this.generateRandomToken(),
         approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -599,6 +612,7 @@ export class AuthService {
       await this.emailService.sendAdminApprovalRequest(
         savedUsuario.email,
         token,
+        perfilEscolhido,
       );
 
       return {
@@ -622,7 +636,13 @@ export class AuthService {
     }
   }
 
-  async approveAdmin(token: string) {
+  /**
+   * Aprova um admin pendente. Quando `perfilOverride` é fornecido (link no
+   * email "Aprovar como Técnico/Gerencial/Coordenação"), o perfil escolhido
+   * sobrescreve o que o candidato havia indicado no cadastro. Sem override,
+   * mantém o perfil atual (default `gerencial` para cadastros antigos).
+   */
+  async approveAdmin(token: string, perfilOverride?: string | null) {
     const admin = await this.adminRepository.findOne({
       where: { approvalToken: token },
       relations: ['usuario'],
@@ -632,6 +652,10 @@ export class AuthService {
     if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
       throw new BadRequestException('Token expirado');
 
+    const perfilEscolhido = parseAdminPerfil(perfilOverride ?? null);
+    if (perfilEscolhido) {
+      admin.perfil = perfilEscolhido;
+    }
     admin.aprovado = true;
     admin.approvalToken = undefined;
     admin.approvalTokenExpires = undefined;
@@ -649,7 +673,14 @@ export class AuthService {
       }
     }
 
-    return { sucesso: true, mensagem: 'Admin aprovado com sucesso' };
+    return {
+      sucesso: true,
+      mensagem: 'Admin aprovado com sucesso',
+      dados: {
+        id_admin: admin.id_admin,
+        perfil: admin.perfil,
+      },
+    };
   }
 
   async rejectAdmin(token: string) {

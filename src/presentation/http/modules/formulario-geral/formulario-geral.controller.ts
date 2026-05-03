@@ -23,8 +23,11 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
 import { Roles } from 'src/common/decorators/roles';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-request.interface';
 import { CreateFormularioGeralDto } from './dto/create-formulario-geral.dto';
 import { UpdateFormularioGeralDto } from './dto/update-formulario-geral.dto';
@@ -74,8 +77,9 @@ export class FormularioGeralController {
   }
 
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Criar formulário geral' })
   @ApiOkResponse({ description: 'Formulário geral criado com sucesso' })
   @ApiUnauthorizedResponse({ description: 'Não autorizado' })
@@ -89,8 +93,9 @@ export class FormularioGeralController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Editar formulário geral' })
   @ApiOkResponse({ description: 'Formulário geral atualizado com sucesso' })
   @ApiNotFoundResponse({ description: 'Formulário geral não encontrado' })
@@ -103,8 +108,9 @@ export class FormularioGeralController {
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Desativar/excluir formulário geral' })
   @ApiOkResponse({ description: 'Formulário geral desativado com sucesso' })
   @ApiNotFoundResponse({ description: 'Formulário geral não encontrado' })
@@ -145,8 +151,9 @@ export class FormularioGeralController {
   }
 
   @Patch('inscricoes/:inscricaoId/status')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.TECNICO, AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Alterar status de inscrição do FG (aprovar/negar/pedir ajustes)' })
   @ApiOkResponse({ description: 'Status atualizado com sucesso' })
   @ApiNotFoundResponse({ description: 'Inscrição não encontrada' })

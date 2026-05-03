@@ -145,14 +145,25 @@ export class AuthController {
   }
 
   @Get('approve-admin/:token')
-  @ApiOperation({ summary: 'Aprovar cadastro de admin via token' })
+  @ApiOperation({
+    summary: 'Aprovar cadastro de admin via token',
+    description:
+      'Quando a query `perfil` é informada (tecnico|gerencial|coordenacao), define o perfil de acesso do admin aprovado. Sem ela, mantém o perfil escolhido pelo candidato no cadastro.',
+  })
   @ApiResponse({ status: 200, description: 'Admin aprovado com sucesso' })
   @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
-  async approveAdmin(@Param('token') token: string, @Res() res) {
-    const result = await this.authService.approveAdmin(token);
+  async approveAdmin(
+    @Param('token') token: string,
+    @Res() res,
+    @Query('perfil') perfilQuery?: string,
+  ) {
+    const result = await this.authService.approveAdmin(token, perfilQuery);
     const frontendUrl = normalizeFrontendUrl(process.env.FRONTEND_URL);
+    const perfilSuffix = result?.dados?.perfil
+      ? `&perfil=${encodeURIComponent(result.dados.perfil)}`
+      : '';
     const redirectTo = frontendUrl
-      ? `${frontendUrl}/admin/aprovado?sucesso=true`
+      ? `${frontendUrl}/admin/aprovado?sucesso=true${perfilSuffix}`
       : null;
     if (redirectTo) {
       if (process.env.NODE_ENV !== 'production') {

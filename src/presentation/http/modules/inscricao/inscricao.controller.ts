@@ -40,8 +40,11 @@ import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-req
 import { errorExamples } from 'src/common/swagger/error-examples';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
 import { Roles } from 'src/common/decorators/roles';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { CorrigirRespostasInscricaoDto } from './dto/corrigir-respostas-inscricao.dto';
 import { CreateInscricaoDto } from './dto/create-inscricao-dto';
 import { InscricaoResponseDto } from './dto/response-inscricao.dto';
@@ -172,8 +175,9 @@ export class InscricaoController {
   }
 
   @Patch('admin/:id/status')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.TECNICO, AdminPerfilEnum.GERENCIAL)
   @ApiOperation({
     summary: '[Admin] Alterar status e observação de qualquer inscrição',
     description:
@@ -194,8 +198,9 @@ export class InscricaoController {
   }
 
   @Patch('admin/:id/beneficio-edital')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({
     summary: '[Admin] Alterar situação de benefício no edital',
     description:

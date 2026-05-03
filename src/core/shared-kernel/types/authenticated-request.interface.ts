@@ -7,6 +7,8 @@ interface AuthenticatedRequest extends Request {
     aluno_id: number;
     /** Ex.: ['admin'] | ['aluno'] — vem do JWT */
     roles?: string[];
+    /** Perfil administrativo: 'tecnico' | 'gerencial' | 'coordenacao' (apenas para role admin). */
+    adminPerfil?: string | null;
   };
 }
 

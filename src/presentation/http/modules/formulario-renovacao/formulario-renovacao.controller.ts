@@ -23,8 +23,11 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
 import { Roles } from 'src/common/decorators/roles';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-request.interface';
 import { CreateFormularioGeralDto } from '../formulario-geral/dto/create-formulario-geral.dto';
 import { UpdateFormularioGeralDto } from '../formulario-geral/dto/update-formulario-geral.dto';
@@ -81,8 +84,9 @@ export class FormularioRenovacaoController {
   }
 
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Criar formulário de renovação' })
   async create(@Body() dto: CreateFormularioGeralDto) {
     try {
@@ -95,8 +99,9 @@ export class FormularioRenovacaoController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Editar formulário de renovação' })
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -106,8 +111,9 @@ export class FormularioRenovacaoController {
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Desativar formulário de renovação' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.formularioRenovacaoService.remove(id);
@@ -138,8 +144,9 @@ export class FormularioRenovacaoController {
   }
 
   @Patch('inscricoes/:inscricaoId/status')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.TECNICO, AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: '[Admin] Alterar status da inscrição (renovação)' })
   async alterarStatusInscricao(
     @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
