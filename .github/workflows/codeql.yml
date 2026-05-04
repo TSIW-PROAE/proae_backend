@@ -31,7 +31,7 @@ jobs:
 
     - name: Export SARIF result
       if: github.event.pull_request.head.repo.fork == true
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: codeql-report
         path: codeql-results.sarif
