@@ -1,14 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
+import { PerguntaCondicaoDto } from './create-pergunta.dto';
 
 export class UpdatePerguntaDto {
   @ApiProperty({
@@ -55,4 +60,23 @@ export class UpdatePerguntaDto {
   @IsOptional()
   @IsNumber()
   dadoId?: number | null;
+
+  @ApiPropertyOptional({
+    description: 'Nova posição relativa da pergunta dentro do step.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  ordem?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Regra de exibição condicional. Envie null para remover a condição.',
+    type: PerguntaCondicaoDto,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PerguntaCondicaoDto)
+  condicao?: PerguntaCondicaoDto | null;
 }

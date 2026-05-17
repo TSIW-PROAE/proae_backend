@@ -6,14 +6,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
+import { CloneFormularioUseCase } from 'src/core/application/step/use-cases/clone-formulario.use-case';
 import { CreateStepUseCase } from 'src/core/application/step/use-cases/create-step.use-case';
 import { FindStepsByEditalWithPerguntasUseCase } from 'src/core/application/step/use-cases/find-steps-by-edital-with-perguntas.use-case';
 import { FindStepsByEditalUseCase } from 'src/core/application/step/use-cases/find-steps-by-edital.use-case';
 import { RemoveStepUseCase } from 'src/core/application/step/use-cases/remove-step.use-case';
+import { ReorderStepsUseCase } from 'src/core/application/step/use-cases/reorder-steps.use-case';
 import { UpdateStepUseCase } from 'src/core/application/step/use-cases/update-step.use-case';
 import { InputFormatPlaceholders } from 'src/core/shared-kernel/enums/enumInputFormat';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { CreateStepDto } from './dto/create-step.dto';
+import { ReorderStepsDto } from './dto/reorder-steps.dto';
 import { PerguntaResponseDto } from './dto/response-pergunta.dto';
 import { AnswerStepResponseDto } from './dto/response-step.dto';
 import { StepSimpleResponseDto } from './dto/step-simple-response.dto';
@@ -29,6 +32,8 @@ export class StepService {
     private readonly findStepsByEditalWithPerguntasUseCase: FindStepsByEditalWithPerguntasUseCase,
     private readonly updateStepUseCase: UpdateStepUseCase,
     private readonly removeStepUseCase: RemoveStepUseCase,
+    private readonly reorderStepsUseCase: ReorderStepsUseCase,
+    private readonly cloneFormularioUseCase: CloneFormularioUseCase,
   ) {}
 
   async findStepsByEditalWithPerguntas(id: number): Promise<AnswerStepResponseDto[]> {
@@ -38,6 +43,7 @@ export class StepService {
         const transformedStep = plainToInstance(AnswerStepResponseDto, {
           id: step.id,
           texto: step.texto,
+          ordem: step.ordem ?? 0,
           perguntas: [],
         }, {
           excludeExtraneousValues: true,
@@ -51,6 +57,8 @@ export class StepService {
             InputFormatPlaceholders[
               (pergunta.tipo_formatacao ?? 'none') as keyof typeof InputFormatPlaceholders
             ];
+          perguntaDto.ordem = pergunta.ordem ?? 0;
+          perguntaDto.condicao = pergunta.condicao ?? null;
 
           return perguntaDto;
         });
@@ -75,6 +83,7 @@ export class StepService {
       return plainToInstance(StepSimpleResponseDto, steps.map((step) => ({
         id: step.id,
         texto: step.texto,
+        ordem: step.ordem ?? 0,
         created_at: step.created_at,
         updated_at: step.updated_at,
       })), {
@@ -106,6 +115,7 @@ export class StepService {
       return plainToInstance(StepSimpleResponseDto, {
         id: savedStep.id,
         texto: savedStep.texto,
+        ordem: savedStep.ordem ?? 0,
         created_at: savedStep.created_at,
         updated_at: savedStep.updated_at,
       }, {
@@ -125,10 +135,14 @@ export class StepService {
     updateStepDto: UpdateStepDto,
   ): Promise<StepSimpleResponseDto> {
     try {
-      const updatedStep = await this.updateStepUseCase.execute(id, updateStepDto.texto);
+      const updatedStep = await this.updateStepUseCase.execute(id, {
+        texto: updateStepDto.texto,
+        ordem: updateStepDto.ordem,
+      });
       return plainToInstance(StepSimpleResponseDto, {
         id: updatedStep.id,
         texto: updatedStep.texto,
+        ordem: updatedStep.ordem ?? 0,
         created_at: updatedStep.created_at,
         updated_at: updatedStep.updated_at,
       }, {
@@ -164,5 +178,64 @@ export class StepService {
 
   async findStepsByEdital_OLD(id: number): Promise<AnswerStepResponseDto[]> {
     return this.findStepsByEditalWithPerguntas(id);
+  }
+
+  /**
+   * Clona o formulário (steps + perguntas) de um edital de origem para um
+   * edital alvo. Mantém ordem, opções, condições (re-mapeadas) e tipo formatação.
+   */
+  async cloneFormulario(
+    editalAlvoId: number,
+    editalOrigemId: number,
+    substituirExistente: boolean,
+  ): Promise<{ stepsCriados: number; perguntasCriadas: number }> {
+    try {
+      const alvo = await this.editalRepository.findOneBy({ id: editalAlvoId });
+      if (!alvo) {
+        throw new NotFoundException(
+          `Edital alvo ${editalAlvoId} não encontrado.`,
+        );
+      }
+      return await this.cloneFormularioUseCase.execute({
+        editalOrigemId,
+        editalAlvoId,
+        substituirExistente,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erro ao clonar formulário:', error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  /**
+   * Reordena steps de um edital. Aplica em transação. Não recria registros —
+   * apenas atualiza o campo `ordem`.
+   */
+  async reorderByEdital(
+    editalId: number,
+    dto: ReorderStepsDto,
+  ): Promise<{ message: string }> {
+    try {
+      const edital = await this.editalRepository.findOneBy({ id: editalId });
+      if (!edital) {
+        throw new NotFoundException(
+          `Edital com ID ${editalId} não encontrado.`,
+        );
+      }
+      await this.reorderStepsUseCase.execute({
+        editalId,
+        updates: dto.itens.map((it) => ({ id: it.id, ordem: it.ordem })),
+      });
+      return { message: 'Steps reordenados com sucesso' };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erro ao reordenar steps:', error);
+      throw new InternalServerErrorException();
+    }
   }
 }

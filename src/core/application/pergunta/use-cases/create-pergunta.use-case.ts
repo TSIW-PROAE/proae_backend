@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IPerguntaRepository } from '../ports/pergunta.repository.port';
 import { PERGUNTA_REPOSITORY } from '../pergunta.tokens';
-import type { PerguntaData } from '../../../domain/pergunta/pergunta.types';
+import type {
+  PerguntaCondicao,
+  PerguntaData,
+} from '../../../domain/pergunta/pergunta.types';
 import type { EnumInputFormat } from '../../../shared-kernel/enums/enumInputFormat';
 import type { EnumTipoInput } from '../../../shared-kernel/enums/enumTipoInput';
 
@@ -13,6 +16,8 @@ export interface CreatePerguntaCommand {
   opcoes?: string[] | null;
   tipoFormatacao?: EnumInputFormat | null;
   dadoId?: number | null;
+  ordem?: number | null;
+  condicao?: PerguntaCondicao | null;
 }
 
 @Injectable()
@@ -31,6 +36,8 @@ export class CreatePerguntaUseCase {
       opcoes: cmd.opcoes ?? null,
       tipoFormatacao: cmd.tipoFormatacao ?? null,
       dadoId: cmd.dadoId ?? null,
+      ordem: cmd.ordem ?? undefined,
+      condicao: cmd.condicao ?? null,
     };
     return this.perguntaRepository.create(data);
   }

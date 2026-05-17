@@ -39,6 +39,12 @@ export interface IEditalRepository {
   remove(id: number): Promise<void>;
   /** Editais abertos para inscrição, excl. formulário geral; filtrados por nível quando informado. */
   findOpened(nivelAcademico?: string): Promise<EditalData[]>;
+  /**
+   * Editais visíveis para o aluno no portal. Inclui ABERTO (inscrição permitida),
+   * EM_ANDAMENTO (em fase de análise/seleção) e ENCERRADO (consulta histórica).
+   * Excl. formulário geral/renovação. Filtra pelo nível do estudante.
+   */
+  findVisiveisParaAluno(nivelAcademico?: string): Promise<EditalData[]>;
   updateStatus(id: number, status: StatusEditalDomain): Promise<EditalData>;
   getAlunosInscritos(
     editalId: number,

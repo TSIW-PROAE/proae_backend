@@ -582,4 +582,126 @@ export class InscricaoService {
 
     return expirationInSeconds;
   }
+
+  /**
+   * Exporta inscrições de um edital em CSV (UTF-8 com BOM, separador `;`).
+   * Cada linha = 1 inscrição. Colunas fixas + 1 coluna por pergunta do edital.
+   * Aceitamos a planilha aberta diretamente em Excel-pt-BR sem precisar
+   * gerar `.xlsx` (e sem dependência adicional).
+   */
+  async exportInscricoesEditalCsv(editalId: number): Promise<string> {
+    const edital = await this.editalRepository.findOne({
+      where: { id: editalId },
+      relations: { steps: { perguntas: true } },
+    });
+    if (!edital) {
+      throw new NotFoundException('Edital não encontrado');
+    }
+
+    // Colunas dinâmicas: ordena steps + perguntas por (ordem, id) para casar com o front.
+    const stepsOrdenados = (edital.steps ?? [])
+      .slice()
+      .sort((a, b) => {
+        const oa = (a.ordem ?? 0);
+        const ob = (b.ordem ?? 0);
+        return oa === ob ? a.id - b.id : oa - ob;
+      });
+    const colunasPerguntas: { id: number; cabec: string }[] = [];
+    for (const step of stepsOrdenados) {
+      const perguntasOrd = (step.perguntas ?? [])
+        .slice()
+        .sort((a, b) => {
+          const oa = a.ordem ?? 0;
+          const ob = b.ordem ?? 0;
+          return oa === ob ? a.id - b.id : oa - ob;
+        });
+      for (const p of perguntasOrd) {
+        colunasPerguntas.push({
+          id: p.id,
+          cabec: `${step.texto || 'Etapa'} :: ${p.pergunta}`,
+        });
+      }
+    }
+
+    const inscricoes = await this.inscricaoRepository.find({
+      where: { vagas: { edital: { id: editalId } } },
+      relations: {
+        aluno: { usuario: true },
+        vagas: true,
+        respostas: { pergunta: true },
+      },
+      order: { id: 'ASC' },
+    });
+
+    const cabecalhos = [
+      'id_inscricao',
+      'data_inscricao',
+      'status_inscricao',
+      'situacao_beneficio',
+      'aluno_nome',
+      'aluno_cpf',
+      'aluno_email',
+      'aluno_matricula',
+      'aluno_curso',
+      'aluno_campus',
+      ...colunasPerguntas.map((c) => c.cabec),
+    ];
+
+    const linhas: string[] = [];
+    linhas.push(cabecalhos.map(csvEscape).join(';'));
+
+    for (const ins of inscricoes) {
+      const respostasMap = new Map<number, Resposta>();
+      for (const r of ins.respostas ?? []) {
+        if (r.pergunta?.id != null) respostasMap.set(r.pergunta.id, r);
+      }
+      const linha: string[] = [
+        String(ins.id),
+        ins.data_inscricao
+          ? new Date(ins.data_inscricao).toLocaleDateString('pt-BR')
+          : '',
+        String(ins.status_inscricao ?? ''),
+        String(ins.status_beneficio_edital ?? ''),
+        ins.aluno?.usuario?.nome ?? '',
+        ins.aluno?.usuario?.cpf ?? '',
+        ins.aluno?.usuario?.email ?? '',
+        ins.aluno?.matricula ?? '',
+        ins.aluno?.curso ?? '',
+        String(ins.aluno?.campus ?? ''),
+      ];
+
+      for (const col of colunasPerguntas) {
+        const r = respostasMap.get(col.id);
+        linha.push(formatRespostaParaCsv(r));
+      }
+      linhas.push(linha.map(csvEscape).join(';'));
+    }
+
+    // BOM UTF-8 para abrir corretamente no Excel-pt-BR.
+    return '\uFEFF' + linhas.join('\r\n');
+  }
+}
+
+function csvEscape(valor: string): string {
+  if (valor == null) return '';
+  const s = String(valor);
+  if (/[";\r\n]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function formatRespostaParaCsv(resposta?: Resposta): string {
+  if (!resposta) return '';
+  if (resposta.urlArquivo) return resposta.urlArquivo;
+  if (Array.isArray(resposta.valorOpcoes) && resposta.valorOpcoes.length) {
+    return resposta.valorOpcoes.join(' | ');
+  }
+  if (resposta.valorTexto != null && resposta.valorTexto !== '') {
+    return resposta.valorTexto;
+  }
+  if (resposta.texto != null && resposta.texto !== '') {
+    return resposta.texto;
+  }
+  return '';
 }

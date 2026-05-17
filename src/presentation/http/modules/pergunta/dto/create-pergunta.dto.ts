@@ -1,17 +1,41 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
 import { EnumTipoInput } from 'src/core/shared-kernel/enums/enumTipoInput';
+
+export class PerguntaCondicaoDto {
+  @ApiProperty({
+    description: 'ID da pergunta cuja resposta determina a exibição',
+  })
+  @IsInt()
+  pergunta_id_origem: number;
+
+  @ApiProperty({
+    description: 'Operador de comparação aplicado à resposta da origem',
+    enum: ['equals', 'notEquals', 'includes', 'notIncludes'],
+  })
+  @IsIn(['equals', 'notEquals', 'includes', 'notIncludes'])
+  operador: 'equals' | 'notEquals' | 'includes' | 'notIncludes';
+
+  @ApiProperty({
+    description: 'Valor (ou lista de valores) que a resposta da origem deve casar',
+  })
+  valor: string | string[];
+}
 
 const TIPO_PERGUNTA_MAP: Record<string, string> = {
   texto: EnumTipoInput.TEXT,
@@ -93,4 +117,23 @@ export class CreatePerguntaDto {
   @IsNumber()
   @IsOptional()
   dadoId?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Posição relativa da pergunta dentro do step. Quando omitida, é colocada no fim.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  ordem?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Regra de exibição condicional. Use null para remover a condição existente.',
+    type: PerguntaCondicaoDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PerguntaCondicaoDto)
+  condicao?: PerguntaCondicaoDto | null;
 }

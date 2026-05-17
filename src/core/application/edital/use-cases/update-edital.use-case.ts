@@ -23,6 +23,9 @@ export class UpdateEditalUseCase {
       status_edital: edital.status_edital,
       etapa_edital: edital.etapa_edital,
       nivel_academico: edital.nivel_academico,
+      data_fim_vigencia: edital.data_fim_vigencia
+        ? new Date(edital.data_fim_vigencia as Date).toISOString().slice(0, 10)
+        : null,
       created_at: edital.created_at,
       updated_at: edital.updated_at,
     };

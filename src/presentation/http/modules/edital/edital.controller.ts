@@ -34,6 +34,7 @@ import {
 } from 'src/core/application/edital/use-cases/find-edital-by-id.use-case';
 import { GetAlunosInscritosUseCase } from 'src/core/application/edital/use-cases/get-alunos-inscritos.use-case';
 import { ListEditaisAbertosUseCase } from 'src/core/application/edital/use-cases/list-editais-abertos.use-case';
+import { ListEditaisVisiveisAlunoUseCase } from 'src/core/application/edital/use-cases/list-editais-visiveis-aluno.use-case';
 import { ListEditaisUseCase } from 'src/core/application/edital/use-cases/list-editais.use-case';
 import { RemoveEditalUseCase } from 'src/core/application/edital/use-cases/remove-edital.use-case';
 import {
@@ -59,6 +60,7 @@ export class EditalController {
     private readonly updateEdital: UpdateEditalUseCase,
     private readonly removeEdital: RemoveEditalUseCase,
     private readonly listEditaisAbertos: ListEditaisAbertosUseCase,
+    private readonly listEditaisVisiveisAluno: ListEditaisVisiveisAlunoUseCase,
     private readonly updateEditalStatus: UpdateEditalStatusUseCase,
     private readonly getAlunosInscritosUseCase: GetAlunosInscritosUseCase,
   ) {}
@@ -124,6 +126,27 @@ export class EditalController {
     return this.listEditaisAbertos.execute(resolved);
   }
 
+  @Get('visiveis-aluno')
+  @ApiQuery({
+    name: 'nivel_academico',
+    required: false,
+    description:
+      'Graduação (padrão) ou Pós-graduação. Lista os editais visíveis no portal do aluno: ABERTO + EM_ANDAMENTO + ENCERRADO (excl. formulário geral/renovação).',
+  })
+  @ApiOkResponse({
+    type: [EditalResponseDto],
+    description:
+      'Lista de editais visíveis para o estudante (inclui em andamento e encerrados, para acompanhamento).',
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Erro interno do servidor',
+    schema: { example: errorExamples.internalServerError },
+  })
+  async findVisiveisAluno(@Query('nivel_academico') nivel?: string) {
+    const resolved = resolveNivelAcademicoQuery(nivel);
+    return this.listEditaisVisiveisAluno.execute(resolved);
+  }
+
   @Get(':id')
   @ApiOkResponse({
     type: EditalResponseDto,
@@ -170,13 +193,27 @@ export class EditalController {
     @Body() updateEditalDto: UpdateEditalDto,
   ) {
     try {
-      return await this.updateEdital.execute(+id, {
+      // `data_fim_vigencia` precisa de tratamento tri-estado:
+      //  - chave ausente / undefined → preserva o valor atual.
+      //  - null                      → limpa o campo no banco.
+      //  - string YYYY-MM-DD         → atualiza para a nova data.
+      // Por isso só incluímos a chave no payload se ela veio no body.
+      const update: Parameters<typeof this.updateEdital.execute>[1] = {
         titulo_edital: updateEditalDto.titulo_edital,
         descricao: updateEditalDto.descricao,
         edital_url: updateEditalDto.edital_url,
         etapa_edital: updateEditalDto.etapa_edital,
         nivel_academico: updateEditalDto.nivel_academico,
-      });
+      };
+      if (
+        Object.prototype.hasOwnProperty.call(
+          updateEditalDto,
+          'data_fim_vigencia',
+        )
+      ) {
+        update.data_fim_vigencia = updateEditalDto.data_fim_vigencia ?? null;
+      }
+      return await this.updateEdital.execute(+id, update);
     } catch (e) {
       if (e instanceof EditalNaoEncontradoError) {
         throw new NotFoundException(e.message);

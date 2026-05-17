@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { CreatePerguntaUseCase } from 'src/core/application/pergunta/use-cases/create-pergunta.use-case';
 import { FindPerguntasByStepUseCase } from 'src/core/application/pergunta/use-cases/find-perguntas-by-step.use-case';
 import { RemovePerguntaUseCase } from 'src/core/application/pergunta/use-cases/remove-pergunta.use-case';
+import { ReorderPerguntasUseCase } from 'src/core/application/pergunta/use-cases/reorder-perguntas.use-case';
 import { UpdatePerguntaUseCase } from 'src/core/application/pergunta/use-cases/update-pergunta.use-case';
 import type { PerguntaData } from 'src/core/domain/pergunta/pergunta.types';
 import { InputFormatPlaceholders } from 'src/core/shared-kernel/enums/enumInputFormat';
@@ -16,6 +17,7 @@ import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.
 import { Dado } from 'src/infrastructure/persistence/typeorm/entities/tipoDado/tipoDado.entity';
 import { PerguntaResponseDto } from 'src/presentation/http/modules/step/dto/response-pergunta.dto';
 import { CreatePerguntaDto } from './dto/create-pergunta.dto';
+import { ReorderPerguntasDto } from './dto/reorder-perguntas.dto';
 import { UpdatePerguntaDto } from './dto/update-pergunta.dto';
 
 @Injectable()
@@ -27,6 +29,7 @@ export class PerguntaService {
     private readonly createPerguntaUseCase: CreatePerguntaUseCase,
     private readonly updatePerguntaUseCase: UpdatePerguntaUseCase,
     private readonly removePerguntaUseCase: RemovePerguntaUseCase,
+    private readonly reorderPerguntasUseCase: ReorderPerguntasUseCase,
   ) {}
 
   async findByStep(stepId: number): Promise<PerguntaResponseDto[]> {
@@ -73,6 +76,10 @@ export class PerguntaService {
         opcoes: createPerguntaDto.opcoes ?? [],
         tipoFormatacao: createPerguntaDto.tipo_formatacao ?? null,
         dadoId: createPerguntaDto.dadoId ?? null,
+        ordem: createPerguntaDto.ordem ?? undefined,
+        condicao: (createPerguntaDto.condicao ?? null) as
+          | { pergunta_id_origem: number; operador: 'equals' | 'notEquals' | 'includes' | 'notIncludes'; valor: string | string[] }
+          | null,
       });
 
       return this.toResponse(savedPergunta);
@@ -112,6 +119,14 @@ export class PerguntaService {
           updatePerguntaDto.dadoId === 0
             ? null
             : (updatePerguntaDto.dadoId ?? undefined),
+        ordem: updatePerguntaDto.ordem,
+        // condicao=null remove a regra; undefined deixa intacta.
+        condicao: (updatePerguntaDto.condicao === undefined
+          ? undefined
+          : updatePerguntaDto.condicao) as
+          | { pergunta_id_origem: number; operador: 'equals' | 'notEquals' | 'includes' | 'notIncludes'; valor: string | string[] }
+          | null
+          | undefined,
       });
       return this.toResponse(updatedPergunta);
     } catch (error) {
@@ -142,6 +157,35 @@ export class PerguntaService {
     }
   }
 
+  /**
+   * Reordena perguntas dentro de um step. Atualiza somente o campo `ordem`,
+   * sem excluir/recriar registros — preserva respostas históricas.
+   */
+  async reorderByStep(
+    stepId: number,
+    dto: ReorderPerguntasDto,
+  ): Promise<{ message: string }> {
+    try {
+      const step = await this.stepRepository.findOneBy({ id: stepId });
+      if (!step) {
+        throw new NotFoundException(
+          `Step com ID ${stepId} não encontrado.`,
+        );
+      }
+      await this.reorderPerguntasUseCase.execute({
+        stepId,
+        updates: dto.itens.map((it) => ({ id: it.id, ordem: it.ordem })),
+      });
+      return { message: 'Perguntas reordenadas com sucesso' };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erro ao reordenar perguntas:', error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   private async toResponse(pergunta: PerguntaData): Promise<PerguntaResponseDto> {
     const dado =
       pergunta.dadoId && pergunta.dadoId > 0
@@ -156,6 +200,8 @@ export class PerguntaService {
       opcoes: pergunta.opcoes ?? [],
       tipo_formatacao: pergunta.tipoFormatacao,
       dado: dado ? { id: dado.id, nome: dado.nome } : undefined,
+      ordem: pergunta.ordem ?? 0,
+      condicao: pergunta.condicao ?? null,
     };
 
     const perguntaDto = plainToInstance(PerguntaResponseDto, payload, {

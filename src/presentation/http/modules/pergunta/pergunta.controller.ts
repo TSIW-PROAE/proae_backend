@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -17,8 +18,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { errorExamples } from 'src/common/swagger/error-examples';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
+import { Roles } from 'src/common/decorators/roles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
+import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
+import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
 import { PerguntaResponseDto } from 'src/presentation/http/modules/step/dto/response-pergunta.dto';
 import { CreatePerguntaDto } from './dto/create-pergunta.dto';
+import { ReorderPerguntasDto } from './dto/reorder-perguntas.dto';
 import { UpdatePerguntaDto } from './dto/update-pergunta.dto';
 import { PerguntaService } from './pergunta.service';
 
@@ -28,6 +37,9 @@ export class PerguntaController {
   constructor(private readonly perguntaService: PerguntaService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: 'Criar uma nova pergunta' })
   @ApiCreatedResponse({
     type: PerguntaResponseDto,
@@ -79,7 +91,29 @@ export class PerguntaController {
     return this.perguntaService.findByStep(stepId);
   }
 
+  @Patch('step/:stepId/reordenar')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
+  @ApiOperation({
+    summary:
+      'Reordenar perguntas de um step (sem excluir/recriar registros)',
+  })
+  @ApiOkResponse({
+    description: 'Perguntas reordenadas com sucesso',
+    schema: { example: { message: 'Perguntas reordenadas com sucesso' } },
+  })
+  async reorderByStep(
+    @Param('stepId', ParseIntPipe) stepId: number,
+    @Body() dto: ReorderPerguntasDto,
+  ) {
+    return this.perguntaService.reorderByStep(stepId, dto);
+  }
+
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({
     summary: 'Atualizar uma pergunta (não pode alterar tipo_Pergunta nem step)',
   })
@@ -103,6 +137,9 @@ export class PerguntaController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: 'Remover uma pergunta' })
   @ApiOkResponse({ description: 'Pergunta removida com sucesso' })
   @ApiNotFoundResponse({

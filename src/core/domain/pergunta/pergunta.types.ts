@@ -5,6 +5,12 @@ import type { EnumTipoInput } from '../../shared-kernel/enums/enumTipoInput';
  * Tipos de domínio para Pergunta.
  * Não depende de TypeORM, Nest ou outras libs de infraestrutura.
  */
+export interface PerguntaCondicao {
+  pergunta_id_origem: number;
+  operador: 'equals' | 'notEquals' | 'includes' | 'notIncludes';
+  valor: string | string[];
+}
+
 export interface PerguntaData {
   id: number;
   stepId: number;
@@ -14,5 +20,7 @@ export interface PerguntaData {
   opcoes?: string[] | null;
   tipoFormatacao?: EnumInputFormat | null;
   dadoId?: number | null;
+  ordem?: number;
+  condicao?: PerguntaCondicao | null;
 }
 

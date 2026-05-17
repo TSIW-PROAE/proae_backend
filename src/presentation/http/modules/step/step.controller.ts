@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -17,7 +18,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { errorExamples } from 'src/common/swagger/error-examples';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
+import { Roles } from 'src/common/decorators/roles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
+import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
+import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { CloneFormularioDto, CloneFormularioResponseDto } from './dto/clone-formulario.dto';
 import { CreateStepDto } from './dto/create-step.dto';
+import { ReorderStepsDto } from './dto/reorder-steps.dto';
 import { AnswerStepResponseDto } from './dto/response-step.dto';
 import { StepSimpleResponseDto } from './dto/step-simple-response.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
@@ -29,6 +39,9 @@ export class StepController {
   constructor(private readonly stepService: StepService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: 'Criar um novo step' })
   @ApiCreatedResponse({
     type: StepSimpleResponseDto,
@@ -44,6 +57,47 @@ export class StepController {
   })
   async create(@Body() createStepDto: CreateStepDto) {
     return this.stepService.create(createStepDto);
+  }
+
+  @Post('edital/:id/clonar-formulario')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
+  @ApiOperation({
+    summary:
+      'Clonar formulário (steps + perguntas) de outro edital para este edital',
+  })
+  @ApiCreatedResponse({
+    type: CloneFormularioResponseDto,
+    description: 'Formulário clonado com sucesso',
+  })
+  async cloneFormulario(
+    @Param('id', ParseIntPipe) editalAlvoId: number,
+    @Body() dto: CloneFormularioDto,
+  ): Promise<CloneFormularioResponseDto> {
+    return this.stepService.cloneFormulario(
+      editalAlvoId,
+      dto.edital_origem_id,
+      dto.substituir_existente ?? false,
+    );
+  }
+
+  @Patch('edital/:id/reordenar')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
+  @ApiOperation({
+    summary: 'Reordenar steps de um edital (sem excluir/recriar registros)',
+  })
+  @ApiOkResponse({
+    description: 'Steps reordenados com sucesso',
+    schema: { example: { message: 'Steps reordenados com sucesso' } },
+  })
+  async reorderByEdital(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReorderStepsDto,
+  ) {
+    return this.stepService.reorderByEdital(id, dto);
   }
 
   @Get('edital/:id/with-perguntas')
@@ -91,6 +145,9 @@ export class StepController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: 'Atualizar um step' })
   @ApiOkResponse({
     type: StepSimpleResponseDto,
@@ -112,6 +169,9 @@ export class StepController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: 'Remover um step' })
   @ApiOkResponse({ description: 'Step removido com sucesso' })
   @ApiNotFoundResponse({

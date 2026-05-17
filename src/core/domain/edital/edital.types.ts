@@ -56,4 +56,11 @@ export interface UpdateEditalData {
   edital_url?: EditalUrlItem[];
   etapa_edital?: EtapaEditalItem[];
   nivel_academico?: string;
+  /**
+   * Data fim de vigência do edital no portal do aluno.
+   * - `undefined`  → não altera o valor atual.
+   * - `null`       → limpa (remove a data fim).
+   * - `Date|string` → atualiza para a nova data (`YYYY-MM-DD`).
+   */
+  data_fim_vigencia?: Date | string | null;
 }

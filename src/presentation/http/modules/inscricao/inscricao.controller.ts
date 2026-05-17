@@ -460,4 +460,46 @@ export class InscricaoController {
 
     return res.send(pdfBuffer);
   }
+
+  @Get('admin/:id/pdf')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: '[Admin] PDF detalhado de uma inscrição (perguntas e respostas)',
+  })
+  async generateInscricaoDetalhePdf(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.pdfService.generateInscricaoDetalhePdf(id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="inscricao-${id}.pdf"`,
+    );
+    res.setHeader('Content-Length', buffer.length.toString());
+    return res.send(buffer);
+  }
+
+  @Get('admin/edital/:id/export.csv')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary:
+      '[Admin] Exporta inscrições do edital em CSV (uma linha por inscrição, com respostas)',
+    description:
+      'CSV em UTF-8 com BOM, separador ";". Inclui dados do aluno e cada pergunta como uma coluna.',
+  })
+  async exportInscricoesEditalCsv(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const csv = await this.inscricaoService.exportInscricoesEditalCsv(id);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="inscricoes-edital-${id}.csv"`,
+    );
+    return res.send(csv);
+  }
 }

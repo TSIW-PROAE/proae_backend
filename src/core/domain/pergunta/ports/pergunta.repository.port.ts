@@ -8,5 +8,9 @@ export interface IPerguntaRepository {
   create(data: Omit<PerguntaData, 'id'>): Promise<PerguntaData>;
   update(id: number, data: Partial<Omit<PerguntaData, 'id' | 'stepId'>>): Promise<PerguntaData>;
   remove(id: number): Promise<void>;
+  reorderByStep(
+    stepId: number,
+    updates: { id: number; ordem: number }[],
+  ): Promise<void>;
 }
 
