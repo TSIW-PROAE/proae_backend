@@ -194,10 +194,9 @@ export class EditalTypeOrmRepository implements IEditalRepository {
       },
       relations: ['vagas'],
       order: {
-        // ABERTO primeiro (alfabeticamente "Edital em aberto" não é o
-        // primeiro), por isso usamos updated_at como desempate; o front
-        // pode reordenar, se quiser, baseado no status.
-        updated_at: 'DESC',
+        // Edital não expõe `updated_at` na entidade TypeORM; `id` DESC
+        // tende a listar os cadastros mais recentes primeiro.
+        id: 'DESC',
       },
     });
     return list.map((e) => {
