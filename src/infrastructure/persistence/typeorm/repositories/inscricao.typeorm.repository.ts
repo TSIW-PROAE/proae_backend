@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, In, Repository } from 'typeorm';
+import { Brackets, EntityManager, In, Repository } from 'typeorm';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Aluno } from '../entities/aluno/aluno.entity';
 import { Usuario } from '../entities/usuarios/usuario.entity';
@@ -8,9 +8,9 @@ import { Vagas } from '../entities/vagas/vagas.entity';
 import { Edital } from '../entities/edital/edital.entity';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
 import { Resposta } from '../entities/resposta/resposta.entity';
-import { StatusEdital } from '../../../../core/shared-kernel/enums/enumStatusEdital';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
 import { StatusInscricao } from '../../../../core/shared-kernel/enums/enumStatusInscricao';
+import { StatusBeneficioEdital } from '../../../../core/shared-kernel/enums/enumStatusBeneficioEdital';
 import type {
   InscricaoComPendenciasItem,
   CreateInscricaoCommand,
@@ -25,6 +25,132 @@ import {
   inscricaoTemRespostaPrecisandoAjuste,
   respostaPrecisaAjuste,
 } from '../../../../core/domain/resposta/resposta-ajuste.policy';
+
+type EtapaEditalLike = {
+  etapa?: string;
+  tipo_etapa?: string;
+  data_inicio?: Date | string;
+  data_fim?: Date | string;
+};
+
+function normalizeText(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function toDateOnlyStart(value: unknown): Date | null {
+  const s = String(value ?? '').trim();
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function toDateOnlyEnd(value: unknown): Date | null {
+  const s = String(value ?? '').trim();
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) {
+    const d = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      23,
+      59,
+      59,
+      999,
+    );
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function isNowInsideEtapa(etapa: EtapaEditalLike, now = new Date()): boolean {
+  const ini = toDateOnlyStart(etapa.data_inicio);
+  const fim = toDateOnlyEnd(etapa.data_fim);
+  if (!ini || !fim) return false;
+  return now.getTime() >= ini.getTime() && now.getTime() <= fim.getTime();
+}
+
+function etapaTipoMatches(
+  etapa: EtapaEditalLike,
+  expectedTipos: string[],
+): boolean {
+  const tipo = normalizeText(etapa.tipo_etapa);
+  if (!tipo) return false;
+  const normalizedExpected = expectedTipos.map((t) => normalizeText(t));
+  return normalizedExpected.some((et) => tipo === et || tipo.includes(et));
+}
+
+function findEtapaByTipoOrKeywords(
+  etapas: unknown,
+  opts: { tipos?: string[]; keywords?: string[] },
+): EtapaEditalLike | null {
+  if (!Array.isArray(etapas) || etapas.length === 0) return null;
+  const normalizedKeywords = (opts.keywords ?? [])
+    .map((k) => normalizeText(k))
+    .filter(Boolean);
+  const tipos = opts.tipos ?? [];
+
+  for (const item of etapas) {
+    if (!item || typeof item !== 'object') continue;
+    const etapa = item as EtapaEditalLike;
+    if (tipos.length > 0 && etapaTipoMatches(etapa, tipos)) {
+      return etapa;
+    }
+  }
+
+  for (const item of etapas) {
+    if (!item || typeof item !== 'object') continue;
+    const etapa = item as EtapaEditalLike;
+    const nome = normalizeText(etapa.etapa);
+    if (!nome) continue;
+    if (normalizedKeywords.some((k) => nome.includes(k))) return etapa;
+  }
+  return null;
+}
+
+function findEtapaInscricao(etapas: unknown): EtapaEditalLike | null {
+  return findEtapaByTipoOrKeywords(etapas, {
+    tipos: ['INSCRICAO'],
+    keywords: ['inscricao', 'solicitacao', 'submissao'],
+  });
+}
+
+function findEtapaAjustes(etapas: unknown): EtapaEditalLike | null {
+  return findEtapaByTipoOrKeywords(etapas, {
+    tipos: ['AJUSTES', 'COMPLEMENTACAO'],
+    keywords: ['ajuste', 'complemento', 'correcao', 'pendencia'],
+  });
+}
+
+function isInscricaoDisponivel(edital: Edital): boolean {
+  const etapaInscricao = findEtapaInscricao(edital.etapa_edital);
+  const dentroDaJanela = etapaInscricao ? isNowInsideEtapa(etapaInscricao) : false;
+  return edital.inscricoes_abertas === true || dentroDaJanela;
+}
+
+function isAjusteDisponivel(edital: Edital): boolean {
+  const etapaAjustes = findEtapaAjustes(edital.etapa_edital);
+  const etapaFallbackInscricao = etapaAjustes
+    ? null
+    : findEtapaInscricao(edital.etapa_edital);
+  const etapaBase = etapaAjustes ?? etapaFallbackInscricao;
+  const dentroDaJanela = etapaBase ? isNowInsideEtapa(etapaBase) : false;
+  return edital.ajustes_abertos === true || dentroDaJanela;
+}
 
 @Injectable()
 export class InscricaoTypeOrmRepository implements IInscricaoRepository {
@@ -142,8 +268,14 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       console.warn('[Inscricao] Vaga não encontrada: vaga_id=', cmd.vaga_id);
       throw new Error('Vaga não encontrada');
     }
-    if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
-      throw new Error('Edital não está aberto para inscrições');
+    const etapaInscricao = findEtapaInscricao(vagaExists.edital.etapa_edital);
+    if (!isInscricaoDisponivel(vagaExists.edital)) {
+      if (etapaInscricao && !isNowInsideEtapa(etapaInscricao)) {
+        throw new Error(
+          'As inscrições estão fora do período definido no cronograma do edital.',
+        );
+      }
+      throw new Error('As inscrições deste edital estão fechadas no momento.');
     }
 
     if (alunoExists.nivel_academico !== vagaExists.edital.nivel_academico) {
@@ -152,70 +284,87 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       );
     }
 
-    if (!vagaExists.edital.is_formulario_geral) {
-      const editalFG = await this.editalRepository.findOne({
-        where: {
-          is_formulario_geral: true,
-          nivel_academico: alunoExists.nivel_academico,
-        },
-        relations: ['vagas'],
-      });
-      if (editalFG?.vagas?.length) {
-        const vagaIdsFG = editalFG.vagas.map((v) => v.id);
-        const inscricaoFG = await this.inscricaoRepository.findOne({
-          where: {
-            aluno: { aluno_id: alunoExists.aluno_id },
-            vagas: { id: In(vagaIdsFG) },
-            status_inscricao: StatusInscricao.APROVADA,
-          },
-        });
-        if (!inscricaoFG) {
-          throw new Error(
-            'É necessário ter o Formulário Geral preenchido e aprovado para se inscrever em outros editais/benefícios.',
-          );
-        }
+    if (vagaExists.edital.is_formulario_renovacao) {
+      const beneficioAlvo = String(vagaExists.beneficio ?? '').trim().toLowerCase();
+      const alunoId = alunoExists.aluno_id;
+
+      const beneficioElegivel = await this.inscricaoRepository
+        .createQueryBuilder('inscricao')
+        .innerJoin('inscricao.vagas', 'vaga_historico')
+        .innerJoin('vaga_historico.edital', 'edital_historico')
+        .where('inscricao.aluno_id = :alunoId', { alunoId })
+        .andWhere('inscricao.status_inscricao = :statusAprovada', {
+          statusAprovada: StatusInscricao.APROVADA,
+        })
+        .andWhere('inscricao.status_beneficio_edital = :statusBeneficiario', {
+          statusBeneficiario: StatusBeneficioEdital.BENEFICIARIO,
+        })
+        .andWhere('edital_historico.is_formulario_renovacao = false')
+        .andWhere('edital_historico.nivel_academico = :nivel', {
+          nivel: alunoExists.nivel_academico,
+        })
+        .andWhere(
+          new Brackets((qb) => {
+            qb.where('LOWER(TRIM(vaga_historico.beneficio)) = :beneficioEq', {
+              beneficioEq: beneficioAlvo,
+            }).orWhere('LOWER(vaga_historico.beneficio) LIKE :beneficioLike', {
+              beneficioLike: `%${beneficioAlvo}%`,
+            });
+          }),
+        )
+        .getCount();
+
+      if (beneficioElegivel <= 0) {
+        throw new Error(
+          'Para solicitar renovação, você precisa ter este benefício homologado em edital anterior.',
+        );
       }
     }
 
-    if (
-      !vagaExists.edital.is_formulario_geral &&
-      !vagaExists.edital.is_formulario_renovacao
-    ) {
-      const editalRenov = await this.editalRepository.findOne({
+    if (!vagaExists.edital.is_formulario_renovacao) {
+      const editaisRenovacao = await this.editalRepository.find({
         where: {
           is_formulario_renovacao: true,
-          status_edital: StatusEdital.ABERTO,
           nivel_academico: alunoExists.nivel_academico,
         },
         relations: ['vagas'],
       });
-      if (editalRenov?.vagas?.length) {
-        const algumaAprovadaNivel = await this.inscricaoRepository
-          .createQueryBuilder('i')
-          .innerJoin('i.aluno', 'aluno')
-          .innerJoin('i.vagas', 'v')
-          .innerJoin('v.edital', 'e')
-          .where('aluno.aluno_id = :aid', { aid: alunoExists.aluno_id })
-          .andWhere('i.status_inscricao = :st', {
-            st: StatusInscricao.APROVADA,
-          })
-          .andWhere('e.nivel_academico = :nivel', {
-            nivel: alunoExists.nivel_academico,
-          })
-          .andWhere('e.is_formulario_renovacao = false')
-          .getOne();
-        if (algumaAprovadaNivel) {
-          const vagaRenovIds = editalRenov.vagas.map((v) => v.id);
-          const renovacaoOk = await this.inscricaoRepository.findOne({
+
+      const editalRenovacaoAberto =
+        editaisRenovacao.find((editalRenov) => isInscricaoDisponivel(editalRenov)) ??
+        null;
+
+      const renovacaoEmJanelaInscricao = !!editalRenovacaoAberto;
+
+      if (renovacaoEmJanelaInscricao && editalRenovacaoAberto?.vagas?.length) {
+        const vagaIdsRenovacao = editalRenovacaoAberto.vagas.map((v) => v.id);
+        const renovacaoAprovada = await this.inscricaoRepository.findOne({
+          where: {
+            aluno: { aluno_id: alunoExists.aluno_id },
+            vagas: { id: In(vagaIdsRenovacao) },
+            status_inscricao: StatusInscricao.APROVADA,
+          },
+        });
+
+        if (!renovacaoAprovada) {
+          const historicoAprovadoEmBeneficio = await this.inscricaoRepository.findOne({
             where: {
               aluno: { aluno_id: alunoExists.aluno_id },
               status_inscricao: StatusInscricao.APROVADA,
-              vagas: { id: In(vagaRenovIds) },
+              vagas: {
+                edital: {
+                  is_formulario_renovacao: false,
+                  nivel_academico: alunoExists.nivel_academico,
+                },
+              },
             },
+            relations: ['vagas', 'vagas.edital'],
+            order: { id: 'DESC' },
           });
-          if (!renovacaoOk) {
+
+          if (historicoAprovadoEmBeneficio) {
             throw new Error(
-              'Há formulário de renovação aberto para o seu nível. Conclua-o e aguarde aprovação antes de novas inscrições em editais.',
+              'Há um formulário de renovação em andamento. Para voltar a se inscrever em editais de benefícios, conclua e tenha aprovação no formulário de renovação.',
             );
           }
         }
@@ -347,8 +496,10 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       throw new Error('Você não tem permissão para alterar esta inscrição');
     }
     const vagaExists = ins.vagas as Vagas;
-    if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
-      throw new Error('Edital não está aberto para correções');
+    if (!isAjusteDisponivel(vagaExists.edital)) {
+      throw new Error(
+        'Os ajustes de pendências deste edital estão fechados no momento.',
+      );
     }
     if (!inscricaoTemRespostaPrecisandoAjuste(ins)) {
       throw new Error(
@@ -493,8 +644,14 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
         relations: ['edital'],
       });
       if (!vagaExists) throw new Error('Vaga não encontrada');
-      if (vagaExists.edital.status_edital !== StatusEdital.ABERTO) {
-        throw new Error('Edital não está aberto para atualizações');
+      const etapaInscricao = findEtapaInscricao(vagaExists.edital.etapa_edital);
+      if (!isInscricaoDisponivel(vagaExists.edital)) {
+        if (etapaInscricao && !isNowInsideEtapa(etapaInscricao)) {
+          throw new Error(
+            'As inscrições estão fora do período definido no cronograma do edital.',
+          );
+        }
+        throw new Error('As inscrições deste edital estão fechadas no momento.');
       }
       inscricaoExistente.vagas = vagaExists;
     }

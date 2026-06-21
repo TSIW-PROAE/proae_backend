@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
@@ -58,6 +59,9 @@ export class StepService {
               (pergunta.tipo_formatacao ?? 'none') as keyof typeof InputFormatPlaceholders
             ];
           perguntaDto.ordem = pergunta.ordem ?? 0;
+          perguntaDto.pontuacao_validacao = Number(
+            (pergunta as any).pontuacao_validacao ?? 0,
+          );
           perguntaDto.condicao = pergunta.condicao ?? null;
 
           return perguntaDto;
@@ -202,7 +206,10 @@ export class StepService {
         substituirExistente,
       });
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       console.error('Erro ao clonar formulário:', error);

@@ -20,6 +20,7 @@ import {
 } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { Admin } from 'src/infrastructure/persistence/typeorm/entities/admin/admin.entity';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
+import { AlunoMatriculaHistorico } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno-matricula-historico.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -33,6 +34,8 @@ export class AuthService {
     private usuarioRepository: Repository<Usuario>,
     @InjectRepository(Aluno)
     private alunoRepository: Repository<Aluno>,
+    @InjectRepository(AlunoMatriculaHistorico)
+    private alunoMatriculaHistoricoRepository: Repository<AlunoMatriculaHistorico>,
     @InjectRepository(Admin)
     private adminRepository: Repository<Admin>,
     private jwtService: JwtService,
@@ -205,6 +208,45 @@ export class AuthService {
     };
   }
 
+  private async validarMatriculaDisponivel(
+    matricula: string,
+    alunoIdAtual?: number,
+  ): Promise<void> {
+    const existente = await this.alunoRepository.findOne({
+      where: { matricula },
+    });
+    if (existente && existente.aluno_id !== alunoIdAtual) {
+      throw new BadRequestException(
+        'Esta matrícula já está vinculada a outro cadastro de estudante.',
+      );
+    }
+  }
+
+  private async registrarHistoricoMatricula(
+    aluno: Aluno,
+    motivo: string,
+  ): Promise<void> {
+    const jaRegistrado = await this.alunoMatriculaHistoricoRepository.findOne({
+      where: {
+        aluno: { aluno_id: aluno.aluno_id },
+        matricula: aluno.matricula,
+      },
+      relations: ['aluno'],
+    });
+    if (jaRegistrado) return;
+
+    const historico = this.alunoMatriculaHistoricoRepository.create({
+      aluno,
+      matricula: aluno.matricula,
+      curso: aluno.curso,
+      campus: String(aluno.campus),
+      data_ingresso: aluno.data_ingresso,
+      nivel_academico: String(aluno.nivel_academico),
+      motivo,
+    });
+    await this.alunoMatriculaHistoricoRepository.save(historico);
+  }
+
   async signupAluno(dto: SignupDto) {
     try {
       const existingUsuario = await this.usuarioRepository.findOne({
@@ -214,22 +256,88 @@ export class AuthService {
       });
 
       if (existingUsuario) {
-        if (existingUsuario.aluno) {
-          throw new BadRequestException(
-            'Uma conta só pode ter um cadastro de aluno. Você já possui perfil de estudante nesta conta.',
-          );
-        }
         const senhaOk = await bcrypt.compare(dto.senha, existingUsuario.senha_hash);
         if (!senhaOk) {
           throw new BadRequestException(
             'Senha incorreta. Use a senha da sua conta para vincular o cadastro de aluno.',
           );
         }
+        const cpfInformado = cpf.mask(dto.cpf);
+        if (existingUsuario.cpf !== cpfInformado) {
+          throw new BadRequestException(
+            'O CPF informado não corresponde a esta conta. Use o CPF já vinculado ao seu login.',
+          );
+        }
+
+        if (existingUsuario.aluno) {
+          await this.validarMatriculaDisponivel(
+            dto.matricula,
+            existingUsuario.aluno.aluno_id,
+          );
+          if (existingUsuario.aluno.matricula !== dto.matricula) {
+            await this.registrarHistoricoMatricula(
+              existingUsuario.aluno,
+              'atualizacao_reingresso_signup',
+            );
+          }
+
+          existingUsuario.aluno.matricula = dto.matricula;
+          existingUsuario.aluno.curso = dto.curso;
+          existingUsuario.aluno.campus = dto.campus;
+          existingUsuario.aluno.data_ingresso = dto.data_ingresso;
+          existingUsuario.aluno.nivel_academico = dto.nivel_academico;
+          await this.alunoRepository.save(existingUsuario.aluno);
+
+          const curRoles = Array.isArray(existingUsuario.roles)
+            ? existingUsuario.roles
+            : [];
+          const rolesAtualizados = curRoles.includes(RolesEnum.ALUNO)
+            ? curRoles
+            : [...curRoles, RolesEnum.ALUNO];
+          await this.usuarioRepository.update(existingUsuario.usuario_id, {
+            roles: rolesAtualizados,
+          });
+
+          const { aguardando_confirmacao_email } =
+            await this.aplicarConfirmacaoEmailPosCadastroAluno(
+              existingUsuario.usuario_id,
+            );
+
+          return {
+            sucesso: true,
+            mensagem: aguardando_confirmacao_email
+              ? 'Enviamos um link de confirmação para seu email institucional. Abra o link para ativar seu cadastro de estudante.'
+              : 'Cadastro de aluno atualizado com sucesso.',
+            aguardando_confirmacao_email,
+            dados: {
+              aluno: {
+                usuario_id: existingUsuario.usuario_id,
+                aluno_id: existingUsuario.aluno.aluno_id,
+                matricula: existingUsuario.aluno.matricula,
+                curso: existingUsuario.aluno.curso,
+                campus: existingUsuario.aluno.campus,
+                data_ingresso: existingUsuario.aluno.data_ingresso,
+                nivel_academico: existingUsuario.aluno.nivel_academico,
+              },
+            },
+          };
+        }
+
         const matriculaEmUso = await this.alunoRepository.findOne({
           where: { matricula: dto.matricula },
           relations: ['usuario'],
         });
         if (matriculaEmUso) {
+          if (
+            matriculaEmUso.usuario?.usuario_id !== existingUsuario.usuario_id &&
+            matriculaEmUso.usuario?.cpf &&
+            matriculaEmUso.usuario.cpf !== existingUsuario.cpf
+          ) {
+            throw new BadRequestException(
+              'Esta matrícula já está vinculada a outro CPF. Faça login com a conta correta para continuar.',
+            );
+          }
+
           // Matrícula já existe. O usuário autenticado está reivindicando-a.
           // Transfere o perfil de aluno para a conta atual.
           const usuarioAnterior = matriculaEmUso.usuario;
@@ -272,6 +380,7 @@ export class AuthService {
                 curso: matriculaEmUso.curso,
                 campus: matriculaEmUso.campus,
                 data_ingresso: matriculaEmUso.data_ingresso,
+                nivel_academico: matriculaEmUso.nivel_academico,
               },
             },
           };
@@ -281,6 +390,7 @@ export class AuthService {
           curso: dto.curso,
           campus: dto.campus,
           data_ingresso: dto.data_ingresso,
+          nivel_academico: dto.nivel_academico,
           usuario: existingUsuario,
         });
         await this.alunoRepository.save(novoAluno);
@@ -308,7 +418,11 @@ export class AuthService {
       const existingCpf = await this.usuarioRepository.findOne({
         where: { cpf: cpf.mask(dto.cpf) },
       });
-      if (existingCpf) throw new BadRequestException('CPF já cadastrado');
+      if (existingCpf) {
+        throw new BadRequestException(
+          'CPF já cadastrado. Faça login para atualizar matrícula e nível acadêmico na sua conta.',
+        );
+      }
 
       const matriculaEmUso = await this.alunoRepository.findOne({
         where: { matricula: dto.matricula },
@@ -540,11 +654,18 @@ export class AuthService {
           approvalToken: token,
           approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
         });
-        await this.emailService.sendAdminApprovalRequest(
-          existingUsuario.email,
-          token,
-          perfilEscolhido,
-        );
+        try {
+          await this.emailService.sendAdminApprovalRequest(
+            existingUsuario.email,
+            token,
+            perfilEscolhido,
+          );
+        } catch (err) {
+          console.error(
+            '[signupAdmin] Cadastro salvo, mas falha ao enviar e-mail de aprovação:',
+            err,
+          );
+        }
         const currentRoles = Array.isArray(existingUsuario.roles)
           ? existingUsuario.roles
           : [];
@@ -609,11 +730,18 @@ export class AuthService {
         approvalTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       });
 
-      await this.emailService.sendAdminApprovalRequest(
-        savedUsuario.email,
-        token,
-        perfilEscolhido,
-      );
+      try {
+        await this.emailService.sendAdminApprovalRequest(
+          savedUsuario.email,
+          token,
+          perfilEscolhido,
+        );
+      } catch (err) {
+        console.error(
+          '[signupAdmin] Cadastro salvo, mas falha ao enviar e-mail de aprovação:',
+          err,
+        );
+      }
 
       return {
         sucesso: true,
@@ -638,19 +766,15 @@ export class AuthService {
 
   /**
    * Aprova um admin pendente. Quando `perfilOverride` é fornecido (link no
-   * email "Aprovar como Técnico/Gerencial/Coordenação"), o perfil escolhido
-   * sobrescreve o que o candidato havia indicado no cadastro. Sem override,
-   * mantém o perfil atual (default `gerencial` para cadastros antigos).
+   * email ou tela Equipe), o perfil escolhido sobrescreve o solicitado no cadastro.
    */
-  async approveAdmin(token: string, perfilOverride?: string | null) {
-    const admin = await this.adminRepository.findOne({
-      where: { approvalToken: token },
-      relations: ['usuario'],
-    });
-
-    if (!admin) throw new BadRequestException('Token inválido');
-    if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
-      throw new BadRequestException('Token expirado');
+  private async finalizeAdminApproval(
+    admin: Admin,
+    perfilOverride?: string | null,
+  ) {
+    if (admin.aprovado) {
+      throw new BadRequestException('Este cadastro de admin já foi aprovado.');
+    }
 
     const perfilEscolhido = parseAdminPerfil(perfilOverride ?? null);
     if (perfilEscolhido) {
@@ -664,12 +788,20 @@ export class AuthService {
 
     const emailNovoAdmin = admin.usuario?.email;
     if (emailNovoAdmin) {
-      const base = (process.env.FRONTEND_URL || '').trim().replace(/\/+$/, '') || 'http://localhost:3001';
+      const base =
+        (process.env.FRONTEND_URL || '').trim().replace(/\/+$/, '') ||
+        'http://localhost:3001';
       const loginUrl = `${base}/login`;
       try {
-        await this.emailService.sendAdminApprovedNotification(emailNovoAdmin, loginUrl);
+        await this.emailService.sendAdminApprovedNotification(
+          emailNovoAdmin,
+          loginUrl,
+        );
       } catch (err) {
-        console.error('[approveAdmin] Falha ao enviar email de aprovação ao novo admin:', err);
+        console.error(
+          '[approveAdmin] Falha ao enviar email de aprovação ao novo admin:',
+          err,
+        );
       }
     }
 
@@ -683,7 +815,7 @@ export class AuthService {
     };
   }
 
-  async rejectAdmin(token: string) {
+  async approveAdmin(token: string, perfilOverride?: string | null) {
     const admin = await this.adminRepository.findOne({
       where: { approvalToken: token },
       relations: ['usuario'],
@@ -693,10 +825,24 @@ export class AuthService {
     if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
       throw new BadRequestException('Token expirado');
 
+    return this.finalizeAdminApproval(admin, perfilOverride);
+  }
+
+  /** Aprovação pela tela Equipe (autenticado, sem token de e-mail). */
+  async approveAdminById(adminId: number, perfilOverride?: string | null) {
+    const admin = await this.adminRepository.findOne({
+      where: { id_admin: adminId },
+      relations: ['usuario'],
+    });
+    if (!admin) {
+      throw new NotFoundException('Admin não encontrado.');
+    }
+    return this.finalizeAdminApproval(admin, perfilOverride);
+  }
+
+  private async removePendingAdmin(admin: Admin) {
     const usuario = admin.usuario;
 
-    // Remove apenas o registro de Admin, NÃO o usuario inteiro
-    // (o usuario pode ter perfil de aluno também)
     await this.adminRepository.remove(admin);
 
     if (usuario) {
@@ -707,17 +853,50 @@ export class AuthService {
         roles: rolesAtualizados as RolesEnum[],
       });
 
-      // Se o usuario não tem mais nenhum perfil (nem aluno nem admin), remove a conta
       const usuarioAtualizado = await this.usuarioRepository.findOne({
         where: { usuario_id: usuario.usuario_id },
         relations: ['aluno'],
       });
-      if (usuarioAtualizado && !usuarioAtualizado.aluno && rolesAtualizados.length === 0) {
+      if (
+        usuarioAtualizado &&
+        !usuarioAtualizado.aluno &&
+        rolesAtualizados.length === 0
+      ) {
         await this.usuarioRepository.remove(usuarioAtualizado);
       }
     }
 
-    return { sucesso: true, mensagem: 'Admin rejeitado e removido' };
+    return { sucesso: true, mensagem: 'Cadastro de admin rejeitado e removido' };
+  }
+
+  async rejectAdmin(token: string) {
+    const admin = await this.adminRepository.findOne({
+      where: { approvalToken: token },
+      relations: ['usuario'],
+    });
+
+    if (!admin) throw new BadRequestException('Token inválido');
+    if (!admin.approvalTokenExpires || admin.approvalTokenExpires < new Date())
+      throw new BadRequestException('Token expirado');
+
+    return this.removePendingAdmin(admin);
+  }
+
+  /** Rejeição pela tela Equipe (autenticado). */
+  async rejectAdminById(adminId: number) {
+    const admin = await this.adminRepository.findOne({
+      where: { id_admin: adminId },
+      relations: ['usuario'],
+    });
+    if (!admin) {
+      throw new NotFoundException('Admin não encontrado.');
+    }
+    if (admin.aprovado) {
+      throw new BadRequestException(
+        'Não é possível rejeitar um admin já aprovado. Remova o acesso alterando o perfil ou contate o suporte.',
+      );
+    }
+    return this.removePendingAdmin(admin);
   }
 
   private generateRandomToken(length = 32): string {

@@ -16,6 +16,8 @@ export interface EditalUrlItem {
 
 export interface EtapaEditalItem {
   etapa: string;
+  /** Opcional: classificação semântica da etapa (ex.: INSCRICAO, RECURSO). */
+  tipo_etapa?: string;
   ordem_elemento: number;
   data_inicio: Date;
   data_fim: Date;
@@ -27,11 +29,15 @@ export interface EditalData {
   descricao?: string;
   edital_url?: EditalUrlItem[];
   status_edital: StatusEditalDomain;
+  /** Janela de inscrição aberta/fechada, independente do status do edital. */
+  inscricoes_abertas?: boolean;
+  /** Janela de ajuste de pendências aberta/fechada. */
+  ajustes_abertos?: boolean;
+  /** Quando true, representa o processo anual de renovação de benefícios. */
+  is_formulario_renovacao?: boolean;
   etapa_edital?: EtapaEditalItem[];
   /** Graduação | Pós-graduação */
   nivel_academico: string;
-  is_formulario_geral?: boolean;
-  is_formulario_renovacao?: boolean;
   data_fim_vigencia?: Date | null;
   created_at?: Date;
   updated_at?: Date;
@@ -48,6 +54,14 @@ export interface CreateEditalData {
   titulo_edital: string;
   /** Default Graduação se omitido */
   nivel_academico?: string;
+  /** Quando true, aplica template padrão de perguntas com pesos. */
+  aplicar_template_cadastro?: boolean;
+  /** Quando true, cria o edital como formulário de renovação. */
+  is_formulario_renovacao?: boolean;
+  /** Controle manual da janela de inscrição do edital. */
+  inscricoes_abertas?: boolean;
+  /** Controle manual da janela de ajustes/correções do edital. */
+  ajustes_abertos?: boolean;
 }
 
 export interface UpdateEditalData {
@@ -56,6 +70,12 @@ export interface UpdateEditalData {
   edital_url?: EditalUrlItem[];
   etapa_edital?: EtapaEditalItem[];
   nivel_academico?: string;
+  /** Permite marcar/desmarcar o edital como renovação. */
+  is_formulario_renovacao?: boolean;
+  /** Permite abrir/fechar inscrições sem alterar status do edital. */
+  inscricoes_abertas?: boolean;
+  /** Permite abrir/fechar ajustes de pendências sem alterar status do edital. */
+  ajustes_abertos?: boolean;
   /**
    * Data fim de vigência do edital no portal do aluno.
    * - `undefined`  → não altera o valor atual.

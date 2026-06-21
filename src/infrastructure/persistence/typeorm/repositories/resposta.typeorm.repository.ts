@@ -141,10 +141,11 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
       };
     }
 
+    const vagaIds = vagas.map((v) => v.id);
     const inscricoes = await this.inscricaoRepository.find({
       where: {
         aluno: { aluno_id: alunoId },
-        vagas: { id: vagas[0].id },
+        vagas: { id: In(vagaIds) },
       },
       relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
     });
@@ -210,10 +211,11 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
       };
     }
 
+    const vagaIds = vagas.map((v) => v.id);
     const inscricoes = await this.inscricaoRepository.find({
       where: {
         aluno: { aluno_id: alunoId },
-        vagas: { id: vagas[0].id },
+        vagas: { id: In(vagaIds) },
       },
       relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
     });
@@ -387,10 +389,11 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
       };
     }
 
+    const vagaIds = vagas.map((v) => v.id);
     const inscricoes = await this.inscricaoRepository.find({
       where: {
         aluno: { aluno_id: alunoId },
-        vagas: { id: vagas[0].id },
+        vagas: { id: In(vagaIds) },
       },
       relations: ['respostas', 'respostas.pergunta', 'respostas.pergunta.step'],
     });
@@ -574,7 +577,7 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
 
     const steps = await this.stepRepository.find({
       where: { edital: { id: editalId } },
-      order: { id: 'ASC' },
+      order: { ordem: 'ASC', id: 'ASC' },
     });
 
     if (!steps.length) {
@@ -610,6 +613,7 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
           aluno: { aluno_id: alunoId },
           vagas: { id: In(vagaIds) },
         },
+        order: { id: 'DESC' },
       });
       inscricaoAtual = inscricoes.length > 0 ? inscricoes[0] : null;
     }
@@ -617,6 +621,16 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
     const stepsComDados: Array<{
       step: { id: number; texto: string };
       status: string;
+      pendencias: {
+        totalPerguntas: number;
+        totalRespondidas: number;
+        totalPendentes: number;
+        totalValidadas: number;
+        totalCorrecoesSolicitadas: number;
+        totalAguardandoComplemento: number;
+        totalPrazoVencido: number;
+        totalInvalidadas: number;
+      };
       perguntas: unknown[];
     }> = [];
 
@@ -630,10 +644,12 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
         perguntas: Array<{ pergunta: unknown; resposta: Record<string, unknown> | null }>;
       };
       const perguntas = dados.perguntas ?? [];
+      const pendencias = this.computeStepMetrics(perguntas);
       const status = this.computeStepStatus(perguntas);
       stepsComDados.push({
         step: { id: step.id, texto: step.texto },
         status,
+        pendencias,
         perguntas,
       });
     }
@@ -728,39 +744,89 @@ export class RespostaTypeOrmRepository implements IRespostaRepository {
   private computeStepStatus(
     perguntas: Array<{ resposta: Record<string, unknown> | null }>,
   ): string {
-    if (!perguntas.length) return 'EM_ANDAMENTO';
-
-    const todasValidadas = perguntas.every(
-      (pr) => pr.resposta !== null && pr.resposta?.validada === true,
-    );
-    const algumaAguardandoNovaPergunta = perguntas.some(
-      (pr) =>
-        pr.resposta !== null &&
-        pr.resposta?.aguardandoRespostaNovaPergunta === true,
-    );
-    const algumaPendenteReenvio = perguntas.some(
-      (pr) => pr.resposta !== null && pr.resposta?.requerReenvio === true,
-    );
-    const algumaInvalidadaSemReenvio = perguntas.some(
-      (pr) =>
-        pr.resposta !== null &&
-        pr.resposta?.invalidada === true &&
-        pr.resposta?.requerReenvio === false,
-    );
-    const algumaPrazoComplementoExpirado = perguntas.some(
-      (pr) =>
-        pr.resposta !== null &&
-        pr.resposta?.aguardandoRespostaNovaPergunta === true &&
-        pr.resposta?.prazoRespostaNovaPergunta != null &&
-        new Date(String(pr.resposta.prazoRespostaNovaPergunta)) < new Date(),
-    );
-
-    if (todasValidadas) return 'CONCLUIDO';
-    if (algumaPrazoComplementoExpirado) return 'PRAZO_COMPLEMENTO_EXPIRADO';
-    if (algumaAguardandoNovaPergunta) return 'AGUARDANDO_COMPLEMENTO';
-    if (algumaPendenteReenvio) return 'PENDENTE_REGULARIZACAO';
-    if (algumaInvalidadaSemReenvio) return 'REJEITADO';
+    const metricas = this.computeStepMetrics(perguntas);
+    if (
+      metricas.totalPerguntas > 0 &&
+      metricas.totalValidadas === metricas.totalPerguntas
+    ) {
+      return 'CONCLUIDO';
+    }
+    if (metricas.totalPrazoVencido > 0) return 'PRAZO_COMPLEMENTO_EXPIRADO';
+    if (metricas.totalAguardandoComplemento > 0) return 'AGUARDANDO_COMPLEMENTO';
+    if (metricas.totalCorrecoesSolicitadas > 0) return 'PENDENTE_REGULARIZACAO';
+    if (metricas.totalInvalidadas > 0) return 'REJEITADO';
     return 'EM_ANDAMENTO';
+  }
+
+  private computeStepMetrics(
+    perguntas: Array<{ resposta: Record<string, unknown> | null }>,
+  ) {
+    const agora = Date.now();
+    const totalPerguntas = perguntas.length;
+    let totalRespondidas = 0;
+    let totalPendentes = 0;
+    let totalValidadas = 0;
+    let totalCorrecoesSolicitadas = 0;
+    let totalAguardandoComplemento = 0;
+    let totalPrazoVencido = 0;
+    let totalInvalidadas = 0;
+
+    for (const pergunta of perguntas) {
+      const resposta = pergunta.resposta;
+      if (!resposta) {
+        totalPendentes += 1;
+        continue;
+      }
+
+      const hasTexto =
+        typeof resposta.valorTexto === 'string' &&
+        resposta.valorTexto.trim().length > 0;
+      const hasArquivo =
+        typeof resposta.urlArquivo === 'string' &&
+        resposta.urlArquivo.trim().length > 0;
+      const hasOpcoes =
+        Array.isArray(resposta.valorOpcoes) &&
+        resposta.valorOpcoes.length > 0;
+      const respondeu = hasTexto || hasArquivo || hasOpcoes;
+
+      if (respondeu) totalRespondidas += 1;
+      if (resposta.validada === true) totalValidadas += 1;
+
+      const aguardandoComplemento =
+        resposta.aguardandoRespostaNovaPergunta === true;
+      if (aguardandoComplemento) totalAguardandoComplemento += 1;
+
+      if (
+        aguardandoComplemento &&
+        resposta.prazoRespostaNovaPergunta != null &&
+        new Date(String(resposta.prazoRespostaNovaPergunta)).getTime() < agora
+      ) {
+        totalPrazoVencido += 1;
+      }
+
+      const invalidada = resposta.invalidada === true;
+      const requerReenvio = resposta.requerReenvio === true;
+      if (invalidada) totalInvalidadas += 1;
+      if (invalidada && requerReenvio) totalCorrecoesSolicitadas += 1;
+
+      const pendente =
+        !respondeu ||
+        (resposta.validada !== true && !invalidada) ||
+        (invalidada && requerReenvio) ||
+        aguardandoComplemento;
+      if (pendente) totalPendentes += 1;
+    }
+
+    return {
+      totalPerguntas,
+      totalRespondidas,
+      totalPendentes,
+      totalValidadas,
+      totalCorrecoesSolicitadas,
+      totalAguardandoComplemento,
+      totalPrazoVencido,
+      totalInvalidadas,
+    };
   }
 
   private toRespostaData(entity: Resposta): RespostaData {

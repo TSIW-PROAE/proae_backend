@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as cpfLib from 'validation-br/dist/cpf';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
 import {
   AdminPerfilEnum,
@@ -14,7 +14,9 @@ import {
   resolveAdminPerfilEfetivo,
 } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { Admin } from 'src/infrastructure/persistence/typeorm/entities/admin/admin.entity';
+import { AdminNotificacaoEmail } from 'src/infrastructure/persistence/typeorm/entities/admin/admin-notificacao-email.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
+import { AuthService } from '../auth/auth.service';
 import { AtualizaAdminDto } from './dto/atualiza-admin.dto';
 
 @Injectable()
@@ -24,6 +26,9 @@ export class AdminService {
     private readonly usuarioRepository: Repository<Usuario>,
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
+    @InjectRepository(AdminNotificacaoEmail)
+    private readonly notificacaoEmailRepository: Repository<AdminNotificacaoEmail>,
+    private readonly authService: AuthService,
   ) {}
 
   private ensureAdminRole(usuario: Usuario) {
@@ -50,6 +55,32 @@ export class AdminService {
       cpf: usuario.cpf,
       celular: usuario.celular,
       aprovado: admin?.aprovado ?? null,
+    };
+  }
+
+  private normalizePagination(page?: number, limit?: number) {
+    const normalizedPage =
+      Number.isFinite(page) && Number(page) > 0 ? Math.floor(Number(page)) : 1;
+    const normalizedLimit =
+      Number.isFinite(limit) && Number(limit) > 0
+        ? Math.min(Math.floor(Number(limit)), 100)
+        : 20;
+    return {
+      page: normalizedPage,
+      limit: normalizedLimit,
+      skip: (normalizedPage - 1) * normalizedLimit,
+    };
+  }
+
+  private buildPaginationMeta(totalItems: number, page: number, limit: number) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    return {
+      pagina: page,
+      limite: limit,
+      total_itens: totalItems,
+      total_paginas: totalPages,
+      tem_anterior: page > 1,
+      tem_proxima: page < totalPages,
     };
   }
 
@@ -185,7 +216,16 @@ export class AdminService {
    * `AdminPerfisGuard`. Aqui, por defesa em profundidade, validamos o perfil
    * do solicitante novamente.
    */
-  async listAdminsForGerencial(requesterUserId: string) {
+  async listAdminsForGerencial(
+    requesterUserId: string,
+    opts?: {
+      page?: number;
+      limit?: number;
+      busca?: string;
+      perfil?: string;
+      aprovado?: boolean;
+    },
+  ) {
     const requester = await this.usuarioRepository.findOne({
       where: { usuario_id: requesterUserId },
       relations: ['admin'],
@@ -203,10 +243,70 @@ export class AdminService {
       );
     }
 
-    const admins = await this.adminRepository.find({
-      relations: ['usuario'],
-      order: { id_admin: 'ASC' },
-    });
+    const pagination = this.normalizePagination(opts?.page, opts?.limit);
+    const busca = opts?.busca?.trim().toLowerCase();
+    const perfilFiltro = parseAdminPerfil(opts?.perfil);
+    const aprovadoFiltro =
+      typeof opts?.aprovado === 'boolean' ? opts.aprovado : undefined;
+
+    const baseQb = this.adminRepository
+      .createQueryBuilder('admin')
+      .innerJoinAndSelect('admin.usuario', 'usuario');
+
+    if (perfilFiltro) {
+      baseQb.andWhere('admin.perfil = :perfilFiltro', { perfilFiltro });
+    }
+
+    if (busca) {
+      baseQb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('LOWER(usuario.nome) LIKE :busca', { busca: `%${busca}%` })
+            .orWhere('LOWER(usuario.email) LIKE :busca', {
+              busca: `%${busca}%`,
+            })
+            .orWhere('LOWER(admin.cargo) LIKE :busca', { busca: `%${busca}%` });
+        }),
+      );
+    }
+
+    const resumoRaw = await baseQb
+      .clone()
+      .select('admin.aprovado', 'aprovado')
+      .addSelect('COUNT(admin.id_admin)', 'total')
+      .groupBy('admin.aprovado')
+      .getRawMany<{ aprovado: boolean | null; total: string }>();
+
+    const filtrosQb = baseQb.clone();
+    if (aprovadoFiltro !== undefined) {
+      filtrosQb.andWhere('admin.aprovado = :aprovadoFiltro', {
+        aprovadoFiltro,
+      });
+    }
+
+    const total = await filtrosQb.clone().getCount();
+    const admins = await filtrosQb
+      .clone()
+      .orderBy('admin.id_admin', 'ASC')
+      .skip(pagination.skip)
+      .take(pagination.limit)
+      .getMany();
+
+    const isAprovado = (value: unknown): boolean =>
+      value === true || value === 'true' || value === 't' || value === 1 || value === '1';
+
+    const resumo = {
+      total_geral: resumoRaw.reduce(
+        (acc, item) => acc + Number(item.total ?? 0),
+        0,
+      ),
+      total_aprovados: resumoRaw
+        .filter((item) => isAprovado(item.aprovado))
+        .reduce((acc, item) => acc + Number(item.total ?? 0), 0),
+      total_pendentes: resumoRaw
+        .filter((item) => !isAprovado(item.aprovado))
+        .reduce((acc, item) => acc + Number(item.total ?? 0), 0),
+    };
 
     return {
       sucesso: true,
@@ -220,6 +320,12 @@ export class AdminService {
         aprovado: a.aprovado === true,
         sou_eu: a.usuario?.usuario_id === requesterUserId,
       })),
+      paginacao: this.buildPaginationMeta(
+        total,
+        pagination.page,
+        pagination.limit,
+      ),
+      resumo,
     };
   }
 
@@ -282,5 +388,160 @@ export class AdminService {
         aprovado: target.aprovado === true,
       },
     };
+  }
+
+  async approveAdminByGerencial(
+    requesterUserId: string,
+    targetAdminId: number,
+    perfilOverride?: string | null,
+  ) {
+    await this.assertGerencial(requesterUserId);
+    return this.authService.approveAdminById(targetAdminId, perfilOverride);
+  }
+
+  async rejectAdminByGerencial(requesterUserId: string, targetAdminId: number) {
+    await this.assertGerencial(requesterUserId);
+    return this.authService.rejectAdminById(targetAdminId);
+  }
+
+  async removeAdminPerfilByGerencial(
+    requesterUserId: string,
+    targetAdminId: number,
+  ) {
+    await this.assertGerencial(requesterUserId);
+
+    const target = await this.adminRepository.findOne({
+      where: { id_admin: targetAdminId },
+      relations: ['usuario'],
+    });
+    if (!target) {
+      throw new NotFoundException('Admin não encontrado.');
+    }
+    if (target.usuario?.usuario_id === requesterUserId) {
+      throw new BadRequestException(
+        'Não é permitido excluir o próprio perfil administrativo.',
+      );
+    }
+
+    const perfilAlvo = resolveAdminPerfilEfetivo(target.perfil);
+    if (perfilAlvo === AdminPerfilEnum.GERENCIAL) {
+      throw new ForbiddenException(
+        'Não é permitido excluir perfil gerencial por esta rota. Restrito a perfis técnico e coordenação.',
+      );
+    }
+
+    const usuario = target.usuario;
+    await this.adminRepository.remove(target);
+
+    if (usuario) {
+      const rolesAtualizados = (usuario.roles ?? []).filter(
+        (r): r is RolesEnum => r !== RolesEnum.ADMIN,
+      );
+      await this.usuarioRepository.update(usuario.usuario_id, {
+        roles: rolesAtualizados as RolesEnum[],
+      });
+
+      const usuarioAtualizado = await this.usuarioRepository.findOne({
+        where: { usuario_id: usuario.usuario_id },
+        relations: ['admin', 'aluno'],
+      });
+      if (
+        usuarioAtualizado &&
+        !usuarioAtualizado.admin &&
+        !usuarioAtualizado.aluno &&
+        rolesAtualizados.length === 0
+      ) {
+        await this.usuarioRepository.remove(usuarioAtualizado);
+      }
+    }
+
+    return {
+      sucesso: true,
+      mensagem: 'Perfil administrativo removido com sucesso.',
+      dados: {
+        admin_id: targetAdminId,
+        perfil_removido: perfilAlvo,
+      },
+    };
+  }
+
+  async listNotificacaoEmails(requesterUserId: string) {
+    await this.assertGerencial(requesterUserId);
+    const rows = await this.notificacaoEmailRepository.find({
+      order: { id: 'ASC' },
+    });
+    const envEmails =
+      process.env.ADMINS_EMAILS?.split(',')
+        .map((e) => e.trim())
+        .filter(Boolean) ?? [];
+    return {
+      sucesso: true,
+      dados: {
+        emails: rows.map((r) => ({
+          id: r.id,
+          email: r.email,
+          criado_em: r.criadoEm,
+        })),
+        usa_banco: rows.length > 0,
+        emails_ambiente: rows.length === 0 ? envEmails : [],
+      },
+    };
+  }
+
+  async addNotificacaoEmail(requesterUserId: string, email: string) {
+    await this.assertGerencial(requesterUserId);
+    const normalizado = email.trim().toLowerCase();
+    const existente = await this.notificacaoEmailRepository.findOne({
+      where: { email: normalizado },
+    });
+    if (existente) {
+      throw new BadRequestException('Este e-mail já está na lista de notificações.');
+    }
+    const salvo = await this.notificacaoEmailRepository.save(
+      this.notificacaoEmailRepository.create({ email: normalizado }),
+    );
+    return {
+      sucesso: true,
+      mensagem: 'E-mail adicionado à lista de notificações.',
+      dados: {
+        id: salvo.id,
+        email: salvo.email,
+        criado_em: salvo.criadoEm,
+      },
+    };
+  }
+
+  async removeNotificacaoEmail(requesterUserId: string, emailId: number) {
+    await this.assertGerencial(requesterUserId);
+    const row = await this.notificacaoEmailRepository.findOne({
+      where: { id: emailId },
+    });
+    if (!row) {
+      throw new NotFoundException('E-mail de notificação não encontrado.');
+    }
+    await this.notificacaoEmailRepository.remove(row);
+    return {
+      sucesso: true,
+      mensagem: 'E-mail removido da lista de notificações.',
+    };
+  }
+
+  private async assertGerencial(requesterUserId: string) {
+    const requester = await this.usuarioRepository.findOne({
+      where: { usuario_id: requesterUserId },
+      relations: ['admin'],
+    });
+    if (!requester) {
+      throw new NotFoundException('Usuário solicitante não encontrado.');
+    }
+    this.ensureAdminRole(requester);
+    const perfilSolicitante = resolveAdminPerfilEfetivo(
+      requester.admin?.perfil,
+    );
+    if (perfilSolicitante !== AdminPerfilEnum.GERENCIAL) {
+      throw new ForbiddenException(
+        'Apenas perfis gerenciais podem executar esta ação.',
+      );
+    }
   }
 }

@@ -2,7 +2,6 @@ function resolveBaseUrl(): string {
   let baseUrl = (process.env.BACKEND_URL || 'http://localhost:3000')
     .trim()
     .replace(/\/+$/, '');
-  // Em localhost, usar sempre HTTP (backend não tem SSL em dev) para evitar ERR_SSL_PROTOCOL_ERROR
   try {
     const u = new URL(baseUrl);
     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
@@ -26,6 +25,35 @@ function labelPerfil(p?: string | null): string {
   return PERFIL_LABELS[k] ?? 'Não informado';
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function emailActionButton(
+  href: string,
+  label: string,
+  variant: 'primary' | 'secondary' | 'danger' = 'primary',
+): string {
+  const styles: Record<'primary' | 'secondary' | 'danger', string> = {
+    primary:
+      'background:linear-gradient(135deg,#183b4e,#2c5f75);color:#ffffff;border:1px solid #183b4e;',
+    secondary:
+      'background:#f8fafc;color:#183b4e;border:1px solid #cbd5e1;',
+    danger:
+      'background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;',
+  };
+
+  return `
+    <a href="${href}" style="display:block;text-decoration:none;padding:13px 18px;border-radius:8px;font-weight:600;font-size:14px;text-align:center;margin:0 0 10px;${styles[variant]}">
+      ${label}
+    </a>
+  `.trim();
+}
+
 export function adminApprovalTemplate(
   emailNovoAdmin: string,
   token: string,
@@ -38,26 +66,73 @@ export function adminApprovalTemplate(
   const approveAsTecnico = `${approveBase}?perfil=tecnico`;
   const approveAsGerencial = `${approveBase}?perfil=gerencial`;
   const approveAsCoordenacao = `${approveBase}?perfil=coordenacao`;
-  // Mantém a aprovação "padrão" (usa o que o candidato escolheu) para compatibilidade
   const approveDefault = approveBase;
 
+  const emailSafe = escapeHtml(emailNovoAdmin);
+  const perfilSafe = escapeHtml(labelPerfil(perfilPretendido));
+
   return `
-    <h2>Pedido de Cadastro de Novo Admin</h2>
-    <p>Um novo administrador solicitou acesso ao sistema com o email: <b>${emailNovoAdmin}</b>.</p>
-    <p>Perfil de acesso solicitado pelo candidato: <b>${labelPerfil(perfilPretendido)}</b>.</p>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedido de Cadastro - PROAE</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f4f4f4;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+    <div style="background:linear-gradient(135deg,#183b4e 0%,#2c5f75 100%);padding:24px;text-align:center;">
+      <h1 style="color:#ffffff;margin:0;font-size:24px;">PROAE - UFBA</h1>
+      <p style="color:#e8ebf7;margin:8px 0 0;font-size:14px;">Pedido de cadastro de servidor</p>
+    </div>
 
-    <h3 style="margin-top:24px;">Aprovar</h3>
-    <p>Você pode confirmar o perfil solicitado ou escolher outro:</p>
-    <ul style="line-height:1.8;">
-      <li><a href="${approveDefault}">✅ Aprovar mantendo o perfil solicitado</a></li>
-      <li><a href="${approveAsTecnico}">👤 Aprovar como <b>Técnico</b> (análise)</a></li>
-      <li><a href="${approveAsGerencial}">🛠️ Aprovar como <b>Gerencial</b> (gestão de editais)</a></li>
-      <li><a href="${approveAsCoordenacao}">📊 Aprovar como <b>Coordenação</b> (somente consulta)</a></li>
-    </ul>
+    <div style="padding:32px 24px;">
+      <h2 style="color:#2c3e50;margin:0 0 16px;font-size:20px;">Nova solicitação de acesso</h2>
+      <p style="color:#555;line-height:1.6;margin:0 0 20px;">
+        Um novo servidor solicitou acesso ao painel administrativo do sistema. Revise os dados abaixo e escolha uma ação.
+      </p>
 
-    <h3 style="margin-top:24px;">Rejeitar</h3>
-    <p><a href="${rejectUrl}">❌ Rejeitar este pedido</a></p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;margin:0 0 28px;">
+        <p style="margin:0 0 10px;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">
+          Dados do solicitante
+        </p>
+        <p style="margin:0 0 8px;color:#334155;font-size:14px;line-height:1.5;">
+          <strong style="color:#183b4e;">E-mail:</strong> ${emailSafe}
+        </p>
+        <p style="margin:0;color:#334155;font-size:14px;line-height:1.5;">
+          <strong style="color:#183b4e;">Perfil solicitado:</strong> ${perfilSafe}
+        </p>
+      </div>
 
-    <p style="margin-top:24px;color:#475569;font-size:12px;">Esse link expira em 24 horas. Após a aprovação, o perfil ainda pode ser alterado por qualquer admin gerencial na tela "Equipe PROAE".</p>
-  `;
+      <h3 style="color:#183b4e;margin:0 0 8px;font-size:16px;">Aprovar cadastro</h3>
+      <p style="color:#555;line-height:1.6;margin:0 0 14px;font-size:14px;">
+        Confirme o perfil indicado pelo candidato ou selecione outro perfil de acesso:
+      </p>
+
+      ${emailActionButton(approveDefault, 'Aprovar com o perfil solicitado', 'primary')}
+      ${emailActionButton(approveAsTecnico, 'Aprovar como Técnico (análise)', 'secondary')}
+      ${emailActionButton(approveAsGerencial, 'Aprovar como Gerencial (editais e equipe)', 'secondary')}
+      ${emailActionButton(approveAsCoordenacao, 'Aprovar como Coordenação (consulta)', 'secondary')}
+
+      <div style="border-top:1px solid #e2e8f0;margin:24px 0;"></div>
+
+      <h3 style="color:#b91c1c;margin:0 0 8px;font-size:16px;">Rejeitar pedido</h3>
+      <p style="color:#555;line-height:1.6;margin:0 0 14px;font-size:14px;">
+        Caso a solicitação não deva ser homologada, utilize a opção abaixo:
+      </p>
+      ${emailActionButton(rejectUrl, 'Rejeitar este pedido', 'danger')}
+
+      <p style="color:#64748b;font-size:12px;line-height:1.6;margin:24px 0 0;padding:14px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+        Os endereços de ação expiram em <strong>24 horas</strong>. Após a aprovação, o perfil ainda pode ser alterado por um administrador gerencial na tela <strong>Equipe PROAE</strong>.
+      </p>
+    </div>
+
+    <div style="background:#2c3e50;color:#bdc3c7;padding:20px;text-align:center;font-size:12px;line-height:1.5;">
+      PROAE - UFBA · Pró-Reitoria de Ações Afirmativas e Assistência Estudantil<br>
+      Este é um e-mail automático. Não responda a esta mensagem.
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
 }

@@ -18,23 +18,6 @@ const STATUS_MAP: Record<string, StatusEditalDomain> = {
   EM_ANDAMENTO: 'EM_ANDAMENTO',
 };
 
-/** Regras de negócio: edital completo para ABERTO/EM_ANDAMENTO; ENCERRADO só de ABERTO/EM_ANDAMENTO */
-function isEditalComplete(edital: {
-  titulo_edital?: string;
-  descricao?: string;
-  edital_url?: unknown[];
-  etapa_edital?: unknown[];
-}): boolean {
-  return !!(
-    edital.titulo_edital &&
-    edital.descricao &&
-    edital.edital_url &&
-    edital.edital_url.length > 0 &&
-    edital.etapa_edital &&
-    edital.etapa_edital.length > 0
-  );
-}
-
 @Injectable()
 export class UpdateEditalStatusUseCase {
   constructor(
@@ -57,14 +40,6 @@ export class UpdateEditalStatusUseCase {
     }
 
     const statusAtual = edital.status_edital;
-
-    if (novoStatus === 'ABERTO' || novoStatus === 'EM_ANDAMENTO') {
-      if (!isEditalComplete(edital)) {
-        throw new StatusEditalInvalidoError(
-          'Para alterar o status para ABERTO ou EM_ANDAMENTO, todos os dados do edital devem estar preenchidos',
-        );
-      }
-    }
 
     if (novoStatus === 'ENCERRADO') {
       if (statusAtual !== 'ABERTO' && statusAtual !== 'EM_ANDAMENTO') {

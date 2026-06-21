@@ -3,6 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsIn,
   IsInt,
@@ -12,6 +13,7 @@ import {
   IsString,
   MaxLength,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
@@ -21,6 +23,7 @@ export class PerguntaCondicaoDto {
   @ApiProperty({
     description: 'ID da pergunta cuja resposta determina a exibição',
   })
+  @Type(() => Number)
   @IsInt()
   pergunta_id_origem: number;
 
@@ -65,6 +68,7 @@ export class CreatePerguntaDto {
     example: 9,
   })
   @IsNotEmpty()
+  @Type(() => Number)
   @IsNumber()
   step_id: number;
 
@@ -114,8 +118,9 @@ export class CreatePerguntaDto {
     description: 'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento)',
     example: 10,
   })
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   dadoId?: number;
 
   @ApiPropertyOptional({
@@ -123,9 +128,19 @@ export class CreatePerguntaDto {
       'Posição relativa da pergunta dentro do step. Quando omitida, é colocada no fim.',
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   ordem?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Quando o edital já tem inscrições: prazo (ISO 8601) para os alunos responderem esta pergunta adicionada.',
+    example: '2026-12-31T23:59:59.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  prazoResposta?: string;
 
   @ApiPropertyOptional({
     description:
@@ -136,4 +151,17 @@ export class CreatePerguntaDto {
   @ValidateNested()
   @Type(() => PerguntaCondicaoDto)
   condicao?: PerguntaCondicaoDto | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Pontuação atribuída quando a resposta desta pergunta é validada na análise.',
+    example: 2.5,
+    default: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000000)
+  pontuacao_validacao?: number;
 }

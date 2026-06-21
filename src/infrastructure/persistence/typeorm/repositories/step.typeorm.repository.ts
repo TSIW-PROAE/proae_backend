@@ -48,6 +48,7 @@ export class StepTypeOrmRepository implements IStepRepository {
           opcoes: p.opcoes ?? [],
           tipo_formatacao: p.tipo_formatacao,
           ordem: p.ordem ?? 0,
+          pontuacao_validacao: Number((p as any).pontuacao_validacao ?? 0),
           condicao: (p.condicao ?? null) as
             | StepWithPerguntasData['perguntas'][number]['condicao']
             | null,

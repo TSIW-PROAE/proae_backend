@@ -26,13 +26,21 @@ export class Edital extends AbstractEntity<Edital> {
   })
   status_edital: StatusEdital;
 
-  /** Quando true, este edital é o Formulário Geral. Só pode haver um ativo. Aluno precisa ter inscrição aprovada nele para se inscrever em outros editais. */
+  /** Define o edital-base de template de cadastro por nível acadêmico. */
   @Column({ type: 'boolean', default: false })
-  is_formulario_geral: boolean;
+  is_template_cadastro_base: boolean;
 
   /** Formulário de renovação (recadastro). Quem já teve inscrição aprovada precisa concluí-lo quando estiver aberto para voltar a se inscrever em editais. */
   @Column({ type: 'boolean', default: false })
   is_formulario_renovacao: boolean;
+
+  /** Controle explícito da janela de inscrição, independente do status do edital. */
+  @Column({ type: 'boolean', default: false })
+  inscricoes_abertas: boolean;
+
+  /** Controle explícito da janela de ajustes/correções de pendências. */
+  @Column({ type: 'boolean', default: false })
+  ajustes_abertos: boolean;
 
   /** Graduação ou Pós-graduação (processos separados). */
   @Column({
@@ -49,6 +57,7 @@ export class Edital extends AbstractEntity<Edital> {
   @Column({ type: 'json', nullable: true })
   etapa_edital?: {
     etapa: string;
+    tipo_etapa?: string;
     ordem_elemento: number;
     data_inicio: Date;
     data_fim: Date;

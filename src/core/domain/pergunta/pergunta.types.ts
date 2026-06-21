@@ -22,5 +22,7 @@ export interface PerguntaData {
   dadoId?: number | null;
   ordem?: number;
   condicao?: PerguntaCondicao | null;
+  /** Pontos atribuídos quando a resposta desta pergunta é validada. */
+  pontuacaoValidacao?: number;
 }
 

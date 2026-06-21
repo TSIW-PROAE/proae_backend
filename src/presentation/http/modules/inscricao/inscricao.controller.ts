@@ -51,6 +51,7 @@ import { InscricaoResponseDto } from './dto/response-inscricao.dto';
 import { UpdateInscricaoDto } from './dto/update-inscricao-dto';
 import { UpdateAdminInscricaoStatusDto } from './dto/update-admin-inscricao-status.dto';
 import { UpdateAdminInscricaoBeneficioDto } from './dto/update-admin-inscricao-beneficio.dto';
+import { UpdateAdminResultadoRecursoDto } from './dto/update-admin-resultado-recurso.dto';
 import { InscricaoService } from './inscricao.service';
 import { InscricaoAuditLogService } from '../inscricao-audit/inscricao-audit-log.service';
 
@@ -77,13 +78,16 @@ function mapInscricaoError(
     }
     if (
       e.message.includes('não está aberto') ||
+      e.message.includes('inscrições deste edital estão fechadas') ||
+      e.message.includes('inscrições estão fora do período definido') ||
+      e.message.includes('ajustes de pendências deste edital estão fechados') ||
       e.message.includes('não tem permissão') ||
       e.message.includes('É necessário fornecer respostas') ||
-      e.message.includes('É necessário ter o Formulário Geral') ||
       e.message.includes('não pode estar vazia') ||
       e.message.includes('deve ter pelo menos uma opção') ||
       e.message.includes('deve incluir um arquivo') ||
       e.message.includes('já possui uma inscrição') ||
+      e.message.includes('formulário de renovação') ||
       e.message.includes('PATCH /inscricoes') ||
       e.message.includes('correcao-respostas') ||
       e.message.includes('Não há respostas pendentes') ||
@@ -181,7 +185,7 @@ export class InscricaoController {
   @ApiOperation({
     summary: '[Admin] Alterar status e observação de qualquer inscrição',
     description:
-      'Útil no hub central: aplica a editais comuns, Formulário Geral e Renovação.',
+      'Útil no hub central: aplica a qualquer inscrição de edital.',
   })
   @ApiBody({ type: UpdateAdminInscricaoStatusDto })
   @ApiOkResponse({ description: 'Status atualizado' })
@@ -204,17 +208,42 @@ export class InscricaoController {
   @ApiOperation({
     summary: '[Admin] Alterar situação de benefício no edital',
     description:
-      'Define se o estudante é beneficiário no edital (vaga), ou não — independente do status de análise da inscrição. Não se aplica a Formulário Geral ou Renovação.',
+      'Define se o estudante é beneficiário no edital (vaga), ou não — independente do status de análise da inscrição.',
   })
   @ApiBody({ type: UpdateAdminInscricaoBeneficioDto })
   @ApiOkResponse({ description: 'Situação de benefício atualizada' })
   async adminUpdateBeneficioEdital(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAdminInscricaoBeneficioDto,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.inscricaoService.adminUpdateBeneficioEdital(
       id,
-      dto.status_beneficio_edital,
+      dto,
+      request.user.userId,
+    );
+  }
+
+  @Patch('admin/:id/resultado-recurso')
+  @UseGuards(RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
+  @ApiOperation({
+    summary: '[Admin] Atualizar fase de resultado e situação de recurso',
+    description:
+      'Define a publicação de resultado preliminar/final e o julgamento de recurso da inscrição.',
+  })
+  @ApiBody({ type: UpdateAdminResultadoRecursoDto })
+  @ApiOkResponse({ description: 'Resultado/recurso atualizados' })
+  async adminUpdateResultadoRecurso(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAdminResultadoRecursoDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.inscricaoService.adminUpdateResultadoRecurso(
+      id,
+      dto,
+      request.user.userId,
     );
   }
 

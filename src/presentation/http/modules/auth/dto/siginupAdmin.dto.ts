@@ -58,8 +58,14 @@ export class SignupDtoAdmin {
     description: 'Data de nascimento do admin (formato: YYYY-MM-DD)',
     example: '2000-01-01',
   })
-  @IsNotEmpty()
-  @IsDateString()
+  @IsNotEmpty({ message: 'Informe sua data de nascimento.' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'Data de nascimento inválida. Selecione dia, mês e ano no calendário.',
+    },
+  )
   data_nascimento: string;
 
   @ApiProperty({
@@ -74,7 +80,10 @@ export class SignupDtoAdmin {
     description: 'Número de celular do admin (formato: +55DDDNUMERO)',
     example: '+5584999999999',
   })
-  @IsNotEmpty()
-  @IsPhoneNumber('BR')
+  @IsNotEmpty({ message: 'Informe seu celular com DDD.' })
+  @IsPhoneNumber('BR', {
+    message:
+      'Celular inválido. Use o formato com DDD, por exemplo (71) 99999-9999.',
+  })
   celular: string;
 }

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
@@ -65,6 +65,17 @@ export class CloneFormularioUseCase {
         order: { ordem: 'ASC', id: 'ASC' },
       });
 
+      /** Só clona steps que de fato têm perguntas (evita cascata de "Questionário" vazio). */
+      const stepsComPerguntas = stepsOrigem.filter(
+        (s) => (s.perguntas?.length ?? 0) > 0,
+      );
+
+      if (!stepsComPerguntas.length) {
+        throw new BadRequestException(
+          'O edital de origem não possui questionários com perguntas para importar.',
+        );
+      }
+
       if (cmd.substituirExistente) {
         // delete cascade vai limpar perguntas/respostas
         const existentes = await manager.find(Step, {
@@ -72,6 +83,29 @@ export class CloneFormularioUseCase {
         });
         if (existentes.length) {
           await manager.delete(Step, existentes.map((s) => s.id));
+        }
+      }
+
+      /** Ao acrescentar, remove shells vazios no alvo antes de copiar (abrir editor sem salvar pergunta). */
+      let proximaOrdemStep = 0;
+      if (!cmd.substituirExistente) {
+        const existentesAlvo = await manager.find(Step, {
+          where: { edital: { id: cmd.editalAlvoId } },
+          relations: { perguntas: true },
+          order: { ordem: 'ASC', id: 'ASC' },
+        });
+        const vaziosAlvo = existentesAlvo.filter(
+          (s) => (s.perguntas?.length ?? 0) === 0,
+        );
+        if (vaziosAlvo.length) {
+          await manager.delete(Step, vaziosAlvo.map((s) => s.id));
+        }
+        const restantes = existentesAlvo.filter(
+          (s) => (s.perguntas?.length ?? 0) > 0,
+        );
+        if (restantes.length) {
+          proximaOrdemStep =
+            Math.max(...restantes.map((s) => s.ordem ?? 0)) + 1;
         }
       }
 
@@ -84,10 +118,13 @@ export class CloneFormularioUseCase {
         perguntasOrigem: Pergunta[];
       }[] = [];
 
-      for (const stepOrig of stepsOrigem) {
+      for (const stepOrig of stepsComPerguntas) {
+        const ordemStep = cmd.substituirExistente
+          ? (stepOrig.ordem ?? 0)
+          : proximaOrdemStep++;
         const novoStep = manager.create(Step, {
           texto: stepOrig.texto,
-          ordem: stepOrig.ordem ?? 0,
+          ordem: ordemStep,
           edital: { id: cmd.editalAlvoId } as Edital,
         });
         const stepSalvo = await manager.save(novoStep);
@@ -109,8 +146,11 @@ export class CloneFormularioUseCase {
             opcoes: pOrig.opcoes ?? [],
             tipo_formatacao: pOrig.tipo_formatacao ?? undefined,
             ordem: pOrig.ordem ?? 0,
+            pontuacao_validacao: Number(
+              (pOrig as any).pontuacao_validacao ?? 0,
+            ),
             condicao: null, // popula em segunda passada com IDs novos
-            step: { id: stepSalvo.id } as Step,
+            step: stepSalvo,
             dado: pOrig.dado ? ({ id: pOrig.dado.id } as Pergunta['dado']) : undefined,
           });
           const perguntaSalva = await manager.save(novaPergunta);

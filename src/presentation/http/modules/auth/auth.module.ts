@@ -4,7 +4,9 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EMAIL_SENDER } from 'src/core/application/utilities/utility.tokens';
 import { Admin } from 'src/infrastructure/persistence/typeorm/entities/admin/admin.entity';
+import { AdminNotificacaoEmail } from 'src/infrastructure/persistence/typeorm/entities/admin/admin-notificacao-email.entity';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
+import { AlunoMatriculaHistorico } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno-matricula-historico.entity';
 import { Usuario } from 'src/infrastructure/persistence/typeorm/entities/usuarios/usuario.entity';
 import { EmailService } from 'src/infrastructure/adapters/email/email.service';
 import { AlunoModule } from 'src/presentation/http/modules/aluno/aluno.module';
@@ -22,7 +24,13 @@ import { LocalStrategy } from './strategies/local.strategy';
   imports: [
     forwardRef(() => AlunoModule),
     PassportModule,
-    TypeOrmModule.forFeature([Aluno, Admin, Usuario]),
+    TypeOrmModule.forFeature([
+      Aluno,
+      AlunoMatriculaHistorico,
+      Admin,
+      Usuario,
+      AdminNotificacaoEmail,
+    ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'seu_secret_jwt_aqui',
       signOptions: { expiresIn: '24h' },
@@ -41,6 +49,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     LocalAuthGuard,
   ],
   exports: [
+    EMAIL_SENDER,
     AuthGuard,
     RolesGuard,
     AdminPerfisGuard,

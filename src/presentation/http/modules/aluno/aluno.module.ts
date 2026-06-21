@@ -6,6 +6,7 @@ import { HasReprovadoDocumentsUseCase } from 'src/core/application/aluno/use-cas
 import { ListAlunosUseCase } from 'src/core/application/aluno/use-cases/list-alunos.use-case';
 import { UpdateAlunoDataUseCase } from 'src/core/application/aluno/use-cases/update-aluno-data.use-case';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
+import { AlunoMatriculaHistorico } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno-matricula-historico.entity';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
 import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.entity';
@@ -19,7 +20,15 @@ import { AlunoService } from './aluno.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Aluno, Inscricao, Usuario, Step, Edital, Vagas]),
+    TypeOrmModule.forFeature([
+      Aluno,
+      AlunoMatriculaHistorico,
+      Inscricao,
+      Usuario,
+      Step,
+      Edital,
+      Vagas,
+    ]),
     forwardRef(() => AuthModule),
   ],
   controllers: [AlunoController, BeneficiosController],

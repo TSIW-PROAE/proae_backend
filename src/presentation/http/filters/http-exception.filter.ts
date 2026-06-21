@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { humanizeValidationMessage } from 'src/core/shared-kernel/validation/humanize-validation-message';
 
 /** Formato único de erro da API: statusCode, message (texto curto), errors (lista de mensagens quando for validação). */
 export interface ApiErrorResponse {
@@ -43,10 +44,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
       } else if (typeof res === 'object' && res !== null && 'message' in res) {
         const msg = (res as { message?: string | string[] }).message;
         if (Array.isArray(msg)) {
-          errors = msg.map((m) => (typeof m === 'string' ? m : String(m)));
-          message = errors.length === 1 ? errors[0] : this.errorMessages[status] ?? 'Erro de validação';
+          errors = msg.map((m) =>
+            humanizeValidationMessage(typeof m === 'string' ? m : String(m)),
+          );
+          message =
+            errors.length === 1
+              ? errors[0]
+              : this.errorMessages[status] ?? 'Erro de validação';
         } else {
-          message = typeof msg === 'string' ? msg : String(msg);
+          message = humanizeValidationMessage(
+            typeof msg === 'string' ? msg : String(msg),
+          );
+        }
+        const resErrors = (res as { errors?: string[] }).errors;
+        if (Array.isArray(resErrors) && resErrors.length > 0) {
+          errors = resErrors.map((e) => humanizeValidationMessage(String(e)));
         }
       } else {
         message = this.errorMessages[status] ?? (exception as Error).message;

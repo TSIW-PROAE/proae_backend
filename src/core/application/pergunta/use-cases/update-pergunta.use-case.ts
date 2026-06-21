@@ -15,6 +15,7 @@ export interface UpdatePerguntaCommand {
   dadoId?: number | null;
   ordem?: number;
   condicao?: PerguntaCondicao | null;
+  pontuacaoValidacao?: number;
 }
 
 @Injectable()

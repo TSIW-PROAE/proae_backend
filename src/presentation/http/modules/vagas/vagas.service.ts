@@ -38,7 +38,6 @@ export class VagasService {
           `Edital com ID ${createVagaDto.edital_id} não encontrado. Verifique se o edital existe e tente novamente.`,
         );
       }
-
       const savedVaga = await this.createVagaUseCase.execute({
         edital_id: createVagaDto.edital_id,
         beneficio: createVagaDto.beneficio,

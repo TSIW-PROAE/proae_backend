@@ -18,6 +18,7 @@ export interface CreatePerguntaCommand {
   dadoId?: number | null;
   ordem?: number | null;
   condicao?: PerguntaCondicao | null;
+  pontuacaoValidacao?: number;
 }
 
 @Injectable()
@@ -38,6 +39,7 @@ export class CreatePerguntaUseCase {
       dadoId: cmd.dadoId ?? null,
       ordem: cmd.ordem ?? undefined,
       condicao: cmd.condicao ?? null,
+      pontuacaoValidacao: cmd.pontuacaoValidacao ?? 0,
     };
     return this.perguntaRepository.create(data);
   }

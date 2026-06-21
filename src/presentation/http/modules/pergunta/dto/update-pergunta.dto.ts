@@ -10,6 +10,7 @@ import {
   IsString,
   MaxLength,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
@@ -79,4 +80,18 @@ export class UpdatePerguntaDto {
   @ValidateNested()
   @Type(() => PerguntaCondicaoDto)
   condicao?: PerguntaCondicaoDto | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Pontuação atribuída quando a resposta desta pergunta for validada.',
+    example: 3,
+    minimum: 0,
+    default: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000000)
+  pontuacao_validacao?: number;
 }

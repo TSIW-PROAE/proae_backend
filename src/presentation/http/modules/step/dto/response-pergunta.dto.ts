@@ -77,6 +77,16 @@ export class PerguntaResponseDto {
 
   @Expose()
   @ApiProperty({
+    example: 2.5,
+    description:
+      'Pontuação atribuída quando a resposta desta pergunta é validada na análise.',
+    required: false,
+    default: 0,
+  })
+  pontuacao_validacao?: number;
+
+  @Expose()
+  @ApiProperty({
     description:
       'Regra de exibição condicional, quando a pergunta depende de outra resposta.',
     required: false,

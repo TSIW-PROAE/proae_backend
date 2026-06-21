@@ -36,7 +36,7 @@ import { GetAlunosInscritosUseCase } from 'src/core/application/edital/use-cases
 import { ListEditaisAbertosUseCase } from 'src/core/application/edital/use-cases/list-editais-abertos.use-case';
 import { ListEditaisVisiveisAlunoUseCase } from 'src/core/application/edital/use-cases/list-editais-visiveis-aluno.use-case';
 import { ListEditaisUseCase } from 'src/core/application/edital/use-cases/list-editais.use-case';
-import { RemoveEditalUseCase } from 'src/core/application/edital/use-cases/remove-edital.use-case';
+import { RemoveEditalUseCase, EditalPossuiInscricoesError } from 'src/core/application/edital/use-cases/remove-edital.use-case';
 import {
   StatusEditalInvalidoError,
   UpdateEditalStatusUseCase,
@@ -82,6 +82,12 @@ export class EditalController {
     return this.createEdital.execute({
       titulo_edital: createEditalDto.titulo_edital,
       nivel_academico: createEditalDto.nivel_academico,
+      aplicar_template_cadastro:
+        createEditalDto.aplicar_template_cadastro ?? false,
+      is_formulario_renovacao:
+        createEditalDto.is_formulario_renovacao ?? false,
+      inscricoes_abertas: createEditalDto.inscricoes_abertas ?? false,
+      ajustes_abertos: createEditalDto.ajustes_abertos ?? false,
     });
   }
 
@@ -111,7 +117,7 @@ export class EditalController {
     name: 'nivel_academico',
     required: false,
     description:
-      'Graduação (padrão) ou Pós-graduação — editais abertos só desse nível (exc. formulário geral e renovação).',
+      'Graduação (padrão) ou Pós-graduação — editais abertos desse nível.',
   })
   @ApiOkResponse({
     type: [EditalResponseDto],
@@ -131,7 +137,7 @@ export class EditalController {
     name: 'nivel_academico',
     required: false,
     description:
-      'Graduação (padrão) ou Pós-graduação. Lista os editais visíveis no portal do aluno: ABERTO + EM_ANDAMENTO + ENCERRADO (excl. formulário geral/renovação).',
+      'Graduação (padrão) ou Pós-graduação. Lista os editais visíveis no portal do aluno: ABERTO + EM_ANDAMENTO + ENCERRADO.',
   })
   @ApiOkResponse({
     type: [EditalResponseDto],
@@ -204,6 +210,9 @@ export class EditalController {
         edital_url: updateEditalDto.edital_url,
         etapa_edital: updateEditalDto.etapa_edital,
         nivel_academico: updateEditalDto.nivel_academico,
+        is_formulario_renovacao: updateEditalDto.is_formulario_renovacao,
+        inscricoes_abertas: updateEditalDto.inscricoes_abertas,
+        ajustes_abertos: updateEditalDto.ajustes_abertos,
       };
       if (
         Object.prototype.hasOwnProperty.call(
@@ -236,21 +245,50 @@ export class EditalController {
     schema: { example: errorExamples.internalServerError },
   })
   @ApiNotFoundResponse({ description: 'Edital não encontrado' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({
+    name: 'busca',
+    required: false,
+    description: 'Busca por nome, e-mail, CPF ou matrícula',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description:
+      'Filtro opcional de status (aprovada, rejeitada, pendente, ajuste_necessario).',
+  })
+  @ApiQuery({
+    name: 'situacao_solicitacao',
+    required: false,
+    description:
+      'Filtro opcional de situação operacional (SELECIONADA, CLASSIFICADA, INDEFERIDA, DESISTENTE).',
+  })
+  @ApiQuery({
+    name: 'ordenacao',
+    required: false,
+    description: 'data_desc (padrão), data_asc, pontuacao_desc, pontuacao_asc',
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolesEnum.ADMIN)
   async getAlunosInscritos(
     @Param('id') id: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('busca') busca?: string,
+    @Query('status') status?: string,
+    @Query('situacao_solicitacao') situacaoSolicitacao?: string,
+    @Query('ordenacao') ordenacao?: string,
   ) {
     try {
-      return await this.getAlunosInscritosUseCase.execute(
-        +id,
-        limit ?? 20,
-        offset ?? 0,
-      );
+      return await this.getAlunosInscritosUseCase.execute(+id, {
+        page: page != null ? Number(page) : undefined,
+        limit: limit != null ? Number(limit) : undefined,
+        busca,
+        status,
+        situacao_solicitacao: situacaoSolicitacao,
+        ordenacao,
+      });
     } catch (e) {
       if (e instanceof EditalNaoEncontradoError) {
         throw new NotFoundException(e.message);
@@ -321,10 +359,14 @@ export class EditalController {
         throw new NotFoundException(e.message);
       }
       if (
-        e instanceof Error &&
-        e.message.includes('inscrições vinculadas')
+        e instanceof EditalPossuiInscricoesError ||
+        (e instanceof Error && e.message.includes('inscrições vinculadas'))
       ) {
-        throw new BadRequestException(e.message);
+        throw new BadRequestException(
+          e instanceof Error
+            ? e.message
+            : 'Não é possível excluir o edital pois existem inscrições vinculadas às vagas',
+        );
       }
       throw e;
     }

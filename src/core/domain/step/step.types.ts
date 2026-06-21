@@ -25,6 +25,7 @@ export interface StepPerguntaData {
   tipo_formatacao?: EnumInputFormat;
   ordem?: number;
   condicao?: PerguntaCondicaoPayload | null;
+  pontuacao_validacao?: number;
 }
 
 export interface StepWithPerguntasData extends StepData {

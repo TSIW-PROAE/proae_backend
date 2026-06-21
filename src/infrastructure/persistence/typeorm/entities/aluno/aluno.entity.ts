@@ -11,6 +11,7 @@ import { NivelAcademico } from 'src/core/shared-kernel/enums/enumNivelAcademico'
 import { Inscricao } from '../inscricao/inscricao.entity';
 import { ValorDado } from '../valorDado/valorDado.entity';
 import { Usuario } from '../usuarios/usuario.entity';
+import { AlunoMatriculaHistorico } from './aluno-matricula-historico.entity';
 
 @Entity()
 export class Aluno {
@@ -51,6 +52,9 @@ export class Aluno {
 
   @OneToMany(() => ValorDado, (valor) => valor.aluno)
   valoresDado: ValorDado[];
+
+  @OneToMany(() => AlunoMatriculaHistorico, (historico) => historico.aluno)
+  matriculasHistorico: AlunoMatriculaHistorico[];
 
   /** Uma conta (Usuario) pode ter no máximo um Aluno. UNIQUE garantido pela migration. */
   @OneToOne(() => Usuario, (usuario: Usuario) => usuario.aluno, {

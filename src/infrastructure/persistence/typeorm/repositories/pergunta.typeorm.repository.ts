@@ -40,6 +40,7 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
       tipo_formatacao: data.tipoFormatacao ?? undefined,
       ordem,
       condicao: data.condicao ?? null,
+      pontuacao_validacao: Number(data.pontuacaoValidacao ?? 0),
       step: { id: data.stepId } as any,
       dado: data.dadoId ? ({ id: data.dadoId } as any) : undefined,
     });
@@ -80,6 +81,9 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
     }
     if (data.condicao !== undefined) {
       pergunta.condicao = data.condicao ?? null;
+    }
+    if (data.pontuacaoValidacao !== undefined) {
+      pergunta.pontuacao_validacao = Number(data.pontuacaoValidacao ?? 0);
     }
 
     const saved = await this.perguntaRepository.save(pergunta);
@@ -122,6 +126,7 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
       dadoId: entity.dado?.id ?? null,
       ordem: entity.ordem ?? 0,
       condicao: (entity.condicao ?? null) as PerguntaData['condicao'],
+      pontuacaoValidacao: Number(entity.pontuacao_validacao ?? 0),
     };
   }
 }

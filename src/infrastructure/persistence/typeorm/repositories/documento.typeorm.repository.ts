@@ -186,10 +186,8 @@ export class DocumentoTypeOrmRepository implements IDocumentoRepository {
         inscricao_id: inscricao.id,
         vaga_id: inscricao.vagas?.id ?? null,
         edital_id: inscricao.vagas?.edital?.id ?? null,
-        is_formulario_geral: inscricao.vagas?.edital?.is_formulario_geral ?? false,
-        is_formulario_renovacao:
-          inscricao.vagas?.edital?.is_formulario_renovacao ?? false,
         titulo_edital: inscricao.vagas?.edital?.titulo_edital ?? 'Edital',
+        ajustes_abertos: inscricao.vagas?.edital?.ajustes_abertos ?? false,
         vaga_beneficio: inscricao.vagas?.beneficio ?? null,
         documentos: documentosNaoAprovados.map((d) => this.toDocumentoData(d)),
         ajustes_resposta: ajustesResposta,

@@ -1,9 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateVagaDto {
   @ApiProperty({ description: 'ID do edital ao qual a vaga pertence' })
   @IsNotEmpty()
+  @Type(() => Number)
   @IsNumber()
   edital_id: number;
 
@@ -19,6 +21,7 @@ export class CreateVagaDto {
 
   @ApiProperty({ description: 'Número total de vagas disponíveis' })
   @IsNotEmpty()
+  @Type(() => Number)
   @IsNumber()
   numero_vagas: number;
 }

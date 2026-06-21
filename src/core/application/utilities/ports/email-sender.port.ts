@@ -16,5 +16,16 @@ export interface EmailSenderPort {
   sendAdminApprovedNotification(email: string, loginUrl: string): Promise<void>;
   /** Link de confirmação enviado ao próprio estudante (cadastro de aluno). */
   sendAlunoCadastroConfirmation(email: string, confirmUrl: string): Promise<void>;
+  /** Notificação transacional para eventos de processo/inscrição do aluno. */
+  sendAlunoProcessNotification(input: {
+    email: string;
+    nome?: string | null;
+    subject: string;
+    title: string;
+    message: string;
+    ctaUrl?: string;
+    ctaLabel?: string;
+    prazoLimite?: string | Date | null;
+  }): Promise<void>;
 }
 

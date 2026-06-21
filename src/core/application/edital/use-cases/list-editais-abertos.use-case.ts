@@ -17,6 +17,9 @@ export class ListEditaisAbertosUseCase {
       descricao: e.descricao,
       edital_url: e.edital_url,
       status_edital: e.status_edital,
+      inscricoes_abertas: e.inscricoes_abertas ?? false,
+      ajustes_abertos: e.ajustes_abertos ?? false,
+      is_formulario_renovacao: e.is_formulario_renovacao ?? false,
       etapa_edital: e.etapa_edital,
       nivel_academico: e.nivel_academico,
       data_fim_vigencia: e.data_fim_vigencia

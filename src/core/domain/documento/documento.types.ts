@@ -60,9 +60,8 @@ export interface DocumentosComProblemasPorInscricao {
   inscricao_id: number;
   vaga_id?: number | null;
   edital_id?: number | null;
-  is_formulario_geral?: boolean;
-  is_formulario_renovacao?: boolean;
   titulo_edital: string;
+  ajustes_abertos?: boolean;
   vaga_beneficio?: string | null;
   documentos: DocumentoData[];
   ajustes_resposta?: Array<{

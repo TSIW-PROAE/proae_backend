@@ -1,10 +1,9 @@
 /**
  * Perfis de acesso do servidor PROAE (administrativo).
  *
- * - tecnico:    análise das inscrições; consulta dos editais; sem permissão para
- *               criar, publicar ou editar editais nem alterar a configuração do sistema.
- * - gerencial:  criação, gestão e publicação dos editais e gerenciamento das informações.
- * - coordenacao: somente leitura — visualização geral, sem edição ou gerenciamento.
+ * - tecnico:    análise de inscrições (sem gestão de editais nem equipe).
+ * - gerencial:  editais no geral e equipe PROAE (gestão completa).
+ * - coordenacao: apenas consulta.
  */
 export enum AdminPerfilEnum {
   TECNICO = 'tecnico',

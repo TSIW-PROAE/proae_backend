@@ -11,12 +11,13 @@ import { RemoveEditalUseCase } from 'src/core/application/edital/use-cases/remov
 import { UpdateEditalStatusUseCase } from 'src/core/application/edital/use-cases/update-edital-status.use-case';
 import { UpdateEditalUseCase } from 'src/core/application/edital/use-cases/update-edital.use-case';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
+import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
 import { EditalTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/edital.typeorm.repository';
 import { AuthModule } from 'src/presentation/http/modules/auth/auth.module';
 import { EditalController } from './edital.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Edital]), forwardRef(() => AuthModule)],
+  imports: [TypeOrmModule.forFeature([Edital, Vagas]), forwardRef(() => AuthModule)],
   controllers: [EditalController],
   providers: [
     { provide: EDITAL_REPOSITORY, useClass: EditalTypeOrmRepository },

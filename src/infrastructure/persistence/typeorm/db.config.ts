@@ -1,13 +1,15 @@
 import { config } from 'dotenv';
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { normalizePgConnectionUrl } from './pg-connection-url';
 
 config();
 
 function buildTypeOrmConfig(): DataSourceOptions {
   if (process.env.DB_URL) {
+    const url = normalizePgConnectionUrl(process.env.DB_URL);
     return {
       type: 'postgres',
-      url: process.env.DB_URL,
+      url,
       extra: {
         ssl: {
           rejectUnauthorized: false,

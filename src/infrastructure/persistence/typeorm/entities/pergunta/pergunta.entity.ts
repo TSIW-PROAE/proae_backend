@@ -48,6 +48,13 @@ export class Pergunta extends AbstractEntity<Pergunta> {
   ordem: number;
 
   /**
+   * Pontuação que a pergunta agrega quando a resposta é validada pela equipe.
+   * Usada na calculadora inteligente de análise.
+   */
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  pontuacao_validacao: number;
+
+  /**
    * Regra de exibição condicional. Null = sempre visível.
    */
   @Column({ type: 'jsonb', nullable: true })
