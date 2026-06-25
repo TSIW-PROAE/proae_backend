@@ -39,6 +39,10 @@ export class FindAlunoByUserIdUseCase {
     dataIngresso: string;
     celular: string;
     nivelAcademico: string;
+    cgSituacao?: string;
+    cgPcd?: boolean;
+    cgSemestreReferencia?: string | null;
+    cgValidoAteSemestre?: string | null;
     inscricoes?: unknown[];
   }) {
     return {
@@ -52,6 +56,10 @@ export class FindAlunoByUserIdUseCase {
       data_ingresso: aluno.dataIngresso,
       celular: aluno.celular,
       nivel_academico: aluno.nivelAcademico,
+      cg_situacao: aluno.cgSituacao,
+      cg_pcd: aluno.cgPcd ?? false,
+      cg_semestre_referencia: aluno.cgSemestreReferencia ?? null,
+      cg_valido_ate_semestre: aluno.cgValidoAteSemestre ?? null,
       inscricoes: aluno.inscricoes ?? [],
     };
   }

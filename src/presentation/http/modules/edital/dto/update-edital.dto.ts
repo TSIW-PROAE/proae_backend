@@ -107,6 +107,13 @@ export class UpdateEditalDto {
   is_formulario_renovacao?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Quando true, define este edital como chamada de Cadastro Geral.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_cadastro_geral?: boolean;
+
+  @ApiPropertyOptional({
     description:
       'Quando true, mantém inscrições abertas para alunos (independente do status do edital).',
   })

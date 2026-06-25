@@ -24,6 +24,10 @@ export interface AlunoData {
   cpf: string;
   celular: string;
   dataNascimento: Date;
+  cgSituacao?: string;
+  cgPcd?: boolean;
+  cgSemestreReferencia?: string | null;
+  cgValidoAteSemestre?: string | null;
   inscricoes?: Array<{ id: number; [key: string]: unknown }>;
 }
 
@@ -41,4 +45,8 @@ export interface AtualizaAlunoData {
   cpf?: string;
   /** Alteração rara; validar no use case se necessário */
   nivelAcademico?: NivelAcademicoAluno;
+  cgSituacao?: string;
+  cgPcd?: boolean;
+  cgSemestreReferencia?: string | null;
+  cgValidoAteSemestre?: string | null;
 }

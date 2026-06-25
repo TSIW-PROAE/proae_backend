@@ -4,6 +4,7 @@ import { Brackets, EntityManager, In, Repository } from 'typeorm';
 import { Edital } from '../entities/edital/edital.entity';
 import { Inscricao } from '../entities/inscricao/inscricao.entity';
 import { Pergunta } from '../entities/pergunta/pergunta.entity';
+import { Vagas } from '../entities/vagas/vagas.entity';
 import { Step } from '../entities/step/step.entity';
 import { StatusEdital } from '../../../../core/shared-kernel/enums/enumStatusEdital';
 import { StatusBeneficioEdital } from '../../../../core/shared-kernel/enums/enumStatusBeneficioEdital';
@@ -48,6 +49,15 @@ export class EditalTypeOrmRepository implements IEditalRepository {
     const nivel =
       (data.nivel_academico as NivelAcademico) ?? NivelAcademico.GRADUACAO;
 
+    const isCg = data.is_cadastro_geral === true;
+    const isRenovacao = !isCg && data.is_formulario_renovacao === true;
+
+    if (isCg && data.is_formulario_renovacao === true) {
+      throw new Error(
+        'Um edital não pode ser Cadastro Geral e renovação ao mesmo tempo.',
+      );
+    }
+
     const edital = new Edital({
       titulo_edital: data.titulo_edital,
       status_edital: StatusEdital.RASCUNHO,
@@ -57,11 +67,26 @@ export class EditalTypeOrmRepository implements IEditalRepository {
       edital_url: undefined,
       etapa_edital: undefined,
       nivel_academico: nivel,
-      is_formulario_renovacao: data.is_formulario_renovacao ?? false,
+      is_formulario_renovacao: isRenovacao,
+      is_cadastro_geral: isCg,
     });
     const saved = await this.editalRepository.save(edital);
 
-    if (data.aplicar_template_cadastro === true) {
+    if (isCg) {
+      await this.entityManager.save(
+        new Vagas({
+          beneficio: 'Cadastro Geral',
+          descricao_beneficio:
+            'Solicitação de comprovação de vulnerabilidade socioeconômica (CG PROAE).',
+          numero_vagas: 9999,
+          edital: saved,
+        }),
+      );
+    }
+
+    const aplicarTemplate =
+      data.aplicar_template_cadastro === true || isCg;
+    if (aplicarTemplate) {
       await this.aplicarTemplateCadastro(saved.id, nivel);
     }
 
@@ -176,6 +201,9 @@ export class EditalTypeOrmRepository implements IEditalRepository {
           : {}),
         ...(data.is_formulario_renovacao != null
           ? { is_formulario_renovacao: data.is_formulario_renovacao }
+          : {}),
+        ...(data.is_cadastro_geral != null
+          ? { is_cadastro_geral: data.is_cadastro_geral }
           : {}),
         ...(data.inscricoes_abertas != null
           ? { inscricoes_abertas: data.inscricoes_abertas }
@@ -294,6 +322,7 @@ export class EditalTypeOrmRepository implements IEditalRepository {
       where: {
         status_edital: In(statusList),
         nivel_academico: nivel,
+        is_template_cadastro_base: false,
       },
       relations: ['vagas'],
       order: {
@@ -654,6 +683,7 @@ export class EditalTypeOrmRepository implements IEditalRepository {
       inscricoes_abertas: e.inscricoes_abertas ?? false,
       ajustes_abertos: e.ajustes_abertos ?? false,
       is_formulario_renovacao: e.is_formulario_renovacao ?? false,
+      is_cadastro_geral: e.is_cadastro_geral ?? false,
       etapa_edital: e.etapa_edital as EditalData['etapa_edital'],
       nivel_academico: e.nivel_academico ?? NivelAcademico.GRADUACAO,
       data_fim_vigencia: e.data_fim_vigencia ?? null,

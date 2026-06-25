@@ -25,6 +25,7 @@
     "db:reset": "npm run schema:drop && npm run build && npm run migration:run",
     "db:truncate-data": "ts-node -r tsconfig-paths/register scripts/truncate-all-data.ts",
     "db:seed-homologacao": "ts-node -r tsconfig-paths/register scripts/seed-homologacao.ts",
+    "db:seed-capturas": "ts-node -r tsconfig-paths/register scripts/seed-capturas.ts",
     "db:normalize-cadastro-template": "ts-node -r tsconfig-paths/register scripts/normalize-cadastro-template.ts",
     "db:sync-cadastro-template-base": "ts-node -r tsconfig-paths/register scripts/sync-cadastro-template-base.ts",
     "migration:run": "npm run typeorm migration:run",

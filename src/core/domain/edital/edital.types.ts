@@ -35,6 +35,8 @@ export interface EditalData {
   ajustes_abertos?: boolean;
   /** Quando true, representa o processo anual de renovação de benefícios. */
   is_formulario_renovacao?: boolean;
+  /** Chamada de Cadastro Geral (comprovação socioeconômica). */
+  is_cadastro_geral?: boolean;
   etapa_edital?: EtapaEditalItem[];
   /** Graduação | Pós-graduação */
   nivel_academico: string;
@@ -58,6 +60,8 @@ export interface CreateEditalData {
   aplicar_template_cadastro?: boolean;
   /** Quando true, cria o edital como formulário de renovação. */
   is_formulario_renovacao?: boolean;
+  /** Quando true, cria chamada de Cadastro Geral (CG). */
+  is_cadastro_geral?: boolean;
   /** Controle manual da janela de inscrição do edital. */
   inscricoes_abertas?: boolean;
   /** Controle manual da janela de ajustes/correções do edital. */
@@ -72,6 +76,8 @@ export interface UpdateEditalData {
   nivel_academico?: string;
   /** Permite marcar/desmarcar o edital como renovação. */
   is_formulario_renovacao?: boolean;
+  /** Permite marcar/desmarcar chamada de Cadastro Geral. */
+  is_cadastro_geral?: boolean;
   /** Permite abrir/fechar inscrições sem alterar status do edital. */
   inscricoes_abertas?: boolean;
   /** Permite abrir/fechar ajustes de pendências sem alterar status do edital. */

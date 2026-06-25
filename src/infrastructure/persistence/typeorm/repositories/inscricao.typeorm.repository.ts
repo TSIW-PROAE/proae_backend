@@ -11,6 +11,8 @@ import { Resposta } from '../entities/resposta/resposta.entity';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
 import { StatusInscricao } from '../../../../core/shared-kernel/enums/enumStatusInscricao';
 import { StatusBeneficioEdital } from '../../../../core/shared-kernel/enums/enumStatusBeneficioEdital';
+import { SituacaoCadastroGeral } from '../../../../core/shared-kernel/enums/enumSituacaoCadastroGeral';
+import { isCgVigente } from '../../../../core/shared-kernel/utils/cg-semestre.util';
 import type {
   InscricaoComPendenciasItem,
   CreateInscricaoCommand,
@@ -284,6 +286,56 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       );
     }
 
+    const edital = vagaExists.edital;
+    const isCgEdital = edital.is_cadastro_geral === true;
+    const isRenovacaoEdital = !isCgEdital && edital.is_formulario_renovacao === true;
+
+    const inscricoesNoEdital = await this.inscricaoRepository
+      .createQueryBuilder('inscricao')
+      .innerJoin('inscricao.vagas', 'vaga')
+      .innerJoin('vaga.edital', 'edital')
+      .where('inscricao.aluno_id = :alunoId', { alunoId: alunoExists.aluno_id })
+      .andWhere('edital.id = :editalId', { editalId: edital.id })
+      .getCount();
+
+    if (isCgEdital) {
+      if (inscricoesNoEdital > 0) {
+        throw new Error(
+          'Você já possui solicitação de Cadastro Geral nesta chamada.',
+        );
+      }
+      if (
+        isCgVigente({
+          cgSituacao: alunoExists.cg_situacao,
+          cgValidoAteSemestre: alunoExists.cg_valido_ate_semestre,
+        })
+      ) {
+        throw new Error(
+          'Seu Cadastro Geral já está apto e vigente. Não é necessário nova solicitação nesta chamada.',
+        );
+      }
+    } else if (!isRenovacaoEdital) {
+      if (
+        !isCgVigente({
+          cgSituacao: alunoExists.cg_situacao,
+          cgValidoAteSemestre: alunoExists.cg_valido_ate_semestre,
+        })
+      ) {
+        throw new Error(
+          'Cadastro Geral apto e vigente é requisito para se inscrever em editais de benefícios. Solicite ou renove seu CG nas chamadas PROAE.',
+        );
+      }
+
+      const limiteBeneficios = alunoExists.cg_pcd ? 2 : 1;
+      if (inscricoesNoEdital >= limiteBeneficios) {
+        throw new Error(
+          alunoExists.cg_pcd
+            ? 'Neste edital você pode solicitar no máximo 2 modalidades de benefício (1ª e 2ª opção).'
+            : 'Neste edital você pode solicitar apenas 1 modalidade de benefício.',
+        );
+      }
+    }
+
     if (vagaExists.edital.is_formulario_renovacao) {
       const beneficioAlvo = String(vagaExists.beneficio ?? '').trim().toLowerCase();
       const alunoId = alunoExists.aluno_id;
@@ -321,7 +373,7 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       }
     }
 
-    if (!vagaExists.edital.is_formulario_renovacao) {
+    if (!isRenovacaoEdital && !isCgEdital) {
       const editaisRenovacao = await this.editalRepository.find({
         where: {
           is_formulario_renovacao: true,
@@ -441,14 +493,28 @@ export class InscricaoTypeOrmRepository implements IInscricaoRepository {
       }),
     );
 
+    const ordemPreferencia =
+      !isCgEdital && !isRenovacaoEdital
+        ? cmd.ordem_preferencia ?? inscricoesNoEdital + 1
+        : null;
+
     const inscricao = new Inscricao({
       aluno: alunoExists,
       vagas: vagaExists,
       respostas,
+      ordem_preferencia: ordemPreferencia,
     });
 
     const saved = await this.entityManager.transaction(async (tx) => {
-      return tx.save(inscricao);
+      const persisted = await tx.save(inscricao);
+      if (
+        isCgEdital &&
+        alunoExists.cg_situacao !== SituacaoCadastroGeral.APTO
+      ) {
+        alunoExists.cg_situacao = SituacaoCadastroGeral.PENDENTE;
+        await tx.save(alunoExists);
+      }
+      return persisted;
     });
 
     try {

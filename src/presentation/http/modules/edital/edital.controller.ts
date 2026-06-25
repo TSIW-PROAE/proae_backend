@@ -86,6 +86,7 @@ export class EditalController {
         createEditalDto.aplicar_template_cadastro ?? false,
       is_formulario_renovacao:
         createEditalDto.is_formulario_renovacao ?? false,
+      is_cadastro_geral: createEditalDto.is_cadastro_geral ?? false,
       inscricoes_abertas: createEditalDto.inscricoes_abertas ?? false,
       ajustes_abertos: createEditalDto.ajustes_abertos ?? false,
     });
@@ -211,6 +212,7 @@ export class EditalController {
         etapa_edital: updateEditalDto.etapa_edital,
         nivel_academico: updateEditalDto.nivel_academico,
         is_formulario_renovacao: updateEditalDto.is_formulario_renovacao,
+        is_cadastro_geral: updateEditalDto.is_cadastro_geral,
         inscricoes_abertas: updateEditalDto.inscricoes_abertas,
         ajustes_abertos: updateEditalDto.ajustes_abertos,
       };

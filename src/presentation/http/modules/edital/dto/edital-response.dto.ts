@@ -74,6 +74,13 @@ export class EditalResponseDto {
 
   @ApiProperty({
     type: Boolean,
+    description: 'Indica se o edital é chamada de Cadastro Geral (CG).',
+  })
+  @Expose()
+  is_cadastro_geral?: boolean;
+
+  @ApiProperty({
+    type: Boolean,
     description:
       'Indica se as inscrições estão abertas neste edital (controle manual).',
   })

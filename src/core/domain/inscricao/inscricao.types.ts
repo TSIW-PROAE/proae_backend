@@ -27,6 +27,8 @@ export interface RespostaInscricaoItem {
 export interface CreateInscricaoCommand {
   vaga_id: number;
   respostas: RespostaInscricaoItem[];
+  /** 1 ou 2 — opção de benefício no edital (PCD). */
+  ordem_preferencia?: number;
 }
 
 /** PATCH /inscricoes/:id/correcao-respostas — aluno envia só as respostas a corrigir. */

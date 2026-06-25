@@ -31,6 +31,7 @@ export class ListEditaisVisiveisAlunoUseCase {
       inscricoes_abertas: e.inscricoes_abertas ?? false,
       ajustes_abertos: e.ajustes_abertos ?? false,
       is_formulario_renovacao: e.is_formulario_renovacao ?? false,
+      is_cadastro_geral: e.is_cadastro_geral ?? false,
       etapa_edital: e.etapa_edital,
       nivel_academico: e.nivel_academico,
       data_fim_vigencia: e.data_fim_vigencia

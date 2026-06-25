@@ -28,6 +28,15 @@ export class CreateEditalDto {
 
   @ApiPropertyOptional({
     description:
+      'Quando true, cria chamada de Cadastro Geral (comprovação socioeconômica).',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_cadastro_geral?: boolean;
+
+  @ApiPropertyOptional({
+    description:
       'Quando true, libera inscrições de alunos neste edital (independe do status do edital).',
     default: false,
   })

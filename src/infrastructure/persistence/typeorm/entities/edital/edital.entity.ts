@@ -34,6 +34,10 @@ export class Edital extends AbstractEntity<Edital> {
   @Column({ type: 'boolean', default: false })
   is_formulario_renovacao: boolean;
 
+  /** Chamada de Cadastro Geral (CG): comprovação de vulnerabilidade socioeconômica; não é seleção de benefício. */
+  @Column({ type: 'boolean', default: false })
+  is_cadastro_geral: boolean;
+
   /** Controle explícito da janela de inscrição, independente do status do edital. */
   @Column({ type: 'boolean', default: false })
   inscricoes_abertas: boolean;

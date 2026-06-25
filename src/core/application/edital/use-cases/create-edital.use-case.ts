@@ -25,6 +25,7 @@ export class CreateEditalUseCase {
       inscricoes_abertas: edital.inscricoes_abertas ?? false,
       ajustes_abertos: edital.ajustes_abertos ?? false,
       is_formulario_renovacao: edital.is_formulario_renovacao ?? false,
+      is_cadastro_geral: edital.is_cadastro_geral ?? false,
       etapa_edital: edital.etapa_edital,
       nivel_academico: edital.nivel_academico,
       data_fim_vigencia: edital.data_fim_vigencia ?? null,

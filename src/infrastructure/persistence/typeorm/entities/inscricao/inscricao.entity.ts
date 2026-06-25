@@ -45,6 +45,10 @@ export class Inscricao extends AbstractEntity<Inscricao> {
   })
   respostas: Resposta[];
 
+  /** 1ª ou 2ª opção de benefício no edital (PCD pode ter até 2). */
+  @Column({ type: 'smallint', nullable: true })
+  ordem_preferencia?: number | null;
+
   @Column({ type: 'text', nullable: true })
   observacao_admin?: string;
 

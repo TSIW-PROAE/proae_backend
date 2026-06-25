@@ -31,6 +31,7 @@ import {
   RESULTADO_FASE_OPCOES,
   UpdateAdminResultadoRecursoDto,
 } from './dto/update-admin-resultado-recurso.dto';
+import { CadastroGeralSyncService } from '../cadastro-geral/cadastro-geral-sync.service';
 
 type EtapaEditalLike = {
   etapa?: string;
@@ -209,6 +210,7 @@ export class InscricaoService {
     @Inject(EMAIL_SENDER)
     private readonly emailSender: EmailSenderPort,
     private readonly inscricaoAuditLog: InscricaoAuditLogService,
+    private readonly cadastroGeralSync: CadastroGeralSyncService,
   ) {}
 
   private portalAlunoUrl(path = '/portal-aluno'): string {
@@ -806,7 +808,7 @@ export class InscricaoService {
   }> {
     const inscricao = await this.inscricaoRepository.findOne({
       where: { id: inscricaoId },
-      relations: ['vagas', 'vagas.edital'],
+      relations: ['vagas', 'vagas.edital', 'aluno'],
     });
     if (!inscricao) {
       throw new NotFoundException('Inscrição não encontrada');
@@ -843,6 +845,16 @@ export class InscricaoService {
       await this.notifyStatusInscricao(inscricaoId, dto.status);
     } catch (emailErr) {
       console.warn('[inscricao] Falha ao enviar e-mail de status:', (emailErr as Error).message);
+    }
+
+    const editalCg = inscricao.vagas?.edital;
+    if (editalCg?.is_cadastro_geral === true && inscricao.aluno) {
+      await this.cadastroGeralSync.onAdminAtualizouInscricaoCg({
+        alunoId: (inscricao.aluno as Aluno).aluno_id,
+        edital: editalCg,
+        statusInscricao: dto.status,
+        marcarPcdCg: dto.marcar_pcd_cg,
+      });
     }
 
     return {
