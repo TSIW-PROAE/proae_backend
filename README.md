@@ -59,140 +59,157 @@ src/
 └── ...
 ```
 
-## 📚 API (Atualizada em 27/04/2024)
+## 📚 API (Atualizada em 26/06/2026)
 
-### 🔐 Autenticação
+> A API não usa prefixo global (as rotas começam em `/`).
+> Documentação interativa (Swagger): `GET /api`
+> Health check: `GET /health`
 
-**Cadastro de Usuário**
+### 🔐 Autenticação (`/auth`)
 
-```
-POST /auth/signup
-```
+- `POST /auth/signup`
+- `POST /auth/login`
+- `POST /auth/logout`
+- `PATCH /auth/update-password`
+- `POST /auth/forgot-password`
+- `POST /auth/reset-password`
+- `POST /auth/validate-token`
+- `POST /auth/signup-admin`
+- `GET /auth/approve-admin/:token`
+- `GET /auth/reject-admin/:token`
+- `GET /auth/confirm-cadastro-aluno`
 
-- **Corpo:**
-  ```json
-  {
-    "registrationNumber": "123456789", // Número de matrícula
-    "email": "email@example.com",
-    "password": "Senha@123", // Mínimo 8 caracteres, 1 letra, 1 número, 1 especial
-    "firstName": "Nome",
-    "lastName": "Sobrenome"
-  }
-  ```
-- **Resposta:** Dados do usuário cadastrado com ID 
+### 👤 Aluno (`/aluno`) e benefícios (`/beneficios`)
 
-### 👤 Alunos
+- `POST /aluno/complete-cadastro`
+- `GET /aluno/me`
+- `GET /aluno/all`
+- `PATCH /aluno/update`
+- `GET /aluno/inscricoes`
+- `POST /aluno/inscricoes/:inscricaoId/recurso`
+- `GET /aluno/admin/por-edital/:editalId/alunos`
+- `GET /aluno/admin/:alunoId/resumo`
+- `GET /aluno/edital/:editalId/step/:stepId/alunos`
+- `DELETE /aluno/admin/:alunoId/perfil`
+- `GET /beneficios/aluno`
 
-**Obter Dados do Aluno**
+### 👥 Admin (`/admin`)
 
-```
-GET /aluno
-```
+- `GET /admin`
+- `PATCH /admin/update`
+- `GET /admin/listar`
+- `GET /admin/notificacoes-aprovacao`
+- `POST /admin/notificacoes-aprovacao`
+- `DELETE /admin/notificacoes-aprovacao/:emailId`
+- `PATCH /admin/:adminId/perfil`
+- `PATCH /admin/:adminId/aprovar`
+- `DELETE /admin/:adminId/rejeitar`
+- `DELETE /admin/:adminId/perfil`
 
-- **Autenticação:** Token Bearer obrigatório
-- **Resposta:** Dados completos do aluno autenticado
+### 📋 Editais (`/editais`) e vagas (`/vagas`)
 
-**Atualizar Dados do Aluno**
+- `POST /editais`
+- `GET /editais`
+- `GET /editais/abertos`
+- `GET /editais/visiveis-aluno`
+- `GET /editais/:id`
+- `PATCH /editais/:id`
+- `GET /editais/:id/inscritos`
+- `PATCH /editais/:id/status/:status`
+- `DELETE /editais/:id`
+- `POST /vagas`
+- `GET /vagas/edital/:editalId`
+- `PATCH /vagas/:id`
+- `DELETE /vagas/:id`
 
-```
-PATCH /aluno/update
-```
+### 🧩 Formulários: steps, perguntas, respostas
 
-- **Autenticação:** Token Bearer obrigatório
-- **Corpo:** (todos campos opcionais)
-  ```json
-  {
-    "nome": "string", // Nome do aluno
-    "sobrenome": "string", // Sobrenome do aluno
-    "email": "email@example.com", // Email do aluno
-    "matricula": "123456789", // Matrícula do aluno
-    "pronome": "MASCULINO", // Enum: MASCULINO, FEMININO, NEUTRO...
-    "data_nascimento": "2000-01-01", // Data formato ISO
-    "curso": "ADMINISTRACAO", // Enum do curso
-    "campus": "SALVADOR", // Enum do campus/unidade
-    "data_ingresso": "2022-01-01", // Data formato ISO
-    "celular": "71999999999" // Telefone celular
-  }
-  ```
-- **Resposta:** Dados atualizados do aluno
+**Steps (`/steps`)**
 
-### 📋 Editais
+- `POST /steps`
+- `POST /steps/edital/:id/clonar-formulario`
+- `PATCH /steps/edital/:id/reordenar`
+- `GET /steps/edital/:id/with-perguntas`
+- `GET /steps/edital/:id`
+- `PATCH /steps/:id`
+- `DELETE /steps/:id`
 
-**Listar Todos os Editais**
+**Perguntas (`/perguntas`)**
 
-```
-GET /editais
-```
+- `POST /perguntas`
+- `GET /perguntas/step/:stepId`
+- `PATCH /perguntas/step/:stepId/reordenar`
+- `PATCH /perguntas/:id`
+- `DELETE /perguntas/:id`
 
-- **Resposta:** Lista de todos os editais cadastrados
+**Respostas (`/respostas`)**
 
-**Obter Edital Específico**
+- `POST /respostas`
+- `GET /respostas`
+- `GET /respostas/aluno/:alunoId/edital/:editalId/steps-completos`
+- `GET /respostas/aluno/:alunoId/edital/:editalId`
+- `GET /respostas/aluno/:alunoId/edital/:editalId/step/:stepId`
+- `GET /respostas/aluno/:alunoId/edital/:editalId/step/:stepId/perguntas-com-respostas`
+- `GET /respostas/pergunta/:perguntaId/edital/:editalId`
+- `PATCH /respostas/:id/reabrir-complemento`
+- `PATCH /respostas/:id/validate`
+- `GET /respostas/:id`
+- `PATCH /respostas/:id`
+- `DELETE /respostas/:id`
 
-```
-GET /editais/:id
-```
+### 📝 Inscrições (`/inscricoes`)
 
-- **Parâmetros:** `id` - ID numérico do edital
-- **Resposta:** Detalhes completos do edital solicitado
+- `POST /inscricoes`
+- `PATCH /inscricoes/:id/correcao-respostas`
+- `PATCH /inscricoes/:id`
+- `GET /inscricoes`
+- `POST /inscricoes/cache/save/respostas`
+- `GET /inscricoes/cache/respostas/vaga/:vagaId`
+- `GET /inscricoes/admin/:id/status-audit`
+- `PATCH /inscricoes/admin/:id/status`
+- `PATCH /inscricoes/admin/:id/beneficio-edital`
+- `PATCH /inscricoes/admin/:id/resultado-recurso`
+- `GET /inscricoes/aprovados/pdf`
+- `GET /inscricoes/beneficiarios/pdf`
+- `GET /inscricoes/admin/:id/pdf`
+- `GET /inscricoes/admin/edital/:id/export.csv`
 
-**Criar Novo Edital**
+### 📎 Documentos
 
-```
-POST /editais
-```
+**Fluxo de documentos da inscrição (`/documentos`)**
 
-- **Corpo:**
-  ```json
-  {
-    "nome_edital": "Edital 2024.1",
-    "descricao": "Descrição do edital",
-    "tipo_beneficio": ["AUXILIO_ALIMENTACAO", "AUXILIO_TRANSPORTE"],
-    "edital_url": ["http://url-do-documento.pdf"],
-    "categoria_edital": ["AUXILIO"],
-    "status_edital": "ATIVO",
-    "quantidade_bolsas": 100,
-    "etapas": [
-      {
-        "nome": "Inscrição",
-        "descricao": "Etapa de inscrição",
-        "ordem": 1,
-        "data_inicio": "2024-05-01T00:00:00.000Z",
-        "data_fim": "2024-05-15T23:59:59.000Z"
-      }
-    ]
-  }
-  ```
-- **Resposta:** Edital criado com ID
+- `POST /documentos/upload`
+- `GET /documentos/inscricao/:inscricaoId`
+- `GET /documentos/:id`
+- `PUT /documentos/:id`
+- `DELETE /documentos/:id`
+- `GET /documentos/reprovados/meus`
+- `PUT /documentos/resubmissao/:id`
+- `GET /documentos/pendencias/meus`
 
-**Atualizar Edital**
+**Armazenamento de arquivos (`/documents`)**
 
-```
-PATCH /editais/:id
-```
+- `POST /documents/upload`
+- `GET /documents/view?key=...`
+- `GET /documents/presigned?key=...`
+- `GET /documents/:filename`
 
-- **Parâmetros:** `id` - ID numérico do edital
-- **Corpo:**
-  ```json
-  {
-    "nome_edital": "Edital Atualizado",
-    "descricao": "Nova descrição",
-    "tipo_beneficio": ["AUXILIO_ALIMENTACAO"],
-    "edital_url": ["http://nova-url.pdf"],
-    "categoria_edital": ["AUXILIO"],
-    "status_edital": "DESATIVADO",
-    "quantidade_bolsas": 50
-  }
-  ```
-- **Resposta:** Dados atualizados do edital
+### 🧱 Dados auxiliares
 
-**Excluir Edital**
-
-```
-DELETE /editais/:id
-```
-
-- **Parâmetros:** `id` - ID numérico do edital
-- **Resposta:** Confirmação da exclusão
+- `POST /dado`
+- `GET /dado`
+- `GET /dado/:id`
+- `PATCH /dado/:id`
+- `DELETE /dado/:id`
+- `POST /valor-dado`
+- `GET /valor-dado/aluno/:alunoId`
+- `PATCH /valor-dado/:id`
+- `DELETE /valor-dado/:id`
+- `POST /validacao`
+- `GET /validacao`
+- `GET /validacao/:id`
+- `PATCH /validacao/:id`
+- `DELETE /validacao/:id`
 
 ## 👥 Equipe
 
