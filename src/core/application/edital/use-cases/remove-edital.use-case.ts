@@ -20,7 +20,19 @@ export class RemoveEditalUseCase {
   ) {}
 
   async execute(id: number) {
-    await this.editalRepository.remove(id);
-    return { message: 'Edital removido com sucesso' };
+    try {
+      await this.editalRepository.remove(id);
+      return { message: 'Edital removido com sucesso' };
+    } catch (e) {
+      if (e instanceof Error) {
+        if (e.message === 'Edital não encontrado') {
+          throw new EditalNaoEncontradoError(id);
+        }
+        if (e.message.includes('inscrições vinculadas')) {
+          throw new EditalPossuiInscricoesError();
+        }
+      }
+      throw e;
+    }
   }
 }

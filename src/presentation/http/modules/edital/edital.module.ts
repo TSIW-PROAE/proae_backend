@@ -5,17 +5,19 @@ import { CreateEditalUseCase } from 'src/core/application/edital/use-cases/creat
 import { FindEditalByIdUseCase } from 'src/core/application/edital/use-cases/find-edital-by-id.use-case';
 import { GetAlunosInscritosUseCase } from 'src/core/application/edital/use-cases/get-alunos-inscritos.use-case';
 import { ListEditaisAbertosUseCase } from 'src/core/application/edital/use-cases/list-editais-abertos.use-case';
+import { ListEditaisVisiveisAlunoUseCase } from 'src/core/application/edital/use-cases/list-editais-visiveis-aluno.use-case';
 import { ListEditaisUseCase } from 'src/core/application/edital/use-cases/list-editais.use-case';
 import { RemoveEditalUseCase } from 'src/core/application/edital/use-cases/remove-edital.use-case';
 import { UpdateEditalStatusUseCase } from 'src/core/application/edital/use-cases/update-edital-status.use-case';
 import { UpdateEditalUseCase } from 'src/core/application/edital/use-cases/update-edital.use-case';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
+import { Vagas } from 'src/infrastructure/persistence/typeorm/entities/vagas/vagas.entity';
 import { EditalTypeOrmRepository } from 'src/infrastructure/persistence/typeorm/repositories/edital.typeorm.repository';
 import { AuthModule } from 'src/presentation/http/modules/auth/auth.module';
 import { EditalController } from './edital.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Edital]), forwardRef(() => AuthModule)],
+  imports: [TypeOrmModule.forFeature([Edital, Vagas]), forwardRef(() => AuthModule)],
   controllers: [EditalController],
   providers: [
     { provide: EDITAL_REPOSITORY, useClass: EditalTypeOrmRepository },
@@ -25,6 +27,7 @@ import { EditalController } from './edital.controller';
     UpdateEditalUseCase,
     RemoveEditalUseCase,
     ListEditaisAbertosUseCase,
+    ListEditaisVisiveisAlunoUseCase,
     UpdateEditalStatusUseCase,
     GetAlunosInscritosUseCase,
   ],

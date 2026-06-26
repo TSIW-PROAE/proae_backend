@@ -7,10 +7,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { Brackets, type Repository } from 'typeorm';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import {
+  AdminPerfilEnum,
+  resolveAdminPerfilEfetivo,
+} from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { StatusDocumento } from 'src/core/shared-kernel/enums/statusDocumento';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
+import { AlunoMatriculaHistorico } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno-matricula-historico.entity';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
 import { Resposta } from 'src/infrastructure/persistence/typeorm/entities/resposta/resposta.entity';
@@ -71,6 +76,124 @@ function respostaRequerReenvioPendente(r: Resposta): boolean {
     }
   }
   return true;
+}
+
+type EtapaEditalLike = {
+  etapa?: string;
+  tipo_etapa?: string;
+  data_inicio?: Date | string;
+  data_fim?: Date | string;
+};
+
+function normalizeText(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function toDateStart(value: unknown): Date | null {
+  const s = String(value ?? '').trim();
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function toDateEnd(value: unknown): Date | null {
+  const s = String(value ?? '').trim();
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) {
+    const d = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      23,
+      59,
+      59,
+      999,
+    );
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function isNowWithinEtapa(etapa: EtapaEditalLike, now = new Date()): boolean {
+  const ini = toDateStart(etapa.data_inicio);
+  const fim = toDateEnd(etapa.data_fim);
+  if (!ini || !fim) return false;
+  return now.getTime() >= ini.getTime() && now.getTime() <= fim.getTime();
+}
+
+function etapaTipoMatches(
+  etapa: EtapaEditalLike,
+  expectedTipos: string[],
+): boolean {
+  const tipo = normalizeText(etapa.tipo_etapa);
+  if (!tipo) return false;
+  const normalizedExpected = expectedTipos.map((t) => normalizeText(t));
+  return normalizedExpected.some((et) => tipo === et || tipo.includes(et));
+}
+
+function findEtapaByTipoOrKeywords(
+  etapas: unknown,
+  opts: { tipos?: string[]; keywords?: string[] },
+): EtapaEditalLike | null {
+  if (!Array.isArray(etapas) || etapas.length === 0) return null;
+  const normalizedKeywords = (opts.keywords ?? [])
+    .map((k) => normalizeText(k))
+    .filter(Boolean);
+  const tipos = opts.tipos ?? [];
+
+  for (const item of etapas) {
+    if (!item || typeof item !== 'object') continue;
+    const etapa = item as EtapaEditalLike;
+    if (tipos.length > 0 && etapaTipoMatches(etapa, tipos)) {
+      return etapa;
+    }
+  }
+
+  for (const item of etapas) {
+    if (!item || typeof item !== 'object') continue;
+    const etapa = item as EtapaEditalLike;
+    const nome = normalizeText(etapa.etapa);
+    if (!nome) continue;
+    if (normalizedKeywords.some((k) => nome.includes(k))) return etapa;
+  }
+  return null;
+}
+
+function classifySituacaoSolicitacao(inscricao: {
+  status_inscricao?: string | null;
+  status_beneficio_edital?: string | null;
+  observacao_admin?: string | null;
+}): 'SELECIONADA' | 'CLASSIFICADA' | 'INDEFERIDA' | 'DESISTENTE' {
+  const obs = String(inscricao.observacao_admin ?? '').toLowerCase();
+  if (obs.includes('desist')) return 'DESISTENTE';
+
+  const statusInscricao = String(inscricao.status_inscricao ?? '');
+  if (statusInscricao === StatusInscricao.NEGADA) return 'INDEFERIDA';
+
+  const statusBeneficio = String(inscricao.status_beneficio_edital ?? '');
+  if (
+    statusInscricao === StatusInscricao.APROVADA &&
+    statusBeneficio === StatusBeneficioEdital.BENEFICIARIO
+  ) {
+    return 'SELECIONADA';
+  }
+
+  return 'CLASSIFICADA';
 }
 
 /** Campos esperados pelo `CandidateStatus` no portal. */
@@ -170,6 +293,8 @@ export class AlunoService {
     private readonly usuarioRepository: Repository<Usuario>,
     @InjectRepository(Aluno)
     private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(AlunoMatriculaHistorico)
+    private readonly alunoMatriculaHistoricoRepository: Repository<AlunoMatriculaHistorico>,
     @InjectRepository(Step)
     private readonly stepRepository: Repository<Step>,
     @InjectRepository(Edital)
@@ -205,9 +330,132 @@ export class AlunoService {
     }
   }
 
+  private async validarMatriculaDisponivel(
+    matricula: string,
+    alunoIdAtual?: number,
+  ): Promise<void> {
+    const existente = await this.alunoRepository.findOne({
+      where: { matricula },
+    });
+    if (existente && existente.aluno_id !== alunoIdAtual) {
+      throw new BadRequestException(
+        'Esta matrícula já está vinculada a outro cadastro de estudante.',
+      );
+    }
+  }
+
+  private async registrarHistoricoMatricula(
+    aluno: Aluno,
+    motivo: string,
+  ): Promise<void> {
+    const jaRegistrado = await this.alunoMatriculaHistoricoRepository.findOne({
+      where: {
+        aluno: { aluno_id: aluno.aluno_id },
+        matricula: aluno.matricula,
+      },
+      relations: ['aluno'],
+    });
+    if (jaRegistrado) return;
+
+    const historico = this.alunoMatriculaHistoricoRepository.create({
+      aluno,
+      matricula: aluno.matricula,
+      curso: aluno.curso,
+      campus: String(aluno.campus),
+      data_ingresso: aluno.data_ingresso,
+      nivel_academico: String(aluno.nivel_academico),
+      motivo,
+    });
+    await this.alunoMatriculaHistoricoRepository.save(historico);
+  }
+
+  private async assertGerencial(requesterUserId: string): Promise<void> {
+    const requester = await this.usuarioRepository.findOne({
+      where: { usuario_id: requesterUserId },
+      relations: ['admin'],
+    });
+    if (!requester) {
+      throw new NotFoundException('Usuário solicitante não encontrado.');
+    }
+    if (!requester.roles?.includes(RolesEnum.ADMIN)) {
+      throw new ForbiddenException(
+        'Apenas servidores PROAE podem executar esta ação.',
+      );
+    }
+    const perfilSolicitante = resolveAdminPerfilEfetivo(requester.admin?.perfil);
+    if (perfilSolicitante !== AdminPerfilEnum.GERENCIAL) {
+      throw new ForbiddenException(
+        'Apenas perfil gerencial pode gerenciar perfis de estudantes.',
+      );
+    }
+  }
+
+  private normalizePagination(page?: number, limit?: number): {
+    page: number;
+    limit: number;
+    skip: number;
+  } {
+    const normalizedPage =
+      Number.isFinite(page) && Number(page) > 0 ? Math.floor(Number(page)) : 1;
+    const normalizedLimit =
+      Number.isFinite(limit) && Number(limit) > 0
+        ? Math.min(Math.floor(Number(limit)), 100)
+        : 20;
+    const skip = (normalizedPage - 1) * normalizedLimit;
+    return { page: normalizedPage, limit: normalizedLimit, skip };
+  }
+
+  private buildPaginationMeta(totalItems: number, page: number, limit: number) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    return {
+      pagina: page,
+      limite: limit,
+      total_itens: totalItems,
+      total_paginas: totalPages,
+      tem_anterior: page > 1,
+      tem_proxima: page < totalPages,
+    };
+  }
+
+  private normalizeStatusInscricaoFiltro(raw?: string): StatusInscricao | null {
+    if (!raw) return null;
+    const normalized = String(raw)
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/\s+/g, '_');
+
+    switch (normalized) {
+      case 'PENDENTE':
+      case 'EM_ANALISE':
+      case 'INSCRICAO_PENDENTE':
+        return StatusInscricao.PENDENTE;
+      case 'APROVADA':
+      case 'APROVADO':
+      case 'INSCRICAO_APROVADA':
+        return StatusInscricao.APROVADA;
+      case 'NEGADA':
+      case 'REJEITADA':
+      case 'REPROVADA':
+      case 'REPROVADO':
+      case 'INSCRICAO_NEGADA':
+        return StatusInscricao.NEGADA;
+      case 'AJUSTE_NECESSARIO':
+      case 'EM_AJUSTE':
+      case 'AGUARDANDO_COMPLEMENTO':
+      case 'PENDENTE_REGULARIZACAO':
+      case 'REJEITADA_POR_PRAZO_COMPLEMENTO':
+        return StatusInscricao.EM_AJUSTE;
+      default:
+        return null;
+    }
+  }
+
   /**
-   * Vincula perfil de aluno à conta do usuário logado (quando ele ainda não tem).
-   * Use quando GET /aluno/me retorna 404 — a pessoa está “no perfil aluno” mas o backend não tinha o registro.
+   * Vincula perfil de aluno à conta do usuário logado.
+   * Se a conta já tiver perfil de aluno, funciona como atualização de vínculo acadêmico
+   * (ex.: mudança de matrícula e nível acadêmico em reingresso).
    */
   async completeCadastro(userId: string, dto: CompleteCadastroAlunoDto) {
     const usuario = await this.usuarioRepository.findOne({
@@ -218,15 +466,62 @@ export class AlunoService {
       throw new NotFoundException('Usuário não encontrado');
     }
     if (usuario.aluno) {
-      throw new BadRequestException(
-        'Sua conta já possui cadastro de aluno. Use a atualização de dados se precisar alterar.',
-      );
+      await this.validarMatriculaDisponivel(dto.matricula, usuario.aluno.aluno_id);
+      if (usuario.aluno.matricula !== dto.matricula) {
+        await this.registrarHistoricoMatricula(
+          usuario.aluno,
+          'atualizacao_reingresso_complete_cadastro',
+        );
+      }
+
+      usuario.aluno.matricula = dto.matricula;
+      usuario.aluno.curso = dto.curso;
+      usuario.aluno.campus = dto.campus;
+      usuario.aluno.data_ingresso = dto.data_ingresso;
+      usuario.aluno.nivel_academico = dto.nivel_academico;
+      await this.alunoRepository.save(usuario.aluno);
+
+      const curRoles = Array.isArray(usuario.roles) ? usuario.roles : [];
+      const rolesAtualizados = curRoles.includes(RolesEnum.ALUNO)
+        ? curRoles
+        : [...curRoles, RolesEnum.ALUNO];
+      await this.usuarioRepository.update(usuario.usuario_id, {
+        roles: rolesAtualizados,
+      });
+
+      const { aguardando_confirmacao_email } =
+        await this.authService.aplicarConfirmacaoEmailPosCadastroAluno(userId);
+      return {
+        sucesso: true,
+        mensagem: aguardando_confirmacao_email
+          ? 'Enviamos um link de confirmação para seu email. Após confirmar, você poderá se inscrever em editais.'
+          : 'Cadastro de aluno atualizado com sucesso.',
+        aguardando_confirmacao_email,
+        dados: {
+          aluno_id: usuario.aluno.aluno_id,
+          matricula: usuario.aluno.matricula,
+          curso: usuario.aluno.curso,
+          campus: usuario.aluno.campus,
+          data_ingresso: usuario.aluno.data_ingresso,
+          nivel_academico: usuario.aluno.nivel_academico,
+        },
+      };
     }
     const matriculaExistente = await this.alunoRepository.findOne({
       where: { matricula: dto.matricula },
       relations: ['usuario'],
     });
     if (matriculaExistente) {
+      if (
+        matriculaExistente.usuario?.usuario_id !== usuario.usuario_id &&
+        matriculaExistente.usuario?.cpf &&
+        matriculaExistente.usuario.cpf !== usuario.cpf
+      ) {
+        throw new BadRequestException(
+          'Esta matrícula já está vinculada a outro CPF. Faça login com a conta correta para continuar.',
+        );
+      }
+
       // Matrícula já existe. O usuário logado está reivindicando-a.
       // Transfere o perfil de aluno para a conta atual (cenário: usuário criou
       // conta de aluno com um email e conta de admin com outro, quer unificar).
@@ -308,38 +603,42 @@ export class AlunoService {
     };
   }
 
-  async findUsers() {
-    const usuarios = await this.usuarioRepository.find({
-      relations: ['aluno', 'aluno.inscricoes'],
+  async listarTodosAlunosPaginado(page?: number, limit?: number) {
+    const pagination = this.normalizePagination(page, limit);
+    const [alunos, total] = await this.alunoRepository.findAndCount({
+      relations: ['usuario', 'inscricoes'],
+      order: { aluno_id: 'ASC' },
+      skip: pagination.skip,
+      take: pagination.limit,
     });
 
-    const comAluno = (usuarios ?? []).filter((u) => u.aluno);
-
-    if (comAluno.length === 0) {
-      throw new NotFoundException('Alunos não encontrados.');
-    }
-
-    const dados = comAluno.map((usuario) => {
-      const aluno = usuario.aluno!;
-
+    const dados = (alunos ?? []).map((aluno) => {
+      const usuario = aluno.usuario;
       return {
         aluno_id: aluno.aluno_id,
-        email: usuario.email,
+        nome: usuario?.nome ?? '',
+        email: usuario?.email ?? '',
         matricula: aluno.matricula,
-        data_nascimento: usuario.data_nascimento,
+        data_nascimento: usuario?.data_nascimento ?? null,
         nivel_academico: aluno.nivel_academico,
         curso: aluno.curso,
         campus: aluno.campus,
-        cpf: usuario.cpf,
+        cpf: usuario?.cpf ?? '',
         data_ingresso: aluno.data_ingresso,
-        celular: usuario.celular,
-        inscricoes: aluno.inscricoes || [],
+        celular: usuario?.celular ?? '',
+        inscricoes: aluno.inscricoes ?? [],
       };
     });
+
     return {
       sucesso: true,
       dados,
+      paginacao: this.buildPaginationMeta(total, pagination.page, pagination.limit),
     };
+  }
+
+  async findUsers(page?: number, limit?: number) {
+    return this.listarTodosAlunosPaginado(page, limit);
   }
   async findByUserId(userId: string) {
     const usuario = await this.usuarioRepository.findOne({
@@ -504,17 +803,27 @@ export class AlunoService {
         inscricao_id: inscricao.id,
         titulo_edital: edital?.titulo_edital ?? 'Edital',
         status_edital: edital?.status_edital ?? '',
+        ajustes_abertos: edital?.ajustes_abertos ?? false,
         nivel_academico:
           (edital?.nivel_academico as NivelAcademico) ??
           NivelAcademico.GRADUACAO,
-        is_formulario_geral: edital?.is_formulario_geral ?? false,
-        is_formulario_renovacao: edital?.is_formulario_renovacao ?? false,
         /** Nome alinhado ao front (`CandidateStatus`); etapas vêm do cadastro do edital. */
         etapa_edital: normalizeEtapaEditalParaPortal(edital?.etapa_edital),
         data_inscricao: serializeDateOnly(inscricao.data_inscricao),
         status_inscricao: inscricao.status_inscricao,
+        situacao_solicitacao: classifySituacaoSolicitacao({
+          status_inscricao: inscricao.status_inscricao,
+          status_beneficio_edital: inscricao.status_beneficio_edital,
+          observacao_admin: inscricao.observacao_admin ?? null,
+        }),
         /** Homologação como beneficiário da vaga no edital (independe visualmente da análise, mas a regra de negócio exige inscrição aprovada para marcar). */
         status_beneficio_edital: inscricao.status_beneficio_edital,
+        resultado_fase: inscricao.resultado_fase ?? 'Nao publicado',
+        recurso_status: inscricao.recurso_status ?? 'Sem recurso',
+        recurso_observacao: inscricao.recurso_observacao ?? null,
+        resultado_publicado_em: inscricao.resultado_publicado_em
+          ? new Date(inscricao.resultado_publicado_em).toISOString()
+          : null,
         observacao_admin: inscricao.observacao_admin ?? null,
         possui_pendencias: hasPendencias,
         total_pendencias: pendenteDocs.length,
@@ -533,6 +842,70 @@ export class AlunoService {
           : undefined,
       };
     });
+  }
+
+  async solicitarRecursoInscricao(
+    userId: string,
+    inscricaoId: number,
+    justificativa: string,
+  ) {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { usuario_id: userId },
+      relations: ['aluno'],
+    });
+    if (!usuario?.aluno) {
+      throw new NotFoundException('Aluno não encontrado.');
+    }
+
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: ['aluno', 'vagas', 'vagas.edital'],
+    });
+    if (!inscricao) {
+      throw new NotFoundException('Inscrição não encontrada.');
+    }
+    if (inscricao.aluno?.aluno_id !== usuario.aluno.aluno_id) {
+      throw new ForbiddenException(
+        'Você não tem permissão para solicitar recurso nesta inscrição.',
+      );
+    }
+
+    if (inscricao.resultado_fase !== 'Resultado preliminar') {
+      throw new BadRequestException(
+        'Recurso só pode ser solicitado após publicação do resultado preliminar.',
+      );
+    }
+    const etapaRecurso = findEtapaByTipoOrKeywords(
+      inscricao.vagas?.edital?.etapa_edital,
+      {
+        tipos: ['RECURSO'],
+        keywords: ['recurso', 'interposicao', 'interposição'],
+      },
+    );
+    if (etapaRecurso && !isNowWithinEtapa(etapaRecurso)) {
+      throw new BadRequestException(
+        'O período de recurso deste edital está fechado no cronograma.',
+      );
+    }
+    if (inscricao.recurso_status !== 'Sem recurso') {
+      throw new BadRequestException(
+        'Já existe um recurso registrado para esta inscrição.',
+      );
+    }
+
+    inscricao.recurso_status = 'Recurso solicitado';
+    inscricao.recurso_observacao = justificativa.trim();
+    await this.inscricaoRepository.save(inscricao);
+
+    return {
+      sucesso: true,
+      dados: {
+        inscricao_id: inscricao.id,
+        recurso_status: inscricao.recurso_status,
+        recurso_observacao: inscricao.recurso_observacao ?? null,
+      },
+      mensagem: 'Recurso solicitado com sucesso.',
+    };
   }
 
   /**
@@ -613,6 +986,69 @@ export class AlunoService {
     return { dados: { beneficios } };
   }
 
+  async removeAlunoPerfilByGerencial(
+    requesterUserId: string,
+    alunoId: number,
+  ) {
+    await this.assertGerencial(requesterUserId);
+
+    const aluno = await this.alunoRepository.findOne({
+      where: { aluno_id: alunoId },
+      relations: ['usuario', 'inscricoes'],
+    });
+
+    if (!aluno) {
+      throw new NotFoundException('Aluno não encontrado.');
+    }
+    if (aluno.usuario?.usuario_id === requesterUserId) {
+      throw new BadRequestException(
+        'Não é permitido excluir o próprio perfil de aluno.',
+      );
+    }
+
+    const totalInscricoes = aluno.inscricoes?.length ?? 0;
+    if (totalInscricoes > 0) {
+      throw new BadRequestException(
+        'Não é possível excluir perfil de aluno com inscrições já registradas. Mantenha o histórico para auditoria.',
+      );
+    }
+
+    const usuario = aluno.usuario;
+    const matricula = aluno.matricula;
+    await this.alunoRepository.remove(aluno);
+
+    if (usuario) {
+      const rolesAtualizados = (usuario.roles ?? []).filter(
+        (r): r is RolesEnum => r !== RolesEnum.ALUNO,
+      );
+      await this.usuarioRepository.update(usuario.usuario_id, {
+        roles: rolesAtualizados as RolesEnum[],
+      });
+
+      const usuarioAtualizado = await this.usuarioRepository.findOne({
+        where: { usuario_id: usuario.usuario_id },
+        relations: ['admin', 'aluno'],
+      });
+
+      if (
+        usuarioAtualizado &&
+        !usuarioAtualizado.admin &&
+        !usuarioAtualizado.aluno &&
+        rolesAtualizados.length === 0
+      ) {
+        await this.usuarioRepository.remove(usuarioAtualizado);
+      }
+    }
+
+    return {
+      sucesso: true,
+      mensagem: `Perfil de aluno removido com sucesso (matrícula ${matricula}).`,
+      dados: {
+        aluno_id: alunoId,
+      },
+    };
+  }
+
   /**
    * [Admin] Dados cadastrais + todas as inscrições (por vaga) para hub único.
    */
@@ -650,27 +1086,23 @@ export class AlunoService {
       const hasPendencias = (inscricao.documentos || []).some((d) =>
         documentoNaoAprovado(d),
       );
-      let processo_tipo: 'FORMULARIO_GERAL' | 'RENOVACAO' | 'EDITAL';
-      if (edital?.is_formulario_geral) {
-        processo_tipo = 'FORMULARIO_GERAL';
-      } else if (edital?.is_formulario_renovacao) {
-        processo_tipo = 'RENOVACAO';
-      } else {
-        processo_tipo = 'EDITAL';
-      }
       return {
         edital_id: edital?.id ?? 0,
         vaga_id: vagas?.id ?? null,
         inscricao_id: inscricao.id,
         titulo_edital: edital?.titulo_edital ?? 'Edital',
         status_edital: edital?.status_edital ?? '',
+        ajustes_abertos: edital?.ajustes_abertos ?? false,
         nivel_academico:
           edital?.nivel_academico ?? NivelAcademico.GRADUACAO,
-        is_formulario_geral: edital?.is_formulario_geral ?? false,
-        is_formulario_renovacao: edital?.is_formulario_renovacao ?? false,
-        processo_tipo,
+        processo_tipo: 'EDITAL' as const,
         data_inscricao: inscricao.data_inscricao,
         status_inscricao: inscricao.status_inscricao,
+        situacao_solicitacao: classifySituacaoSolicitacao({
+          status_inscricao: inscricao.status_inscricao,
+          status_beneficio_edital: inscricao.status_beneficio_edital,
+          observacao_admin: inscricao.observacao_admin ?? null,
+        }),
         status_beneficio_edital: inscricao.status_beneficio_edital,
         beneficio_nome: vagas?.beneficio ?? null,
         observacao_admin: inscricao.observacao_admin ?? null,
@@ -705,8 +1137,11 @@ export class AlunoService {
     opts: {
       apenasBeneficiariosEdital?: boolean;
       apenasInscricaoAprovada?: boolean;
+      page?: number;
+      limit?: number;
     },
   ) {
+    const pagination = this.normalizePagination(opts.page, opts.limit);
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
     });
@@ -769,10 +1204,33 @@ export class AlunoService {
       });
     }
 
-    return { sucesso: true as const, dados };
+    const total = dados.length;
+    const dadosPaginados = dados.slice(
+      pagination.skip,
+      pagination.skip + pagination.limit,
+    );
+
+    return {
+      sucesso: true as const,
+      dados: dadosPaginados,
+      paginacao: this.buildPaginationMeta(
+        total,
+        pagination.page,
+        pagination.limit,
+      ),
+    };
   }
 
-  async findAlunosInscritosEmStep(editalId: number, stepId: number) {
+  async findAlunosInscritosEmStep(
+    editalId: number,
+    stepId: number,
+    opts?: {
+      page?: number;
+      limit?: number;
+      busca?: string;
+      status?: string;
+    },
+  ) {
     const edital = await this.editalRepository.findOne({
       where: { id: editalId },
       relations: ['steps'],
@@ -793,64 +1251,93 @@ export class AlunoService {
       );
     }
 
-    const vagas = await this.vagasRepository.find({
-      where: { edital: { id: editalId } },
-    });
+    const pagination = this.normalizePagination(opts?.page, opts?.limit);
+    const busca = opts?.busca?.trim().toLowerCase();
+    const statusFiltro = this.normalizeStatusInscricaoFiltro(opts?.status);
 
-    if (!vagas || vagas.length === 0) {
-      return {
-        sucesso: true,
-        dados: [],
-        mensagem: 'Nenhuma vaga encontrada para este edital.',
-      };
+    const qb = this.inscricaoRepository
+      .createQueryBuilder('inscricao')
+      .innerJoinAndSelect('inscricao.aluno', 'aluno')
+      .innerJoinAndSelect('aluno.usuario', 'usuario')
+      .innerJoin('inscricao.vagas', 'vaga')
+      .innerJoin('vaga.edital', 'edital')
+      .innerJoinAndSelect('inscricao.respostas', 'respostas')
+      .innerJoinAndSelect('respostas.pergunta', 'pergunta')
+      .innerJoin('pergunta.step', 'step')
+      .where('edital.id = :editalId', { editalId })
+      .andWhere('step.id = :stepId', { stepId })
+      .distinct(true);
+
+    if (statusFiltro) {
+      qb.andWhere('inscricao.status_inscricao = :statusFiltro', { statusFiltro });
     }
 
-    const vagaIds = vagas.map((vaga) => vaga.id);
-    const inscricoes = await this.inscricaoRepository
-      .createQueryBuilder('inscricao')
-      .leftJoinAndSelect('inscricao.aluno', 'aluno')
-      .leftJoinAndSelect('aluno.usuario', 'usuario')
-      .leftJoinAndSelect('inscricao.vagas', 'vagas')
-      .leftJoinAndSelect('vagas.edital', 'edital')
-      .leftJoinAndSelect('inscricao.respostas', 'respostas')
-      .leftJoinAndSelect('respostas.pergunta', 'pergunta')
-      .leftJoinAndSelect('pergunta.step', 'step')
-      .where('vagas.id IN (:...vagaIds)', { vagaIds })
+    if (busca) {
+      qb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('LOWER(usuario.nome) LIKE :busca', { busca: `%${busca}%` })
+            .orWhere('LOWER(usuario.email) LIKE :busca', {
+              busca: `%${busca}%`,
+            })
+            .orWhere('LOWER(aluno.matricula) LIKE :busca', {
+              busca: `%${busca}%`,
+            })
+            .orWhere('LOWER(aluno.curso) LIKE :busca', { busca: `%${busca}%` })
+            .orWhere('LOWER(aluno.campus) LIKE :busca', {
+              busca: `%${busca}%`,
+            });
+        }),
+      );
+    }
+
+    const total = await qb
+      .clone()
+      .select('inscricao.id')
+      .distinct(true)
+      .getCount();
+
+    const inscricoes = await qb
+      .clone()
+      .orderBy('inscricao.data_inscricao', 'DESC')
+      .addOrderBy('inscricao.id', 'DESC')
+      .skip(pagination.skip)
+      .take(pagination.limit)
       .getMany();
 
-    const inscricoesComRespostas = inscricoes.filter((inscricao) => {
-      return inscricao.respostas.some((resposta) => {
-        return resposta.pergunta.step.id === stepId;
-      });
-    });
-
-    const alunosInscritos = inscricoesComRespostas.map((inscricao) => {
+    const alunosInscritos = inscricoes.map((inscricao) => {
       const aluno = inscricao.aluno;
-      const usuario = aluno.usuario;
+      const usuario = aluno?.usuario;
+      const respostasStep = (inscricao.respostas ?? [])
+        .filter((resposta) => resposta.pergunta?.step?.id === stepId)
+        .map((resposta) => ({
+          pergunta_id: resposta.pergunta?.id,
+          pergunta_texto: resposta.pergunta?.pergunta,
+          resposta_texto: resposta.texto,
+          data_resposta: resposta.dataResposta,
+        }));
 
       return {
-        aluno_id: aluno.aluno_id,
-        usuario_id: usuario.usuario_id,
-        email: usuario.email,
-        nome: usuario.nome,
-        matricula: aluno.matricula,
-        cpf: usuario.cpf,
-        celular: usuario.celular,
-        curso: aluno.curso,
-        campus: aluno.campus,
-        data_nascimento: usuario.data_nascimento,
-        data_ingresso: aluno.data_ingresso,
+        aluno_id: aluno?.aluno_id,
+        usuario_id: usuario?.usuario_id,
+        email: usuario?.email,
+        nome: usuario?.nome,
+        matricula: aluno?.matricula,
+        cpf: usuario?.cpf,
+        celular: usuario?.celular,
+        curso: aluno?.curso,
+        campus: aluno?.campus,
+        data_nascimento: usuario?.data_nascimento,
+        data_ingresso: aluno?.data_ingresso,
         inscricao_id: inscricao.id,
         status_inscricao: inscricao.status_inscricao,
+        situacao_solicitacao: classifySituacaoSolicitacao({
+          status_inscricao: inscricao.status_inscricao,
+          status_beneficio_edital: (inscricao as any).status_beneficio_edital ?? null,
+          observacao_admin: inscricao.observacao_admin ?? null,
+        }),
         data_inscricao: inscricao.data_inscricao,
-        respostas_step: inscricao.respostas
-          .filter((resposta) => resposta.pergunta.step.id === stepId)
-          .map((resposta) => ({
-            pergunta_id: resposta.pergunta.id,
-            pergunta_texto: resposta.pergunta.pergunta,
-            resposta_texto: resposta.texto,
-            data_resposta: resposta.dataResposta,
-          })),
+        respostas_step: respostasStep,
       };
     });
 
@@ -867,8 +1354,13 @@ export class AlunoService {
           id: step.id,
           texto: step.texto,
         },
-        total_alunos: alunosInscritos.length,
+        total_alunos: total,
         alunos: alunosInscritos,
+        paginacao: this.buildPaginationMeta(
+          total,
+          pagination.page,
+          pagination.limit,
+        ),
       },
     };
   }

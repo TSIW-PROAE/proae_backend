@@ -1,17 +1,44 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
+  IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
+  Max,
+  ValidateNested,
 } from 'class-validator';
 import { EnumInputFormat } from 'src/core/shared-kernel/enums/enumInputFormat';
 import { EnumTipoInput } from 'src/core/shared-kernel/enums/enumTipoInput';
+
+export class PerguntaCondicaoDto {
+  @ApiProperty({
+    description: 'ID da pergunta cuja resposta determina a exibição',
+  })
+  @Type(() => Number)
+  @IsInt()
+  pergunta_id_origem: number;
+
+  @ApiProperty({
+    description: 'Operador de comparação aplicado à resposta da origem',
+    enum: ['equals', 'notEquals', 'includes', 'notIncludes'],
+  })
+  @IsIn(['equals', 'notEquals', 'includes', 'notIncludes'])
+  operador: 'equals' | 'notEquals' | 'includes' | 'notIncludes';
+
+  @ApiProperty({
+    description: 'Valor (ou lista de valores) que a resposta da origem deve casar',
+  })
+  valor: string | string[];
+}
 
 const TIPO_PERGUNTA_MAP: Record<string, string> = {
   texto: EnumTipoInput.TEXT,
@@ -41,6 +68,7 @@ export class CreatePerguntaDto {
     example: 9,
   })
   @IsNotEmpty()
+  @Type(() => Number)
   @IsNumber()
   step_id: number;
 
@@ -90,7 +118,50 @@ export class CreatePerguntaDto {
     description: 'ID do Dado vinculado (ex: CPF, RG, Data de Nascimento)',
     example: 10,
   })
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   dadoId?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Posição relativa da pergunta dentro do step. Quando omitida, é colocada no fim.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  ordem?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Quando o edital já tem inscrições: prazo (ISO 8601) para os alunos responderem esta pergunta adicionada.',
+    example: '2026-12-31T23:59:59.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  prazoResposta?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Regra de exibição condicional. Use null para remover a condição existente.',
+    type: PerguntaCondicaoDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PerguntaCondicaoDto)
+  condicao?: PerguntaCondicaoDto | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Pontuação atribuída quando a resposta desta pergunta é validada na análise.',
+    example: 2.5,
+    default: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000000)
+  pontuacao_validacao?: number;
 }

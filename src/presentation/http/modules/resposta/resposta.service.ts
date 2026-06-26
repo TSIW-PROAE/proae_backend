@@ -9,6 +9,7 @@ import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
 import type { IRespostaRepository } from 'src/core/domain/resposta/ports/resposta.repository.port';
 import { RESPOSTA_REPOSITORY } from 'src/core/application/resposta/resposta.tokens';
+import type { EmailSenderPort } from 'src/core/application/utilities/ports/email-sender.port';
 import { CreateRespostaUseCase } from 'src/core/application/resposta/use-cases/create-resposta.use-case';
 import { FindAllRespostasUseCase } from 'src/core/application/resposta/use-cases/find-all-respostas.use-case';
 import { FindPerguntasComRespostasAlunoStepUseCase } from 'src/core/application/resposta/use-cases/find-perguntas-com-respostas-aluno-step.use-case';
@@ -20,7 +21,7 @@ import { RemoveRespostaUseCase } from 'src/core/application/resposta/use-cases/r
 import { UpdateRespostaUseCase } from 'src/core/application/resposta/use-cases/update-resposta.use-case';
 import { ValidateRespostaUseCase } from 'src/core/application/resposta/use-cases/validate-resposta.use-case';
 import type { FileStoragePort } from 'src/core/application/utilities/ports/file-storage.port';
-import { FILE_STORAGE } from 'src/core/application/utilities/utility.tokens';
+import { EMAIL_SENDER, FILE_STORAGE } from 'src/core/application/utilities/utility.tokens';
 import { Aluno } from 'src/infrastructure/persistence/typeorm/entities/aluno/aluno.entity';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
@@ -61,6 +62,8 @@ export class RespostaService {
     private readonly dadoRepository: Repository<Dado>,
     @Inject(FILE_STORAGE)
     private readonly minioService: FileStoragePort,
+    @Inject(EMAIL_SENDER)
+    private readonly emailSender: EmailSenderPort,
     @Inject(RESPOSTA_REPOSITORY)
     private readonly respostaRepositoryPort: IRespostaRepository,
     private readonly createRespostaUseCase: CreateRespostaUseCase,
@@ -74,6 +77,39 @@ export class RespostaService {
     private readonly findRespostasPerguntaEditalUseCase: FindRespostasPerguntaEditalUseCase,
     private readonly validateRespostaUseCase: ValidateRespostaUseCase,
   ) {}
+
+  private portalAlunoUrl(path = '/portal-aluno/pendencias'): string {
+    const base = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    const suffix = path.startsWith('/') ? path : `/${path}`;
+    return `${base}${suffix}`;
+  }
+
+  private async notifyPendenciaResposta(
+    respostaId: number,
+    prazoLimite?: string | Date | null,
+    tituloPendencia?: string,
+  ): Promise<void> {
+    const resposta = await this.respostaRepository.findOne({
+      where: { id: respostaId },
+      relations: ['inscricao', 'inscricao.aluno', 'inscricao.aluno.usuario', 'inscricao.vagas', 'inscricao.vagas.edital'],
+    });
+    const email = resposta?.inscricao?.aluno?.usuario?.email;
+    if (!resposta || !email) return;
+    const nome = resposta.inscricao.aluno?.usuario?.nome ?? null;
+    const edital = resposta.inscricao.vagas?.edital;
+    const titulo = edital?.titulo_edital ?? 'Edital';
+
+    await this.emailSender.sendAlunoProcessNotification({
+      email,
+      nome,
+      subject: `[PROAE] [Edital de Benefícios] [Pendência] ${titulo}`,
+      title: tituloPendencia ?? 'Pendência na inscrição',
+      message: `Há uma pendência na sua inscrição do edital "${titulo}" que exige ação no sistema.`,
+      prazoLimite: prazoLimite ?? null,
+      ctaUrl: this.portalAlunoUrl('/portal-aluno/pendencias'),
+      ctaLabel: 'Ver pendências',
+    });
+  }
 
   async create(
     dto: CreateRespostaDto,
@@ -200,7 +236,7 @@ export class RespostaService {
   }
 
   async validateResposta(respostaId: number, dto: ValidateRespostaDto) {
-    return this.validateRespostaUseCase.execute(respostaId, {
+    const result = await this.validateRespostaUseCase.execute(respostaId, {
       validada: dto.validada,
       dataValidade: dto.dataValidade,
       invalidada: dto.invalidada,
@@ -208,6 +244,21 @@ export class RespostaService {
       parecer: dto.parecer,
       prazoReenvio: dto.prazoReenvio,
     });
+    if (dto.requerReenvio || dto.invalidada) {
+      try {
+        await this.notifyPendenciaResposta(
+          respostaId,
+          dto.prazoReenvio ?? null,
+          'Pendência de resposta/documento',
+        );
+      } catch (emailErr) {
+        console.warn(
+          '[resposta] Falha ao enviar e-mail de pendência:',
+          (emailErr as Error).message,
+        );
+      }
+    }
+    return result;
   }
 
   async findAllStepsComPerguntasRespostas(
@@ -221,6 +272,19 @@ export class RespostaService {
   }
 
   async reabrirComplemento(respostaId: number, novoPrazo: string) {
-    return this.respostaRepositoryPort.reabrirComplemento(respostaId, novoPrazo);
+    const result = await this.respostaRepositoryPort.reabrirComplemento(respostaId, novoPrazo);
+    try {
+      await this.notifyPendenciaResposta(
+        respostaId,
+        novoPrazo,
+        'Nova pergunta pendente para complemento',
+      );
+    } catch (emailErr) {
+      console.warn(
+        '[resposta] Falha ao enviar e-mail de complemento:',
+        (emailErr as Error).message,
+      );
+    }
+    return result;
   }
 }

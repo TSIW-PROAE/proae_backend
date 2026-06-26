@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 
 @Entity()
 export class Admin {
@@ -8,6 +9,18 @@ export class Admin {
 
   @Column({ length: 100 })
   cargo: string;
+
+  /**
+   * Perfil de acesso do admin: tecnico | gerencial | coordenacao.
+   * Default no banco = `gerencial` para preservar o comportamento histórico
+   * (cadastros antigos ficam com permissões completas até serem revisados).
+   */
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: AdminPerfilEnum.GERENCIAL,
+  })
+  perfil: AdminPerfilEnum;
 
   @Column({ default: false })
   aprovado: boolean;

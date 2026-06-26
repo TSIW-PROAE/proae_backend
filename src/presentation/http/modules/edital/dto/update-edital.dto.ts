@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -26,6 +27,14 @@ class EtapaEditalDto {
   @ApiProperty({ description: 'Nome da etapa' })
   @IsString()
   etapa: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Tipo semântico da etapa (opcional), ex.: INSCRICAO, RECURSO, RESULTADO_PRELIMINAR.',
+  })
+  @IsOptional()
+  @IsString()
+  tipo_etapa?: string;
 
   @ApiProperty({ description: 'Ordem do elemento' })
   @IsNumber()
@@ -88,4 +97,35 @@ export class UpdateEditalDto {
   @IsOptional()
   @IsEnum(NivelAcademico)
   nivel_academico?: NivelAcademico;
+
+  @ApiPropertyOptional({
+    description:
+      'Quando true, define este edital como formulário de renovação anual.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_formulario_renovacao?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Quando true, define este edital como chamada de Cadastro Geral.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_cadastro_geral?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Quando true, mantém inscrições abertas para alunos (independente do status do edital).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  inscricoes_abertas?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Quando true, mantém aberto o envio de ajustes/correções de pendências para alunos.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  ajustes_abertos?: boolean;
 }

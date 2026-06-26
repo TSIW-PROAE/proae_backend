@@ -13,6 +13,14 @@ export class AnswerStepResponseDto {
 
   @Expose()
   @ApiProperty({
+    example: 1,
+    description: 'Ordem do step dentro do edital (asc).',
+    required: false,
+  })
+  ordem?: number;
+
+  @Expose()
+  @ApiProperty({
     type: [PerguntaResponseDto],
     description: 'Lista de perguntas do step',
   })

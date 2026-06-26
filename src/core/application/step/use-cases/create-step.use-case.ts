@@ -5,6 +5,7 @@ import { STEP_REPOSITORY } from '../step.tokens';
 export interface CreateStepCommand {
   editalId: number;
   texto: string;
+  ordem?: number;
 }
 
 @Injectable()
@@ -18,6 +19,7 @@ export class CreateStepUseCase {
     return this.stepRepository.create({
       editalId: cmd.editalId,
       texto: cmd.texto,
+      ordem: cmd.ordem,
     });
   }
 }

@@ -66,4 +66,40 @@ export class PerguntaResponseDto {
     required: false,
   })
   dado?: DadoResponseDto;
+
+  @Expose()
+  @ApiProperty({
+    example: 1,
+    description: 'Ordem da pergunta dentro do step (asc).',
+    required: false,
+  })
+  ordem?: number;
+
+  @Expose()
+  @ApiProperty({
+    example: 2.5,
+    description:
+      'Pontuação atribuída quando a resposta desta pergunta é validada na análise.',
+    required: false,
+    default: 0,
+  })
+  pontuacao_validacao?: number;
+
+  @Expose()
+  @ApiProperty({
+    description:
+      'Regra de exibição condicional, quando a pergunta depende de outra resposta.',
+    required: false,
+    nullable: true,
+    example: {
+      pergunta_id_origem: 12,
+      operador: 'equals',
+      valor: 'Sim',
+    },
+  })
+  condicao?: {
+    pergunta_id_origem: number;
+    operador: 'equals' | 'notEquals' | 'includes' | 'notIncludes';
+    valor: string | string[];
+  } | null;
 }

@@ -1,10 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsPhoneNumber,
   IsString,
 } from 'class-validator';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { IsUfbaEmail } from 'src/core/shared-kernel/validators/is-ufba-email.validator';
 import { IsCPF } from 'src/core/shared-kernel/validators/isCpf.validator';
 import { IsStrongPassword } from 'src/core/shared-kernel/validators/strong-password.validator';
@@ -14,6 +17,19 @@ export class SignupDtoAdmin {
   @IsNotEmpty()
   @IsString()
   cargo: string;
+
+  @ApiProperty({
+    description:
+      'Perfil de acesso: tecnico (análise), gerencial (gestão/edição) ou coordenacao (consulta).',
+    enum: AdminPerfilEnum,
+    required: false,
+    default: AdminPerfilEnum.GERENCIAL,
+  })
+  @IsOptional()
+  @IsEnum(AdminPerfilEnum, {
+    message: 'perfil deve ser tecnico, gerencial ou coordenacao',
+  })
+  perfil?: AdminPerfilEnum;
 
   @ApiProperty({
     description: 'Email institucional do admin (apenas @ufba.br)',
@@ -42,8 +58,14 @@ export class SignupDtoAdmin {
     description: 'Data de nascimento do admin (formato: YYYY-MM-DD)',
     example: '2000-01-01',
   })
-  @IsNotEmpty()
-  @IsDateString()
+  @IsNotEmpty({ message: 'Informe sua data de nascimento.' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'Data de nascimento inválida. Selecione dia, mês e ano no calendário.',
+    },
+  )
   data_nascimento: string;
 
   @ApiProperty({
@@ -58,7 +80,10 @@ export class SignupDtoAdmin {
     description: 'Número de celular do admin (formato: +55DDDNUMERO)',
     example: '+5584999999999',
   })
-  @IsNotEmpty()
-  @IsPhoneNumber('BR')
+  @IsNotEmpty({ message: 'Informe seu celular com DDD.' })
+  @IsPhoneNumber('BR', {
+    message:
+      'Celular inválido. Use o formato com DDD, por exemplo (71) 99999-9999.',
+  })
   celular: string;
 }

@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { validationExceptionFactory } from './core/shared-kernel/validation/validation-exception.factory';
 import { HttpExceptionFilter } from './presentation/http/filters/http-exception.filter';
 
 async function bootstrap() {
@@ -59,6 +60,7 @@ async function bootstrap() {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 

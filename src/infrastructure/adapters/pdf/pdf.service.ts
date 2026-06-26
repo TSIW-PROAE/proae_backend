@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import type { PdfRendererPort } from '../../../core/application/utilities/ports/pdf-renderer.port';
 import { Edital } from 'src/infrastructure/persistence/typeorm/entities/edital/edital.entity';
 import { Inscricao } from 'src/infrastructure/persistence/typeorm/entities/inscricao/inscricao.entity';
+import { Step } from 'src/infrastructure/persistence/typeorm/entities/step/step.entity';
 import { StatusBeneficioEdital } from '../../../core/shared-kernel/enums/enumStatusBeneficioEdital';
 import { StatusInscricao } from '../../../core/shared-kernel/enums/enumStatusInscricao';
 
@@ -19,6 +20,8 @@ export class PdfService implements PdfRendererPort {
     private readonly inscricaoRepository: Repository<Inscricao>,
     @InjectRepository(Edital)
     private readonly editalRepository: Repository<Edital>,
+    @InjectRepository(Step)
+    private readonly stepRepository: Repository<Step>,
   ) {}
 
   async generateAprovadosPdf(editalId?: number): Promise<Buffer> {
@@ -301,4 +304,229 @@ export class PdfService implements PdfRendererPort {
       doc.on('error', reject);
     });
   }
+
+  /**
+   * PDF de uma inscrição específica, com dados do aluno e respostas
+   * organizadas por step e ordem, igual à apresentação ao analista.
+   */
+  async generateInscricaoDetalhePdf(inscricaoId: number): Promise<Buffer> {
+    if (!inscricaoId || Number.isNaN(inscricaoId)) {
+      throw new BadRequestException('Informe o inscricaoId.');
+    }
+
+    const inscricao = await this.inscricaoRepository.findOne({
+      where: { id: inscricaoId },
+      relations: {
+        aluno: { usuario: true },
+        vagas: { edital: true },
+        respostas: { pergunta: { step: true } },
+      },
+    });
+
+    if (!inscricao) {
+      throw new NotFoundException('Inscrição não encontrada.');
+    }
+
+    const edital = inscricao.vagas?.edital ?? null;
+    const stepsDoEdital = edital
+      ? await this.stepRepository.find({
+          where: { edital: { id: edital.id } },
+          relations: { perguntas: true },
+          order: { ordem: 'ASC', id: 'ASC' },
+        })
+      : [];
+
+    // Indexa respostas por id da pergunta
+    const respostasPorPergunta = new Map<number, (typeof inscricao.respostas)[number]>();
+    for (const r of inscricao.respostas ?? []) {
+      if (r.pergunta?.id != null) {
+        respostasPorPergunta.set(r.pergunta.id, r);
+      }
+    }
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: 50, bottom: 60, left: 50, right: 50 },
+    });
+    const buffers: Buffer[] = [];
+    doc.on('data', buffers.push.bind(buffers));
+
+    // Header
+    doc
+      .fontSize(18)
+      .font('Helvetica-Bold')
+      .text('Inscrição PROAE — Detalhe', { align: 'center' })
+      .moveDown(0.3);
+
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .fillColor('#444444')
+      .text(
+        `Gerado em ${new Date().toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`,
+        { align: 'center' },
+      )
+      .fillColor('#000000')
+      .moveDown();
+
+    if (edital) {
+      doc
+        .fontSize(13)
+        .font('Helvetica-Bold')
+        .text(`Edital: ${edital.titulo_edital}`, { align: 'center' })
+        .moveDown(0.5);
+    }
+
+    // Dados do aluno (caixa)
+    const aluno = inscricao.aluno;
+    const usuario = aluno?.usuario;
+    const labelLine = (label: string, valor: string | undefined | null) => {
+      doc.font('Helvetica-Bold').fontSize(10).text(`${label}: `, {
+        continued: true,
+      });
+      doc.font('Helvetica').fontSize(10).text(valor ? String(valor) : '—');
+    };
+
+    doc.moveDown(0.5).font('Helvetica-Bold').fontSize(12).text('Aluno');
+    doc.moveDown(0.2);
+    labelLine('Nome', usuario?.nome);
+    labelLine('CPF', usuario?.cpf);
+    labelLine('E-mail', usuario?.email);
+    labelLine('Matrícula', aluno?.matricula);
+    labelLine('Curso', aluno?.curso);
+    labelLine('Campus', aluno?.campus ? String(aluno.campus) : '');
+    labelLine(
+      'Status da inscrição',
+      String(inscricao.status_inscricao ?? '—'),
+    );
+    labelLine(
+      'Situação no edital',
+      String(inscricao.status_beneficio_edital ?? '—'),
+    );
+    labelLine(
+      'Data da inscrição',
+      inscricao.data_inscricao
+        ? new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR')
+        : '',
+    );
+
+    if (inscricao.observacao_admin) {
+      doc.moveDown(0.5).font('Helvetica-Bold').fontSize(11).text('Observação do analista');
+      doc.font('Helvetica').fontSize(10).text(inscricao.observacao_admin);
+    }
+
+    doc.moveDown(1);
+
+    if (!stepsDoEdital.length) {
+      doc.font('Helvetica').fontSize(10).text(
+        'Nenhuma pergunta cadastrada no formulário deste edital.',
+      );
+    } else {
+      stepsDoEdital.forEach((step, idxStep) => {
+        const titulo = step.texto || `Etapa ${idxStep + 1}`;
+        if (doc.y > doc.page.height - 120) {
+          doc.addPage();
+        }
+        doc
+          .moveDown(0.5)
+          .font('Helvetica-Bold')
+          .fontSize(13)
+          .fillColor('#0b5394')
+          .text(titulo)
+          .fillColor('#000000');
+        doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
+        doc.moveDown(0.3);
+
+        const perguntasOrd = (step.perguntas ?? [])
+          .slice()
+          .sort((a, b) => {
+            const oa = a.ordem ?? 0;
+            const ob = b.ordem ?? 0;
+            return oa === ob ? a.id - b.id : oa - ob;
+          });
+
+        if (!perguntasOrd.length) {
+          doc.font('Helvetica').fontSize(10).fillColor('#666666').text(
+            '(sem perguntas neste step)',
+          ).fillColor('#000000');
+          doc.moveDown(0.3);
+          return;
+        }
+
+        perguntasOrd.forEach((p) => {
+          if (doc.y > doc.page.height - 110) {
+            doc.addPage();
+          }
+          const resposta = respostasPorPergunta.get(p.id);
+          const valor = formatRespostaParaPdf(resposta);
+          const obrigSuffix = p.obrigatoriedade ? ' *' : '';
+          doc.font('Helvetica-Bold').fontSize(10).text(
+            `${p.pergunta}${obrigSuffix}`,
+            { paragraphGap: 2 },
+          );
+          if (resposta?.invalidada) {
+            doc.font('Helvetica-Oblique').fontSize(9).fillColor('#a13a30').text(
+              `Status da resposta: invalidada${
+                resposta?.parecer ? ` — ${resposta.parecer}` : ''
+              }`,
+            ).fillColor('#000000');
+          } else if (resposta?.validada) {
+            doc.font('Helvetica-Oblique').fontSize(9).fillColor('#1c7c3b').text(
+              'Status da resposta: validada',
+            ).fillColor('#000000');
+          }
+          doc.font('Helvetica').fontSize(10).text(valor, {
+            paragraphGap: 6,
+          });
+          doc.moveDown(0.1);
+        });
+      });
+    }
+
+    // Footer com paginação
+    const totalPages = doc.bufferedPageRange().count;
+    for (let i = 0; i < totalPages; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .font('Helvetica')
+        .text(
+          `Página ${i + 1} de ${totalPages}`,
+          doc.page.width / 2,
+          doc.page.height - 30,
+          { align: 'center' },
+        );
+    }
+
+    doc.end();
+    return new Promise((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+    });
+  }
+}
+
+/**
+ * Formata o valor de uma Resposta para texto em uma única string. Cobre
+ * texto, opções múltiplas, arquivos (URL) e fallback genérico.
+ */
+function formatRespostaParaPdf(resposta: any): string {
+  if (!resposta) return '—';
+  if (resposta.urlArquivo) return `Arquivo: ${resposta.urlArquivo}`;
+  if (Array.isArray(resposta.valorOpcoes) && resposta.valorOpcoes.length) {
+    return resposta.valorOpcoes.join(', ');
+  }
+  if (resposta.valorTexto != null && resposta.valorTexto !== '') {
+    return String(resposta.valorTexto);
+  }
+  if (resposta.texto != null && resposta.texto !== '') {
+    return String(resposta.texto);
+  }
+  return '—';
 }

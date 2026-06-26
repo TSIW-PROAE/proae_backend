@@ -11,6 +11,10 @@ export class StepSimpleResponseDto {
   texto: string;
 
   @Expose()
+  @ApiProperty({ example: 1, description: 'Ordem do step', required: false })
+  ordem?: number;
+
+  @Expose()
   @ApiProperty({ example: '2025-08-18T10:00:00.000Z', description: 'Data de criação' })
   created_at: Date;
 

@@ -47,9 +47,7 @@ export class EditalService {
 
   async findAll(): Promise<EditalResponseDto[]> {
     try {
-      const editais = await this.editaisRepository.find({
-        where: { is_formulario_geral: false },
-      });
+      const editais = await this.editaisRepository.find();
       return plainToInstance(EditalResponseDto, editais, {
         excludeExtraneousValues: true,
       });
@@ -123,7 +121,7 @@ export class EditalService {
     try {
       const edital = await this.editaisRepository.findOne({
         where: { id },
-        relations: ['vagas', 'vagas.inscricoes', 'steps'],
+        relations: ['vagas', 'vagas.inscricoes', 'steps', 'steps.perguntas'],
       });
 
       if (!edital) {
@@ -149,6 +147,12 @@ export class EditalService {
           }
 
           if (edital.steps && edital.steps.length > 0) {
+            const perguntas = edital.steps.flatMap(
+              (step) => step.perguntas ?? [],
+            );
+            if (perguntas.length > 0) {
+              await transactionalEntityManager.remove(perguntas);
+            }
             await transactionalEntityManager.remove(edital.steps);
           }
 
@@ -174,7 +178,7 @@ export class EditalService {
   async getEditalOpedened(): Promise<EditalResponseDto[]> {
     try {
       const editais = await this.editaisRepository.find({
-        where: { status_edital: StatusEdital.ABERTO, is_formulario_geral: false },
+        where: { status_edital: StatusEdital.ABERTO },
       });
       return plainToInstance(EditalResponseDto, editais, {
         excludeExtraneousValues: true,

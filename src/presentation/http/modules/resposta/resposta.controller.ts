@@ -20,9 +20,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
 import { CreateRespostaDto } from './dto/create-resposta.dto';
 import { ReabrirComplementoDto } from './dto/reabrir-complemento.dto';
 import { RespostaResponseDto } from './dto/response-resposta.dto';
@@ -145,8 +148,9 @@ export class RespostaController {
   }
 
   @Patch(':id/reabrir-complemento')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.TECNICO, AdminPerfilEnum.GERENCIAL)
   @ApiOperation({ summary: 'Reabrir prazo de complemento (nova pergunta)' })
   @ApiParam({ name: 'id', description: 'ID da resposta', type: 'number' })
   @ApiBody({ type: ReabrirComplementoDto })
@@ -158,8 +162,9 @@ export class RespostaController {
   }
 
   @Patch(':id/validate')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AdminPerfisGuard)
   @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.TECNICO, AdminPerfilEnum.GERENCIAL)
   @ApiOperation({
     summary: 'Validar / invalidar uma resposta',
   })

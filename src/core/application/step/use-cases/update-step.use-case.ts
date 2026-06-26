@@ -9,8 +9,8 @@ export class UpdateStepUseCase {
     private readonly stepRepository: IStepRepository,
   ) {}
 
-  async execute(id: number, texto?: string) {
-    return this.stepRepository.update(id, { texto });
+  async execute(id: number, data: { texto?: string; ordem?: number }) {
+    return this.stepRepository.update(id, data);
   }
 }
 

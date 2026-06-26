@@ -4,6 +4,7 @@ import * as cpfLib from 'validation-br/dist/cpf';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuarios/usuario.entity';
 import { Aluno } from '../entities/aluno/aluno.entity';
+import { AlunoMatriculaHistorico } from '../entities/aluno/aluno-matricula-historico.entity';
 import { StatusDocumento } from '../../../../core/shared-kernel/enums/statusDocumento';
 import type { AlunoData, AtualizaAlunoData } from '../../../../core/domain/aluno/aluno.types';
 import type { IAlunoRepository } from '../../../../core/domain/aluno/ports/aluno.repository.port';
@@ -17,6 +18,10 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Aluno)
+    private readonly alunoRepository: Repository<Aluno>,
+    @InjectRepository(AlunoMatriculaHistorico)
+    private readonly alunoMatriculaHistoricoRepository: Repository<AlunoMatriculaHistorico>,
   ) {}
 
   async findByUserId(userId: string): Promise<AlunoData | null> {
@@ -76,6 +81,24 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
       }
     }
 
+    const matriculaAtual = usuario.aluno.matricula;
+    const matriculaNova = data.matricula ?? matriculaAtual;
+    if (matriculaNova !== matriculaAtual) {
+      const matriculaEmUso = await this.alunoRepository.findOne({
+        where: { matricula: matriculaNova },
+      });
+      if (
+        matriculaEmUso &&
+        matriculaEmUso.aluno_id !== usuario.aluno.aluno_id
+      ) {
+        throw new Error('Matrícula já está vinculada a outro estudante.');
+      }
+      await this.registrarHistoricoMatricula(
+        usuario.aluno,
+        'atualizacao_perfil_aluno',
+      );
+    }
+
     Object.assign(usuario.aluno!, {
       matricula: data.matricula ?? usuario.aluno.matricula,
       curso: data.curso ?? usuario.aluno.curso,
@@ -92,6 +115,31 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
       relations: ['aluno', 'aluno.inscricoes'],
     });
     return this.toAlunoData(updated!);
+  }
+
+  private async registrarHistoricoMatricula(
+    aluno: Aluno,
+    motivo: string,
+  ): Promise<void> {
+    const jaRegistrado = await this.alunoMatriculaHistoricoRepository.findOne({
+      where: {
+        aluno: { aluno_id: aluno.aluno_id },
+        matricula: aluno.matricula,
+      },
+      relations: ['aluno'],
+    });
+    if (jaRegistrado) return;
+
+    const historico = this.alunoMatriculaHistoricoRepository.create({
+      aluno,
+      matricula: aluno.matricula,
+      curso: aluno.curso,
+      campus: String(aluno.campus),
+      data_ingresso: aluno.data_ingresso,
+      nivel_academico: String(aluno.nivel_academico),
+      motivo,
+    });
+    await this.alunoMatriculaHistoricoRepository.save(historico);
   }
 
   async hasReprovadoDocuments(userId: string): Promise<boolean> {
@@ -121,6 +169,10 @@ export class AlunoTypeOrmRepository implements IAlunoRepository {
       campus: aluno.campus,
       dataIngresso: aluno.data_ingresso,
       nivelAcademico: aluno.nivel_academico,
+      cgSituacao: aluno.cg_situacao,
+      cgPcd: aluno.cg_pcd,
+      cgSemestreReferencia: aluno.cg_semestre_referencia ?? null,
+      cgValidoAteSemestre: aluno.cg_valido_ate_semestre ?? null,
       usuarioId: usuario.usuario_id,
       email: usuario.email,
       nome: usuario.nome,

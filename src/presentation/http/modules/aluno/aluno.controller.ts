@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -15,29 +16,31 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { AdminPerfis } from 'src/common/decorators/admin-perfis';
 import { JwtAuthGuard } from 'src/presentation/http/modules/auth/guards/jwt-auth.guard';
+import { AdminPerfisGuard } from 'src/presentation/http/modules/auth/guards/admin-perfis.guard';
 import { RolesGuard } from 'src/presentation/http/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles';
+import { AdminPerfilEnum } from 'src/core/shared-kernel/enums/adminPerfil.enum';
 import { RolesEnum } from 'src/core/shared-kernel/enums/enumRoles';
 import {
   AlunoNaoEncontradoError,
   FindAlunoByUserIdUseCase,
 } from 'src/core/application/aluno/use-cases/find-aluno-by-user-id.use-case';
-import {
-  ListAlunosUseCase,
-  NenhumAlunoEncontradoError,
-} from 'src/core/application/aluno/use-cases/list-alunos.use-case';
 import { UpdateAlunoDataUseCase } from 'src/core/application/aluno/use-cases/update-aluno-data.use-case';
 import AuthenticatedRequest from 'src/core/shared-kernel/types/authenticated-request.interface';
 import { AlunoService } from './aluno.service';
 import { AtualizaDadosAlunoDTO } from './dto/atualizaDadosAluno';
 import { CompleteCadastroAlunoDto } from './dto/complete-cadastro-aluno.dto';
+import { SolicitarRecursoDto } from './dto/solicitar-recurso.dto';
 
 @ApiTags('Alunos')
 @ApiBearerAuth()
@@ -46,7 +49,6 @@ import { CompleteCadastroAlunoDto } from './dto/complete-cadastro-aluno.dto';
 export class AlunoController {
   constructor(
     private readonly findAlunoByUserId: FindAlunoByUserIdUseCase,
-    private readonly listAlunos: ListAlunosUseCase,
     private readonly updateAlunoData: UpdateAlunoDataUseCase,
     private readonly alunoService: AlunoService,
   ) {}
@@ -102,15 +104,22 @@ export class AlunoController {
   })
   @ApiOkResponse({ description: 'Lista retornada' })
   @ApiNotFoundResponse({ description: 'Edital não encontrado' })
+  @ApiForbiddenResponse({ description: 'Apenas admins' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
   async adminAlunosPorEdital(
     @Param('editalId', ParseIntPipe) editalId: number,
     @Query('apenas_beneficiarios_edital') apenasBenef?: string,
     @Query('apenas_inscricao_aprovada') apenasInsc?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.alunoService.listarAlunosComInscricaoNoEdital(editalId, {
       apenasBeneficiariosEdital:
         apenasBenef === 'true' || apenasBenef === '1',
       apenasInscricaoAprovada: apenasInsc === 'true' || apenasInsc === '1',
+      page: page != null ? Number(page) : undefined,
+      limit: limit != null ? Number(limit) : undefined,
     });
   }
 
@@ -124,26 +133,31 @@ export class AlunoController {
   })
   @ApiOkResponse({ description: 'Resumo retornado com sucesso' })
   @ApiNotFoundResponse({ description: 'Aluno não encontrado' })
+  @ApiForbiddenResponse({ description: 'Apenas admins' })
   async adminAlunoResumo(@Param('alunoId', ParseIntPipe) alunoId: number) {
     return this.alunoService.getAdminAlunoResumo(alunoId);
   }
 
   @Get('all')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @ApiOperation({
-    summary: 'Listar todos os alunos',
-    description: 'Retorna uma lista com todos os alunos cadastrados no sistema',
+    summary: '[Admin] Listar todos os alunos',
+    description:
+      'Retorna uma lista com todos os alunos cadastrados no sistema.',
   })
   @ApiOkResponse({ description: 'Lista de alunos encontrada com sucesso' })
-  @ApiNotFoundResponse({ description: 'Nenhum aluno encontrado' })
-  async findAll() {
-    try {
-      return await this.listAlunos.execute();
-    } catch (e) {
-      if (e instanceof NenhumAlunoEncontradoError) {
-        throw new NotFoundException(e.message);
-      }
-      throw e;
-    }
+  @ApiForbiddenResponse({ description: 'Apenas admins' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.alunoService.listarTodosAlunosPaginado(
+      page != null ? Number(page) : undefined,
+      limit != null ? Number(limit) : undefined,
+    );
   }
 
   @Patch('/update')
@@ -193,6 +207,12 @@ export class AlunoController {
       if (e instanceof Error && e.message === 'CPF já cadastrado.') {
         throw new BadRequestException(e.message);
       }
+      if (
+        e instanceof Error &&
+        e.message === 'Matrícula já está vinculada a outro estudante.'
+      ) {
+        throw new BadRequestException(e.message);
+      }
       throw e;
     }
   }
@@ -213,20 +233,102 @@ export class AlunoController {
     return this.alunoService.getStudentRegistration(userId);
   }
 
-  @Get('/edital/:editalId/step/:stepId/alunos')
+  @Post('/inscricoes/:inscricaoId/recurso')
   @ApiOperation({
-    summary: 'Listar alunos inscritos em questionário específico',
-    description: 'Retorna todos os alunos que responderam um questionário (step) específico de um edital',
+    summary: 'Aluno solicita recurso administrativo da inscrição',
+    description:
+      'Permite ao estudante abrir recurso quando houver resultado preliminar publicado.',
+  })
+  @ApiParam({
+    name: 'inscricaoId',
+    description: 'ID da inscrição',
+    type: 'number',
+  })
+  @ApiOkResponse({ description: 'Recurso solicitado com sucesso' })
+  @ApiBadRequestResponse({ description: 'Fora das regras para recurso' })
+  async solicitarRecursoInscricao(
+    @Req() request: AuthenticatedRequest,
+    @Param('inscricaoId', ParseIntPipe) inscricaoId: number,
+    @Body() dto: SolicitarRecursoDto,
+  ) {
+    const { userId, roles } = request.user;
+    await this.alunoService.assertAlunoEmailConfirmadoParaPortal(
+      userId,
+      roles ?? [],
+    );
+    return this.alunoService.solicitarRecursoInscricao(
+      userId,
+      inscricaoId,
+      dto.justificativa,
+    );
+  }
+
+  @Get('/edital/:editalId/step/:stepId/alunos')
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({
+    summary: '[Admin] Listar alunos inscritos em questionário específico',
+    description:
+      'Retorna todos os alunos que responderam um questionário específico de um edital.',
   })
   @ApiParam({ name: 'editalId', description: 'ID do edital', type: 'number', example: 1 })
   @ApiParam({ name: 'stepId', description: 'ID do step/questionário', type: 'number', example: 1 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({
+    name: 'busca',
+    required: false,
+    description: 'Busca por nome, e-mail, matrícula ou campus',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description:
+      'Filtro opcional de status (aprovada, rejeitada, pendente, ajuste_necessario).',
+  })
   @ApiOkResponse({ description: 'Lista de alunos inscritos no questionário encontrada com sucesso' })
   @ApiNotFoundResponse({ description: 'Edital ou step não encontrado' })
   @ApiBadRequestResponse({ description: 'Parâmetros inválidos' })
+  @ApiForbiddenResponse({ description: 'Apenas admins' })
   async findAlunosInscritosEmStep(
     @Param('editalId', ParseIntPipe) editalId: number,
     @Param('stepId', ParseIntPipe) stepId: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('busca') busca?: string,
+    @Query('status') status?: string,
   ) {
-    return this.alunoService.findAlunosInscritosEmStep(editalId, stepId);
+    return this.alunoService.findAlunosInscritosEmStep(editalId, stepId, {
+      page: page != null ? Number(page) : undefined,
+      limit: limit != null ? Number(limit) : undefined,
+      busca,
+      status,
+    });
+  }
+
+  @Delete('admin/:alunoId/perfil')
+  @UseGuards(RolesGuard, AdminPerfisGuard)
+  @Roles(RolesEnum.ADMIN)
+  @AdminPerfis(AdminPerfilEnum.GERENCIAL)
+  @ApiOperation({
+    summary: '[Gerencial] Excluir perfil de aluno',
+    description:
+      'Remove o perfil de estudante (role aluno + vínculo aluno) quando não houver inscrições vinculadas.',
+  })
+  @ApiParam({ name: 'alunoId', type: 'number' })
+  @ApiOkResponse({ description: 'Perfil de aluno removido' })
+  @ApiForbiddenResponse({ description: 'Apenas perfil gerencial' })
+  @ApiNotFoundResponse({ description: 'Aluno não encontrado' })
+  @ApiBadRequestResponse({
+    description: 'Não permitido remover o próprio perfil ou aluno com inscrições',
+  })
+  async excluirPerfilAluno(
+    @Req() request: AuthenticatedRequest,
+    @Param('alunoId', ParseIntPipe) alunoId: number,
+  ) {
+    return this.alunoService.removeAlunoPerfilByGerencial(
+      request.user.userId,
+      alunoId,
+    );
   }
 }

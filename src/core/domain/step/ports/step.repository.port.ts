@@ -4,7 +4,14 @@ export interface IStepRepository {
   findByEditalId(editalId: number): Promise<StepData[]>;
   findByEditalIdWithPerguntas(editalId: number): Promise<StepWithPerguntasData[]>;
   create(data: Omit<StepData, 'id'>): Promise<StepData>;
-  update(id: number, data: Partial<Pick<StepData, 'texto'>>): Promise<StepData>;
+  update(
+    id: number,
+    data: Partial<Pick<StepData, 'texto' | 'ordem'>>,
+  ): Promise<StepData>;
   remove(id: number): Promise<void>;
+  reorderByEdital(
+    editalId: number,
+    updates: { id: number; ordem: number }[],
+  ): Promise<void>;
 }
 

@@ -18,6 +18,14 @@ class EtapaEditalResponseDto {
   @Expose()
   etapa: string;
 
+  @ApiProperty({
+    required: false,
+    description:
+      'Tipo semântico opcional da etapa (ex.: INSCRICAO, RECURSO, RESULTADO_PRELIMINAR).',
+  })
+  @Expose()
+  tipo_etapa?: string;
+
   @ApiProperty({ description: 'Ordem do elemento' })
   @Expose()
   ordem_elemento: number;
@@ -57,6 +65,37 @@ export class EditalResponseDto {
   status_edital: StatusEdital;
 
   @ApiProperty({
+    type: Boolean,
+    description:
+      'Indica se o edital é de renovação anual de benefícios.',
+  })
+  @Expose()
+  is_formulario_renovacao?: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: 'Indica se o edital é chamada de Cadastro Geral (CG).',
+  })
+  @Expose()
+  is_cadastro_geral?: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description:
+      'Indica se as inscrições estão abertas neste edital (controle manual).',
+  })
+  @Expose()
+  inscricoes_abertas?: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description:
+      'Indica se os ajustes/correções de pendências estão abertos para alunos.',
+  })
+  @Expose()
+  ajustes_abertos?: boolean;
+
+  @ApiProperty({
     type: [EtapaEditalResponseDto],
     description: 'Etapas do edital',
   })
@@ -71,14 +110,6 @@ export class EditalResponseDto {
   @ApiProperty({ type: Date, description: 'Data de atualização' })
   @Expose()
   updated_at: Date;
-
-  @ApiProperty({ type: Boolean, description: 'Indica Formulário Geral' })
-  @Expose()
-  is_formulario_geral: boolean;
-
-  @ApiProperty({ type: Boolean, description: 'Indica Formulário de Renovação' })
-  @Expose()
-  is_formulario_renovacao: boolean;
 
   @ApiProperty({ enum: NivelAcademico, description: 'Graduação ou Pós-graduação' })
   @Expose()

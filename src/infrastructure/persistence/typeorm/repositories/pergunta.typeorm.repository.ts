@@ -18,18 +18,29 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
     const perguntas = await this.perguntaRepository.find({
       where: { step: { id: stepId } },
       relations: ['dado'],
-      order: { id: 'ASC' },
+      order: { ordem: 'ASC', id: 'ASC' },
     });
     return perguntas.map((p) => this.toPerguntaData(p));
   }
 
   async create(data: Omit<PerguntaData, 'id'>): Promise<PerguntaData> {
+    let ordem = data.ordem;
+    if (ordem === undefined || ordem === null) {
+      const last = await this.perguntaRepository.findOne({
+        where: { step: { id: data.stepId } },
+        order: { ordem: 'DESC', id: 'DESC' },
+      });
+      ordem = ((last?.ordem ?? 0) || 0) + 1;
+    }
     const entity = this.perguntaRepository.create({
       tipo_Pergunta: data.tipoPergunta,
       pergunta: data.texto,
       obrigatoriedade: data.obrigatoria,
       opcoes: data.opcoes ?? [],
       tipo_formatacao: data.tipoFormatacao ?? undefined,
+      ordem,
+      condicao: data.condicao ?? null,
+      pontuacao_validacao: Number(data.pontuacaoValidacao ?? 0),
       step: { id: data.stepId } as any,
       dado: data.dadoId ? ({ id: data.dadoId } as any) : undefined,
     });
@@ -65,6 +76,15 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
     if (data.dadoId !== undefined) {
       pergunta.dado = data.dadoId ? ({ id: data.dadoId } as any) : null;
     }
+    if (data.ordem !== undefined && data.ordem !== null) {
+      pergunta.ordem = data.ordem;
+    }
+    if (data.condicao !== undefined) {
+      pergunta.condicao = data.condicao ?? null;
+    }
+    if (data.pontuacaoValidacao !== undefined) {
+      pergunta.pontuacao_validacao = Number(data.pontuacaoValidacao ?? 0);
+    }
 
     const saved = await this.perguntaRepository.save(pergunta);
     return this.toPerguntaData(saved);
@@ -72,6 +92,26 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
 
   async remove(id: number): Promise<void> {
     await this.perguntaRepository.delete({ id });
+  }
+
+  /**
+   * Reordenação em lote, restrita às perguntas que pertencem ao step informado.
+   */
+  async reorderByStep(
+    stepId: number,
+    updates: { id: number; ordem: number }[],
+  ): Promise<void> {
+    if (!updates.length) return;
+    await this.perguntaRepository.manager.transaction(async (manager) => {
+      const perguntas = await manager.find(Pergunta, {
+        where: { step: { id: stepId } },
+      });
+      const owned = new Set(perguntas.map((p) => p.id));
+      for (const u of updates) {
+        if (!owned.has(u.id)) continue;
+        await manager.update(Pergunta, { id: u.id }, { ordem: u.ordem });
+      }
+    });
   }
 
   private toPerguntaData(entity: Pergunta): PerguntaData {
@@ -84,6 +124,9 @@ export class PerguntaTypeOrmRepository implements IPerguntaRepository {
       opcoes: entity.opcoes ?? [],
       tipoFormatacao: entity.tipo_formatacao ?? null,
       dadoId: entity.dado?.id ?? null,
+      ordem: entity.ordem ?? 0,
+      condicao: (entity.condicao ?? null) as PerguntaData['condicao'],
+      pontuacaoValidacao: Number(entity.pontuacao_validacao ?? 0),
     };
   }
 }

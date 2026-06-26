@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { StatusInscricao } from 'src/core/shared-kernel/enums/enumStatusInscricao';
 
-/** Admin: alterar status de qualquer inscrição (editais comuns, FG ou renovação). */
+/** Admin: alterar status de qualquer inscrição (editais comuns, CG ou renovação). */
 export class UpdateAdminInscricaoStatusDto {
   @ApiProperty({ enum: StatusInscricao, description: 'Novo status da inscrição' })
   @IsEnum(StatusInscricao)
@@ -14,4 +14,12 @@ export class UpdateAdminInscricaoStatusDto {
   @IsOptional()
   @IsString()
   observacao?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Em chamadas de Cadastro Geral: registra PCD no perfil do aluno ao deferir (permite 2 benefícios).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  marcar_pcd_cg?: boolean;
 }

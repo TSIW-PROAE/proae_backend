@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IPerguntaRepository } from '../ports/pergunta.repository.port';
 import { PERGUNTA_REPOSITORY } from '../pergunta.tokens';
-import type { PerguntaData } from '../../../domain/pergunta/pergunta.types';
+import type {
+  PerguntaCondicao,
+  PerguntaData,
+} from '../../../domain/pergunta/pergunta.types';
 import type { EnumInputFormat } from '../../../shared-kernel/enums/enumInputFormat';
 
 export interface UpdatePerguntaCommand {
@@ -10,6 +13,9 @@ export interface UpdatePerguntaCommand {
   opcoes?: string[] | null;
   tipoFormatacao?: EnumInputFormat | null;
   dadoId?: number | null;
+  ordem?: number;
+  condicao?: PerguntaCondicao | null;
+  pontuacaoValidacao?: number;
 }
 
 @Injectable()
