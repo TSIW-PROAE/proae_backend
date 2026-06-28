@@ -15,14 +15,6 @@
 
 </div>
 
-## 🚀 Ambiente Online
-
-O sistema está disponível em:
-
-```
-http://b8ckk40k0ook00gckgk44s84.201.54.12.165.sslip.io/
-```
-
 ## 🔧 Instalação Rápida
 
 ```bash
